@@ -8,6 +8,7 @@ import SignUp3Screen from './screens/SignUp3Screen';
 import FindIdScreen from './screens/FindIdScreen';
 import FindPasswordScreen from './screens/FindPasswordScreen';
 import SplashScreen from './src/screens/SplashScreen';
+import MainScreen from './src/screens/MainScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,6 +18,7 @@ export default function StackNavigator() {
       
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Main" component={MainScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="SignUp2" component={SignUp2Screen} />
       <Stack.Screen name="SignUp3" component={SignUp3Screen} />
