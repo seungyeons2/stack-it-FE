@@ -1,10 +1,54 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import EyeOpen from '../components/EyeOpen';
 import EyeClosed from '../components/EyeClosed';
 
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('알림', '이메일과 비밀번호를 모두 입력해주세요.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/sessions',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        await AsyncStorage.setItem('userToken', data.data.token);
+        Alert.alert('성공', '로그인이 완료되었습니다.');
+        navigation.navigate('../src/screens/MainScreen.js');
+      } else {
+        Alert.alert('오류', data.message || '로그인에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -15,6 +59,10 @@ const LoginScreen = ({ navigation }) => {
         style={styles.input}
         placeholder="이메일(아이디)를 입력해주세요"
         placeholderTextColor="#CCCDD0"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       
       <Text style={styles.label}>비밀번호</Text>
@@ -24,14 +72,22 @@ const LoginScreen = ({ navigation }) => {
           placeholder="비밀번호를 입력해주세요"
           placeholderTextColor="#CCCDD0"
           secureTextEntry={seePassword}
+          value={password}
+          onChangeText={setPassword}
         />
         <TouchableOpacity onPress={() => setSeePassword(!seePassword)} style={styles.icon}>
           {seePassword ? <EyeClosed /> : <EyeOpen />}
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>로그인</Text>
+      <TouchableOpacity 
+        style={[styles.button, isLoading && styles.buttonDisabled]}
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        <Text style={styles.buttonText}>
+          {isLoading ? '로그인 중...' : '로그인'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.buttonContainer}>
@@ -51,7 +107,6 @@ const LoginScreen = ({ navigation }) => {
   );
 };
 
-// ✅ 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -85,6 +140,7 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     fontSize: 16,
     backgroundColor: '#f9f9f9',
+    color: 'black',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -115,6 +171,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     bottom: 80,
+  },
+  buttonDisabled: {
+    backgroundColor: '#d3d3d3',
   },
   buttonText: {
     color: '#fff',
