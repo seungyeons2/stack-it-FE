@@ -37,8 +37,9 @@ const LoginScreen = ({ navigation }) => {
 
       if (data.status === 'success') {
         await AsyncStorage.setItem('userToken', data.data.token);
-        Alert.alert('성공', '로그인이 완료되었습니다.');
-        navigation.navigate('Main');
+        console.log('로그인 성공, MainTab으로 이동 시도');
+        navigation.navigate('MainTab');
+        console.log('MainTab 네비게이션 완료');
       } else {
         Alert.alert('오류', data.message || '로그인에 실패했습니다.');
       }
