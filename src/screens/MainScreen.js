@@ -37,6 +37,7 @@ const mockStocks = [
 ];
 
 const MainScreen = ({navigation}) => {
+  console.log('MainScreen 나타났음');
   const [searchText, setSearchText] = useState('');
   const [watchlist, setWatchlist] = useState(mockStocks);
 
@@ -112,6 +113,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#003340',
     padding: 30,
+    paddingBottom: 90,
   },
   searchContainer: {
     marginTop: 40,
