@@ -87,13 +87,22 @@ const SignUp2Screen = ({ navigation }) => {
         ))}
       </ScrollView>
 
-      {/* 동의하기 버튼 */}
-      <TouchableOpacity
-        style={[styles.button, !(agreements.required1 && agreements.required2 && agreements.required3 && agreements.required4 && agreements.required5 && agreements.required6) ? styles.buttonDisabled : null]}
-        disabled={!(agreements.required1 && agreements.required2 && agreements.required3 && agreements.required4 && agreements.required5 && agreements.required6)}
-      >
-        <Text style={styles.buttonText}>동의하기</Text>
-      </TouchableOpacity>
+    {/* 동의하기 버튼 */}
+    <TouchableOpacity
+      style={[
+        styles.button,
+        !(agreements.required1 && agreements.required2 && agreements.required3 &&
+          agreements.required4 && agreements.required5 && agreements.required6)
+          ? styles.buttonDisabled
+          : null,
+      ]}
+      disabled={!(agreements.required1 && agreements.required2 && agreements.required3 &&
+                  agreements.required4 && agreements.required5 && agreements.required6)}
+      onPress={() => navigation.navigate('SignUp3')} // ✅ 동의 완료 후 SignUp3로 이동
+    >
+      <Text style={styles.buttonText}>동의하기</Text>
+    </TouchableOpacity>
+
     </View>
   );
 };
