@@ -20,7 +20,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await fetch(
-        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/sessions',
+        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/sessions/',
         {
           method: 'POST',
           headers: {
@@ -38,7 +38,7 @@ const LoginScreen = ({ navigation }) => {
       if (data.status === 'success') {
         await AsyncStorage.setItem('userToken', data.data.token);
         Alert.alert('성공', '로그인이 완료되었습니다.');
-        navigation.navigate('../src/screens/MainScreen.js');
+        navigation.navigate('Main');
       } else {
         Alert.alert('오류', data.message || '로그인에 실패했습니다.');
       }
