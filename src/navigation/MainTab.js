@@ -15,55 +15,66 @@ import MyPageSelectedIcon from '../../assets/icons/mypage-selected.svg';
 const Tab = createBottomTabNavigator();
 
 const MainTab = () => {
-    console.log('MainTab 나타났음');
-    return (
-        <Tab.Navigator
-        screenOptions={({ route }) => ({
+  console.log('MainTab 나타났음');
+  return (
+    <Tab.Navigator
+      screenOptions={({route}) => ({
         headerShown: false,
         tabBarStyle: {
-        backgroundColor: '#003340',
-        borderTopColor: 'transparent',
-        height: 65,
-        paddingBottom: 15,
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        elevation: 0,
-        zIndex: 999, // 추가
+          backgroundColor: '#003340',
+          borderTopColor: 'transparent',
+          height: 65,
+          paddingBottom: 15,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          elevation: 0,
+          zIndex: 999,
         },
-        tabBarIcon: ({ focused, size }) => {
-        let Icon;
-        if (route.name === 'Home') {
+        tabBarIcon: ({focused, size}) => {
+          console.log(`Tab pressed: ${route.name}, focused: ${focused}`);
+          let Icon;
+          if (route.name === 'Home') {
             Icon = focused ? HomeSelectedIcon : HomeIcon;
-        } else if (route.name === 'Chatbot') {
+          } else if (route.name === 'Chatbot') {
             Icon = focused ? ChatbotSelectedIcon : ChatbotIcon;
-        } else {
+          } else {
             Icon = focused ? MyPageSelectedIcon : MyPageIcon;
-        }
-        return <Icon width={50} height={50} />;
+          }
+          return <Icon width={50} height={50} />;
         },
         tabBarShowLabel: false,
-    })}
-    tabBarOptions={{
-        showLabel: false,
-        style: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        elevation: 0,
-        backgroundColor: '#003340',
-        borderTopColor: 'transparent',
-        height: 65,
-        },
-    }}
-    >
-<Tab.Screen name="Home" component={MainScreen} />
-      <Tab.Screen name="Chatbot" component={ChatbotScreen} />
-      <Tab.Screen name="MyPage" component={MyPageScreen} />
+      })}>
+      <Tab.Screen 
+        name="Home" 
+        component={MainScreen}
+        listeners={{
+          tabPress: e => {
+            console.log('Home tab pressed');
+          },
+        }}
+      />
+      <Tab.Screen 
+        name="Chatbot" 
+        component={ChatbotScreen}
+        listeners={{
+          tabPress: e => {
+            console.log('Chatbot tab pressed');
+          },
+        }}
+      />
+      <Tab.Screen 
+        name="MyPage" 
+        component={MyPageScreen}
+        listeners={{
+          tabPress: e => {
+            console.log('MyPage tab pressed');
+          },
+        }}
+      />
     </Tab.Navigator>
-    );
+  );
 };
 
 export default MainTab;

@@ -1,10 +1,11 @@
 import React from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 const ChatbotScreen = () => {
+  console.log('ChatbotScreen 렌더링');
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>챗봇 화면</Text>
+      <Text style={styles.text}>Chatbot Screen</Text>
     </View>
   );
 };
@@ -15,11 +16,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#003340',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 30,
   },
   text: {
-    color: '#EFF1F5',
-    fontSize: 18,
-  },
+    color: '#F074BA',
+    fontSize: 24,
+  }
 });
 
 export default ChatbotScreen;
