@@ -3,7 +3,7 @@ name: Doodook Issue Template
 about: 작성하지 않을 항목은 삭제하여 업로드해 주세요.
 title: "[부서명] \U0001F3F7️ <기능/페이지명>: <작업 내용>"
 labels: ''
-assignees: heodabin, seungyeons2, spacefoul, YejinR, yeonchaepark
+assignees: seungyeons2, spacefoul
 
 ---
 
