@@ -15,33 +15,57 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('알림', '이메일과 비밀번호를 모두 입력해주세요.');
       return;
     }
-
+  
     setIsLoading(true);
-
+  
     try {
+      // 로그인 시도 전 로그 추가
+      console.log('로그인 시도:', { email, password: '***' });
+      
       const response = await fetch(
-        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/sessions/',
+        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email,
+            email,  // email 필드명 사용
             password,
           }),
         }
       );
-
-      const data = await response.json();
-
-      if (data.status === 'success') {
-        await AsyncStorage.setItem('userToken', data.data.token);
+  
+      // 응답 상태 로깅
+      console.log('응답 상태:', response.status);
+      
+      const responseText = await response.text();
+      console.log('응답 본문:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('JSON 파싱 오류:', e);
+        Alert.alert('오류', '서버 응답을 처리할 수 없습니다.');
+        setIsLoading(false);
+        return;
+      }
+  
+      if (response.ok && data.access) {
+        console.log('토큰 발급 성공');
+        // Save both access and refresh tokens
+        await AsyncStorage.setItem('accessToken', data.access);
+        if (data.refresh) {
+          await AsyncStorage.setItem('refreshToken', data.refresh);
+        }
+        
         console.log('로그인 성공, MainTab으로 이동 시도');
         navigation.navigate('MainTab');
         console.log('MainTab 네비게이션 완료');
       } else {
-        Alert.alert('오류', data.message || '로그인에 실패했습니다.');
+        console.log('로그인 실패:', data);
+        Alert.alert('오류', data.detail || '로그인에 실패했습니다.');
       }
     } catch (error) {
       console.error('Login error:', error);
