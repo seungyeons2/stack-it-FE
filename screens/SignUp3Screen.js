@@ -1,206 +1,158 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Clipboard, ScrollView } from 'react-native';
 
-const SignUp3Screen = ({ navigation }) => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
-  const [sentCode, setSentCode] = useState(null); // 서버에서 발송된 코드
+const SignUp3Screen = ({ navigation, route }) => {
+  const { email, id } = route.params;
+  const [tokenInput, setTokenInput] = useState('');
+  const [inputHeight, setInputHeight] = useState(100); // 동적 높이 조절
+  const textInputRef = useRef(null);
 
-  // ✅ 인증번호 전송
-  const handleSendCode = () => {
-    if (phoneNumber.length >= 10) {
-      const generatedCode = '123ABC'; // 실제 서버에서는 랜덤 생성
-      setSentCode(generatedCode);
-      console.log(`인증번호 발송: ${generatedCode}`);
-    } else {
-      alert('올바른 전화번호를 입력하세요.');
-    }
+  // 🔥 공백을 만나기 전까지 token= 이후 모든 문자 포함하는 정규식으로 수정
+  const extractToken = (input) => {
+    const match = input.match(/token=([\w-._]+)/);
+    return match ? match[1] : input; // "token=" 다음 값이 있으면 추출, 없으면 그대로 반환
   };
 
-  // ✅ 인증번호 확인
-  const handleVerifyCode = () => {
-    if (verificationCode === sentCode) {
-      setIsVerified(true);
-    } else {
-      alert('인증번호가 올바르지 않습니다.');
+  const handleTokenChange = (input) => {
+    const cleanedToken = extractToken(input);
+    setTokenInput(cleanedToken);
+  };
+
+  const verifyEmail = async () => {
+    if (!tokenInput.trim()) {
+      Alert.alert('오류', '이메일에서 받은 인증 토큰을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // 🔥 올바른 인증 요청 URL 생성
+      const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/${id}/activation?token=${encodeURIComponent(tokenInput)}`;
+
+      console.log("🔍 인증 요청 URL:", url);
+
+      const response = await fetch(url, { method: 'GET' });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`서버 응답 오류: ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("📩 서버 응답 데이터:", data);
+
+      if (data.status === 'success') {
+        console.log("✅ 이메일 인증 성공, LoginScreen으로 이동");
+        Alert.alert('이메일 인증 완료', '회원가입이 성공적으로 완료되었습니다.', [
+          {
+            text: "확인",
+            onPress: () => {
+              navigation.replace('Login', { id, email });
+            }
+          }
+        ]);
+      } else {
+        Alert.alert('오류', data.message || '이메일 인증 실패');
+      }
+    } catch (error) {
+      console.error("🚨 Network Error:", error);
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
     }
   };
 
   return (
-    <View style={styles.container}>
-      {/* 🔙 뒤로 가기 버튼 */}
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>{'<'}</Text>
-      </TouchableOpacity>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>이메일 인증</Text>
+      <Text style={styles.label}>이메일에서 받은 링크를 복사해서 붙여넣어 주세요.</Text>
 
-      {/* 🏷 타이틀 */}
-      <Text style={styles.title}>전화번호를 입력해주세요.</Text>
+      {/* 🔥 긴 토큰을 온전히 붙여넣을 수 있도록 설정 */}
+      <TextInput
+        ref={textInputRef}
+        style={[styles.input, { height: inputHeight }]}
+        placeholder="여기에 링크 또는 토큰을 붙여넣으세요."
+        value={tokenInput}
+        onChangeText={handleTokenChange}
+        multiline={true}  // 여러 줄 입력 가능
+        textAlignVertical="top"  // 텍스트 상단 정렬
+        onContentSizeChange={(event) => setInputHeight(event.nativeEvent.contentSize.height)}
+      />
 
-      {/* 📞 전화번호 입력 */}
-      <Text style={styles.label}>전화번호</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="010-1234-5678"
-          placeholderTextColor="#ccc"
-          keyboardType="phone-pad"
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-        />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendCode}>
-          <Text style={styles.sendButtonText}>전송</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 🔢 인증번호 입력 */}
-      <Text style={styles.label}>인증번호</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="인증번호 입력"
-          placeholderTextColor="#ccc"
-          value={verificationCode}
-          onChangeText={setVerificationCode}
-        />
-        <TouchableOpacity style={styles.verifyButton} onPress={handleVerifyCode}>
-          <Text style={styles.verifyButtonText}>확인</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* ✅ 인증 성공 메시지 */}
-      {isVerified && <Text style={styles.successText}>인증 완료!</Text>}
-
-      {/* 🎉 완료 버튼 */}
+      {/* 📋 복사 기능 추가 */}
       <TouchableOpacity
-        style={[styles.completeButton, isVerified ? styles.activeButton : styles.disabledButton]}
-        disabled={!isVerified}
+        style={styles.copyButton}
+        onPress={() => {
+          Clipboard.setString(tokenInput);
+          Alert.alert('복사됨', '토큰이 클립보드에 복사되었습니다.');
+        }}
       >
-        <Text style={styles.completeButtonText}>완료</Text>
+        <Text style={styles.copyButtonText}>📋 토큰 복사</Text>
       </TouchableOpacity>
-    </View>
+
+      <TouchableOpacity style={styles.button} onPress={verifyEmail}>
+        <Text style={styles.buttonText}>인증하기</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 };
 
-// ✅ 스타일 정의
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#003340',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
   },
-
-  // 🔙 뒤로 가기 버튼
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  backText: {
-    fontSize: 36,
-    color: '#F074BA',
-  },
-
-  // 🏷 타이틀
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#F074BA',
-    position: 'absolute',
-    top: 150,
-    left: 30,
+    marginBottom: 20,
+    textAlign: 'center',
   },
-
-  // 🏷 라벨
   label: {
     fontSize: 16,
     color: '#F074BA',
-    alignSelf: 'flex-start',
-    marginTop: 10,
+    alignSelf: 'center',
     marginBottom: 10,
+    textAlign: 'center',
   },
-
-  // 📞 입력 필드 스타일
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  input: {
     width: '100%',
+    minHeight: 100, // 최소 높이 설정
+    maxHeight: 300, // 너무 커지지 않도록 제한
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    marginBottom: 10,
-    paddingHorizontal: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    fontSize: 16,
-    color: 'black',
-  },
-
-  // 📨 인증번호 전송 버튼
-  sendButton: {
-    width: 60,
-    height: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#CCCDD0',
-    borderRadius: 16,
-    marginLeft: 10,
-  },
-  sendButtonText: {
-    fontSize: 14,
-    color: 'black',
-  },
-
-  // ✅ 인증번호 확인 버튼
-  verifyButton: {
-    width: 60,
-    height: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#CCCDD0',
-    borderRadius: 16,
-    marginLeft: 10,
-  },
-  verifyButtonText: {
-    fontSize: 14,
-    color: 'black',
-  },
-
-  // 🎉 인증 완료 메시지
-  successText: {
-    fontSize: 14,
-    color: 'lightgreen',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     marginBottom: 15,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    color: 'black',
+    textAlignVertical: 'top',  // 여러 줄 입력 시 텍스트가 위쪽에서 시작하도록 설정
   },
-
-  // 🎉 완료 버튼
-  completeButton: {
+  copyButton: {
     width: '100%',
-    height: 50,
+    height: 40,
+    backgroundColor: '#008CBA',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'absolute',
-    bottom: 80,
+    marginBottom: 10,
   },
-
-  // ✅ 활성화된 버튼 (핑크)
-  activeButton: {
+  copyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  button: {
+    width: '100%',
+    height: 50,
     backgroundColor: '#F074BA',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
-  // 🚫 비활성화된 버튼 (연핑크)
-  disabledButton: {
-    backgroundColor: '#F8C7CC',
-  },
-
-  completeButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
