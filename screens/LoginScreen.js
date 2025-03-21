@@ -124,7 +124,7 @@ const LoginScreen = ({ navigation }) => {
           <Text style={styles.findPasswordText}>비밀번호 찾기</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={styles.signUpButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('SignUp1')} style={styles.signUpButton}>
           <Text style={styles.findPasswordText}>회원가입</Text>
         </TouchableOpacity>
       </View>

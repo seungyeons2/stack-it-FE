@@ -27,7 +27,7 @@ const SplashScreen = ({navigation}) => {
 
         <TouchableOpacity
           style={styles.signupButton}
-          onPress={() => navigation.navigate('SignUp')}>
+          onPress={() => navigation.navigate('SignUp1')}>
           <Text style={styles.signupButtonText}>
             두둑이 처음이라면?{' '}
             <Text style={[styles.signupButtonText, styles.underline]}>
