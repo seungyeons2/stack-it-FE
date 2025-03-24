@@ -1,17 +1,40 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 
 const FindPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSendCode = () => {
-    console.log(`Sending verification code to: ${email}`);
-  };
+  const handleSendCode = async () => {
+    if (!email) {
+      Alert.alert('오류', '이메일을 입력해주세요.');
+      return;
+    }
 
-  const handleVerifyCode = () => {
-    setIsVerified(true);
+    setLoading(true);
+    try {
+      const response = await fetch(
+        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/password_reset/request/',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert('성공', '비밀번호 재설정 링크를 이메일로 보냈습니다.');
+      } else {
+        Alert.alert('오류', data.message || '비밀번호 찾기에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error("🚨 Network Error:", error);
+      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -32,34 +55,18 @@ const FindPasswordScreen = ({ navigation }) => {
           placeholder="가입 시 사용한 이메일 입력"
           placeholderTextColor="#ccc"
           keyboardType="email-address"
+          autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSendCode}>
-          <Text style={styles.sendButtonText}>전송</Text>
+        <TouchableOpacity 
+          style={[styles.sendButton, loading && styles.disabledButton]} 
+          onPress={handleSendCode}
+          disabled={loading}
+        >
+          <Text style={styles.sendButtonText}>{loading ? '전송 중...' : '전송'}</Text>
         </TouchableOpacity>
       </View>
-
-      {/* 🔢 인증번호 입력 */}
-      <Text style={styles.label}>인증번호 입력</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="인증번호 입력"
-          placeholderTextColor="#ccc"
-          keyboardType="number-pad"
-          value={verificationCode}
-          onChangeText={setVerificationCode}
-        />
-        <TouchableOpacity style={styles.verifyButton} onPress={handleVerifyCode}>
-          <Text style={styles.verifyButtonText}>확인</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 🔓 비밀번호 찾기 버튼 */}
-      <TouchableOpacity style={[styles.findButton, !isVerified && styles.disabledButton]} disabled={!isVerified}>
-        <Text style={styles.findButtonText}>비밀번호 찾기</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -73,8 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 30,
   },
-
-  // 🔙 뒤로 가기 버튼 스타일
+  
   backButton: {
     position: 'absolute',
     top: 50,
@@ -86,7 +92,6 @@ const styles = StyleSheet.create({
     color: '#F074BA',
   },
 
-  // 🏷 타이틀 스타일
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -96,7 +101,6 @@ const styles = StyleSheet.create({
     left: 30,
   },
 
-  // 🏷 라벨 스타일
   label: {
     fontSize: 16,
     color: '#F074BA',
@@ -105,7 +109,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // 📧 입력 필드 스타일
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -117,6 +120,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
   },
+  
   input: {
     flex: 1,
     height: 50,
@@ -124,7 +128,6 @@ const styles = StyleSheet.create({
     color: 'black',
   },
 
-  // 📨 전송 버튼
   sendButton: {
     width: 60,
     height: 35,
@@ -134,46 +137,14 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginLeft: 10,
   },
+
+  disabledButton: {
+    backgroundColor: '#A0A0A0',
+  },
+
   sendButtonText: {
     fontSize: 14,
     color: 'black',
-  },
-
-  // ✅ 인증번호 확인 버튼
-  verifyButton: {
-    width: 60,
-    height: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#CCCDD0',
-    borderRadius: 16,
-    marginLeft: 10,
-  },
-  verifyButtonText: {
-    fontSize: 14,
-    color: 'black',
-  },
-
-  // 🔓 비밀번호 찾기 버튼
-  findButton: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#F074BA',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 40,
-  },
-
-  // 🚫 비활성화된 버튼 스타일
-  disabledButton: {
-    backgroundColor: '#F8C7CC',
-  },
-
-  findButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
 });
 

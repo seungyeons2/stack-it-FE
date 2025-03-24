@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -11,7 +12,9 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getNewAccessToken } from '../utils/auth';
+import { fetchUserBalance } from '../utils/account';
 
 const TradingBuyScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -50,94 +53,72 @@ const TradingBuyScreen = ({ route, navigation }) => {
   };
 
   // 사용자 잔고 조회
-  const fetchUserBalance = async () => {
-    try {
-      const accessToken = await AsyncStorage.getItem("accessToken");
+  // const fetchUserBalance = async () => {
+  //   try {
+  //     const accessToken = await AsyncStorage.getItem("accessToken");
 
-      if (!accessToken) {
-        console.error("액세스 토큰이 없습니다.");
-        navigation.navigate("Login");
-        return;
-      }
+  //     if (!accessToken) {
+  //       console.error("액세스 토큰이 없습니다.");
+  //       navigation.navigate("Login");
+  //       return;
+  //     }
 
-      console.log("사용 중인 액세스 토큰:", accessToken);
+  //     console.log("사용 중인 액세스 토큰:", accessToken);
 
-      const response = await fetch(
-        "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/account/",
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+  //     const response = await fetch(
+  //       "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/account/",
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${accessToken}`,
+  //           "Content-Type": "application/json",
+  //         },
+  //       }
+  //     );
 
-      console.log("응답 상태:", response.status);
+  //     console.log("응답 상태:", response.status);
 
-      // 토큰 만료 처리
-      if (response.status === 401) {
-        const refreshToken = await AsyncStorage.getItem("refreshToken");
+  //   if (response.status === 401) {
+  //     console.warn("🔑 Access Token 만료됨. 재발급 시도 중...");
+    
+  //     const newToken = await getNewAccessToken(); // ← 너가 만든 함수
+    
+  //     if (newToken) {
+  //       console.log("🔁 새 토큰으로 잔고 재요청");
+  //       return fetchUserBalance(); // 재시도
+  //     } else {
+  //       console.error("❌ 토큰 재발급 실패. 로그인 화면으로 이동");
+  //       navigation.navigate("Login");
+  //       return;
+  //     }
+  //   }
+    
 
-        if (refreshToken) {
-          // 리프레시 토큰으로 새 액세스 토큰 요청
-          const refreshResponse = await fetch(
-            "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/refresh/",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                refresh: refreshToken,
-              }),
-            }
-          );
 
-          const refreshData = await refreshResponse.json();
 
-          if (refreshResponse.ok && refreshData.access) {
-            // 새 액세스 토큰 저장
-            await AsyncStorage.setItem("accessToken", refreshData.access);
 
-            // 새 토큰으로 다시 요청
-            return fetchUserBalance();
-          } else {
-            // 리프레시 토큰도 만료된 경우 로그인 화면으로
-            console.error("리프레시 토큰이 만료되었습니다.");
-            navigation.navigate("Login");
-            return;
-          }
-        } else {
-          // 리프레시 토큰이 없는 경우 로그인 화면으로
-          console.error("리프레시 토큰이 없습니다.");
-          navigation.navigate("Login");
-          return;
-        }
-      }
+  //     const text = await response.text();
+  //     console.log("응답 본문:", text);
 
-      const text = await response.text();
-      console.log("응답 본문:", text);
+  //     try {
+  //       const data = JSON.parse(text);
+  //       console.log("전체 데이터:", data);
 
-      try {
-        const data = JSON.parse(text);
-        console.log("전체 데이터:", data);
+  //       let balance = 0;
 
-        let balance = 0;
+  //       if (data?.status === "success" && data?.data?.balance !== undefined) {
+  //         balance = data.data.balance;
+  //       } else if (data?.balance !== undefined) {
+  //         balance = data.balance;
+  //       }
 
-        if (data?.status === "success" && data?.data?.balance !== undefined) {
-          balance = data.data.balance;
-        } else if (data?.balance !== undefined) {
-          balance = data.balance;
-        }
-
-        setUserBalance(Number(balance));
-      } catch (parseError) {
-        console.error("JSON 파싱 오류:", parseError);
-      }
-    } catch (error) {
-      console.error("잔고 불러오기 실패:", error);
-    }
-  };
+  //       setUserBalance(Number(balance));
+  //     } catch (parseError) {
+  //       console.error("JSON 파싱 오류:", parseError);
+  //     }
+  //   } catch (error) {
+  //     console.error("잔고 불러오기 실패:", error);
+  //   }
+  // };
 
   const [quantity, setQuantity] = useState("1");
 

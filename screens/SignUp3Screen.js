@@ -61,6 +61,10 @@ const SignUp3Screen = ({ navigation, route }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <Text style={styles.backText}>{'<'}</Text>
+    </TouchableOpacity>
+
       <Text style={styles.title}>이메일 인증</Text>
       <Text style={styles.label}>이메일에서 받은 링크를 복사해서 붙여넣어 주세요.</Text>
 
@@ -102,6 +106,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 30,
   },
+
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+  },
+  backText: {
+    fontSize: 36,
+    color: '#F074BA',
+  },
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',

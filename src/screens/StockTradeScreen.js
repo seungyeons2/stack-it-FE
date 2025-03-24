@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,26 +7,83 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
-import SearchIcon from '../../assets/icons/search.svg'; 
-
-// 고정된 주식 데이터
-const stockData = [
-  { id: 1, name: '뱅가드 토탈 미국 주식 ETF', price: '429,710', change: '+0.03', volume: '50,000' },
-  { id: 2, name: '스포티파이 테크놀로지', price: '692,438', change: '+0.75', volume: '30,000' },
-  { id: 3, name: '관심 좀 그만 가지세요', price: '913,913', change: '+9.13', volume: '70,000' },
-];
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import SearchIcon from '../../assets/icons/search.svg';
+import { getNewAccessToken } from '../utils/auth';
 
 const StockTradeScreen = ({ navigation }) => {
+  const [portfolioData, setPortfolioData] = useState([]);
   const [searchText, setSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 검색 필터 적용
-  const filteredStocks = stockData.filter(stock =>
-    stock.name.includes(searchText)
-  );
+  const fetchPortfolio = async () => {
+    const accessToken = await getNewAccessToken();
+    const userId = await AsyncStorage.getItem('userId');
+
+    if (!accessToken || !userId) return;
+
+    try {
+      const response = await fetch(
+        `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/4/`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const result = await response.json();
+
+      const parsedData = result.portfolio.map((item, index) => ({
+        id: index + 1,
+        name: item.stock_code,
+        price: item.current_price.toLocaleString(),
+        change: item.profit_rate.toFixed(2),
+        volume: `${item.quantity}주`,
+      }));
+
+      setPortfolioData(parsedData);
+    } catch (error) {
+      console.error('❌ 포트폴리오 요청 실패:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const searchStocks = async () => {
+    if (!searchText.trim()) return;
+
+    try {
+      const response = await fetch(
+        `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/stock/search/?query=${encodeURIComponent(searchText.trim())}`
+      );
+
+      const result = await response.json();
+
+      const parsed = result.map((item, index) => ({
+        id: index + 1,
+        name: item.name || item.stock_code,
+        price: item.current_price?.toLocaleString() || '0',
+        change: item.change_rate?.toFixed(2) || '0.00',
+        volume: item.volume ? `${item.volume.toLocaleString()}주` : '0주',
+      }));
+
+      setSearchResults(parsed);
+    } catch (error) {
+      console.error('❌ 주식 검색 실패:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* 상단 네비게이션 바 */}
+      {/* 상단 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backText}>{'<'}</Text>
@@ -34,42 +91,52 @@ const StockTradeScreen = ({ navigation }) => {
         <Text style={styles.headerTitle}>주식 거래하기</Text>
       </View>
 
-      <ScrollView>
-        {/* 현재 보유 주식 섹션 */}
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* 내 포트폴리오 */}
         <Text style={styles.sectionTitle}>현재 보유 주식</Text>
         <View style={styles.divider} />
 
+        {portfolioData.map(stock => (
+          <View key={stock.id}>
+            <View style={styles.stockItem}>
+              <View style={styles.stockInfo}>
+                <Text style={styles.stockName}>{stock.name}</Text>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.stockPrice}>{stock.price}원</Text>
+                  <Text style={[
+                    styles.stockChange,
+                    parseFloat(stock.change) < 0 && { color: '#00BFFF' }
+                  ]}>
+                    {parseFloat(stock.change) >= 0 ? '▲' : '▼'}
+                    {Math.abs(parseFloat(stock.change)).toFixed(2)}%
+                  </Text>
+                </View>
+                <Text style={styles.stockVolume}>보유 수량: {stock.volume}</Text>
+              </View>
 
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.buyButton}
+                  onPress={() => navigation.navigate('TradingBuy', { stock })}
+                >
+                  <Text style={styles.buyText}>매수</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.sellButton}
+                  onPress={() => navigation.navigate('TradingSell', { stock })}
+                >
+                  <Text style={styles.sellText}>매도</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.divider} />
+          </View>
+        ))}
 
-{filteredStocks.map(stock => (
-  <View key={stock.id}>
-    <View style={styles.stockItem}>
-      {/* 주식 정보 */}
-      <View style={styles.stockInfo}>
-        <Text style={styles.stockName}>{stock.name}</Text>
-        <View style={styles.priceContainer}>
-          <Text style={styles.stockPrice}>{stock.price}원</Text>
-          <Text style={styles.stockChange}>▲{stock.change.replace('+', '')}%</Text>
-        </View>
-        <Text style={styles.stockVolume}>거래량: {stock.volume}</Text>
-      </View>
+        {/* 전체 주식 검색 */}
+        <Text style={styles.sectionTitle}>전체 주식</Text>
+        <View style={styles.divider} />
 
-      {/* 매수/매도 버튼 */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.buyButton}>
-          <Text style={styles.buyText}>매수</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sellButton}>
-          <Text style={styles.sellText}>매도</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-    <View style={styles.divider} />
-  </View>
-))}
-
-
-        {/* 검색창 (현재 보유 주식 아래로 이동) */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -77,10 +144,55 @@ const StockTradeScreen = ({ navigation }) => {
             value={searchText}
             onChangeText={setSearchText}
           />
-          <TouchableOpacity style={styles.searchButton} onPress={() => console.log('검색 버튼 클릭', searchText)}>
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={searchStocks}
+          >
             <SearchIcon width={24} height={24} fill="#003340" />
           </TouchableOpacity>
         </View>
+
+        {searchResults.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            {searchResults.map(stock => (
+              <View key={stock.id}>
+                <View style={styles.stockItem}>
+                  <View style={styles.stockInfo}>
+                    <Text style={styles.stockName}>{stock.name}</Text>
+                    <View style={styles.priceContainer}>
+                      <Text style={styles.stockPrice}>{stock.price}원</Text>
+                      <Text style={[
+                        styles.stockChange,
+                        parseFloat(stock.change) < 0 && { color: '#00BFFF' }
+                      ]}>
+                        {parseFloat(stock.change) >= 0 ? '▲' : '▼'}
+                        {Math.abs(parseFloat(stock.change)).toFixed(2)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.stockVolume}>거래량: {stock.volume}</Text>
+                  </View>
+
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.buyButton}
+                      onPress={() => navigation.navigate('TradingBuy', { stock })}
+                    >
+                      <Text style={styles.buyText}>매수</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.sellButton}
+                      onPress={() => navigation.navigate('TradingSell', { stock })}
+                    >
+                      <Text style={styles.sellText}>매도</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.divider} />
+              </View>
+            ))}
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -88,38 +200,41 @@ const StockTradeScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: '#003340',
-    padding: 30,
+    justifyContent: 'center',
+    paddingHorizontal: 30,
   },
-
-  backText: {
-    fontSize: 28,
-    color: '#F074BA',
-  },
-
   backButton: {
     position: 'absolute',
     top: 0,
     left: 20,
     zIndex: 10,
   },
-
+  backText: {
+    fontSize: 36,
+    color: '#F074BA',
+  },
+  scrollView: {
+    flex: 1,
+    marginTop: 70,
+    marginBottom: 20,
+    maxHeight: 1000,
+  },
   header: {
     flexDirection: 'row',
-    alignItems: 'center', // 수직 정렬
-    justifyContent: 'center', // 가로 중앙 정렬
-    marginTop: 20, // 상단 간격 추가
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 80,
     marginBottom: 30,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#F074BA',
-    textAlign: 'center', // 텍스트 중앙 정렬
+    textAlign: 'center',
     top: 10,
   },
-
   sectionTitle: {
     fontSize: 18,
     color: '#FFD1EB',

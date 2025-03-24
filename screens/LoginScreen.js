@@ -19,9 +19,8 @@ const LoginScreen = ({ navigation }) => {
     setIsLoading(true);
   
     try {
-      // 로그인 시도 전 로그 추가
       console.log('로그인 시도:', { email, password: '***' });
-      
+
       const response = await fetch(
         'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/',
         {
@@ -30,13 +29,12 @@ const LoginScreen = ({ navigation }) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            email,  // email 필드명 사용
+            email,
             password,
           }),
         }
       );
-  
-      // 응답 상태 로깅
+
       console.log('응답 상태:', response.status);
       
       const responseText = await response.text();
@@ -51,24 +49,24 @@ const LoginScreen = ({ navigation }) => {
         setIsLoading(false);
         return;
       }
-  
+
       if (response.ok && data.access) {
-        console.log('토큰 발급 성공');
-        // Save both access and refresh tokens
+        console.log('✅ 토큰 발급 성공');
+
+        // 🔹 Access Token, Refresh Token, Email, Password 저장
         await AsyncStorage.setItem('accessToken', data.access);
-        if (data.refresh) {
-          await AsyncStorage.setItem('refreshToken', data.refresh);
-        }
-        
-        console.log('로그인 성공, MainTab으로 이동 시도');
+        await AsyncStorage.setItem('refreshToken', data.refresh);
+        await AsyncStorage.setItem('userEmail', email);
+        await AsyncStorage.setItem('userPassword', password); // ❗ 자동 로그인을 위해 password도 저장
+
+        console.log('🔹 로그인 성공, MainTab으로 이동 시도');
         navigation.navigate('MainTab');
-        console.log('MainTab 네비게이션 완료');
       } else {
-        console.log('로그인 실패:', data);
+        console.log('❌ 로그인 실패:', data);
         Alert.alert('오류', data.detail || '로그인에 실패했습니다.');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       Alert.alert('오류', '네트워크 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

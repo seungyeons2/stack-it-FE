@@ -11,6 +11,10 @@ import FindPasswordScreen from './screens/FindPasswordScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import MainTab from './src/navigation/MainTab';
 import StockTradeScreen from './src/screens/StockTradeScreen';
+import StockBuying from './src/screens/StockBuying';
+import StockSelling from './src/screens/StockSelling';
+import TradingBuyScreen from './src/screens/TradingBuyScreen';
+import TradingSellScreen from './src/screens/TradingSellScreen';
 
 const Stack = createStackNavigator();
 
@@ -19,14 +23,18 @@ export default function StackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Splash" component={SplashScreen}/>
       <Stack.Screen name="Login" component={LoginScreen}/>
-      <Stack.Screen name="MainTab" component={MainTab}/>
-      <Stack.Screen name="StockTrade" component={StockTradeScreen}/>
       <Stack.Screen name="SignUp1" component={SignUp1Screen}/>
       <Stack.Screen name="SignUp2" component={SignUp2Screen}/>
       <Stack.Screen name="SignUp3" component={SignUp3Screen}/>
       {/* <Stack.Screen name="SignUp4" component={SignUp4Screen}/> */}
       <Stack.Screen name="FindId" component={FindIdScreen}/>
       <Stack.Screen name="FindPassword" component={FindPasswordScreen}/>
+      <Stack.Screen name="MainTab" component={MainTab}/>
+      <Stack.Screen name="StockTrade" component={StockTradeScreen}/>
+      <Stack.Screen name="StockBuying" component={StockBuying} />
+      <Stack.Screen name="StockSelling" component={StockSelling} />
+      <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
+      <Stack.Screen name="TradingSell" component={TradingSellScreen} />
     </Stack.Navigator>
   );
 }

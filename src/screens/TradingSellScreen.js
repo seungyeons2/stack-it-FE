@@ -1,3 +1,4 @@
+// TradingSellScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,16 +10,71 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const Header = ({ navigation }) => (
+  <View style={styles.header}>
+    <TouchableOpacity
+      style={styles.backButton}
+      onPress={() => navigation.goBack()}
+    >
+      <Text style={styles.backText}>{"<"}</Text>
+    </TouchableOpacity>
+    <Text style={styles.headerTitle}>매도</Text>
+  </View>
+);
+
+const StockInfo = ({ stockInfo }) => (
+  <View style={styles.stockInfoContainer}>
+    <Text style={styles.stockName}>{stockInfo.name}</Text>
+    <View style={styles.priceContainer}>
+      <Text style={styles.stockPrice}>{stockInfo.price}원</Text>
+      <Text style={styles.stockChange}>
+        ▲{stockInfo.change.replace("+", "")}%
+      </Text>
+    </View>
+  </View>
+);
+
+const HoldingInfo = ({ currentHolding }) => (
+  <View style={styles.holdingContainer}>
+    <Text style={styles.holdingLabel}>현재 보유량</Text>
+    <Text style={styles.holdingValue}>{currentHolding}</Text>
+  </View>
+);
+
+const QuantitySelector = ({ quantity, setQuantity }) => (
+  <View style={styles.quantityContainer}>
+    <Text style={styles.quantityLabel}>얼마나 매도할까요?</Text>
+    <View style={styles.quantityInputContainer}>
+      <TextInput
+        style={styles.quantityInput}
+        value={quantity}
+        onChangeText={setQuantity}
+        keyboardType="numeric"
+        maxLength={3}
+      />
+      <Text style={styles.quantityUnit}>주</Text>
+    </View>
+  </View>
+);
+
+const TotalAmountDisplay = ({ totalAmount, totalColor }) => (
+  <View style={styles.totalContainer}>
+    <Text style={styles.totalLabel}>총</Text>
+    <Text style={[styles.totalAmount, { color: totalColor }]}> 
+      {totalAmount}
+    </Text>
+  </View>
+);
 
 const TradingSellScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [userHoldings, setUserHoldings] = useState(0);
   const [authenticated, setAuthenticated] = useState(false);
+  const [quantity, setQuantity] = useState("1");
 
-  // 기본 주식 정보 (route.params로부터 받거나 기본값 사용)
   const stockInfo = route.params?.stock || {
     name: "스포티파이 테크놀로지",
     price: "692,438",
@@ -31,38 +87,53 @@ const TradingSellScreen = ({ route, navigation }) => {
     fetchUserHoldings();
   }, []);
 
-  // 사용자 인증 확인
+  const tokenUrl =
+    "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/";
+
+  const getNewAccessToken = async () => {
+    try {
+      const email = await AsyncStorage.getItem("userEmail");
+      const password = await AsyncStorage.getItem("userPassword");
+      if (!email || !password) {
+        navigation.navigate("Login");
+        return null;
+      }
+      const response = await fetch(tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) throw new Error("Token fetch failed");
+      const data = await response.json();
+      await AsyncStorage.setItem("accessToken", data.access);
+      return data.access;
+    } catch (error) {
+      console.error("Token error:", error);
+      return null;
+    }
+  };
+
   const verifyAuthentication = async () => {
     try {
       const accessToken = await AsyncStorage.getItem("accessToken");
-
       if (!accessToken) {
-        console.error("액세스 토큰이 없습니다.");
         navigation.navigate("Login");
         return;
       }
-
       setAuthenticated(true);
     } catch (error) {
-      console.error("인증 확인 실패:", error);
+      console.error("Auth error:", error);
       navigation.navigate("Login");
     }
   };
 
-  // 사용자 보유 주식 수량 조회
   const fetchUserHoldings = async () => {
     try {
       const accessToken = await AsyncStorage.getItem("accessToken");
-
       if (!accessToken) {
-        console.error("액세스 토큰이 없습니다.");
         navigation.navigate("Login");
         return;
       }
-
-      console.log("사용 중인 액세스 토큰:", accessToken);
-
-      // 실제 API 엔드포인트로 수정 필요
       const response = await fetch(
         `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/stocks/holdings/${stockInfo.id}/`,
         {
@@ -72,90 +143,37 @@ const TradingSellScreen = ({ route, navigation }) => {
           },
         }
       );
-
-      console.log("응답 상태:", response.status);
-
-      // 토큰 만료 처리
       if (response.status === 401) {
-        const refreshToken = await AsyncStorage.getItem("refreshToken");
-
-        if (refreshToken) {
-          // 리프레시 토큰으로 새 액세스 토큰 요청
-          const refreshResponse = await fetch(
-            "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/refresh/",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                refresh: refreshToken,
-              }),
-            }
-          );
-
-          const refreshData = await refreshResponse.json();
-
-          if (refreshResponse.ok && refreshData.access) {
-            // 새 액세스 토큰 저장
-            await AsyncStorage.setItem("accessToken", refreshData.access);
-
-            // 새 토큰으로 다시 요청
-            return fetchUserHoldings();
-          } else {
-            // 리프레시 토큰도 만료된 경우 로그인 화면으로
-            console.error("리프레시 토큰이 만료되었습니다.");
-            navigation.navigate("Login");
-            return;
-          }
+        const newToken = await getNewAccessToken();
+        if (newToken) {
+          return fetchUserHoldings();
         } else {
-          // 리프레시 토큰이 없는 경우 로그인 화면으로
-          console.error("리프레시 토큰이 없습니다.");
           navigation.navigate("Login");
           return;
         }
       }
-
-      try {
-        const data = await response.json();
-        console.log("보유 주식 데이터:", data);
-
-        // 실제 API 응답 구조에 맞게 조정 필요
-        let holdings = 0;
-
-        if (data?.status === "success" && data?.data?.quantity !== undefined) {
-          holdings = data.data.quantity;
-        } else if (data?.quantity !== undefined) {
-          holdings = data.quantity;
-        } else {
-          // API 응답 대신 route.params에서 전달된 값 사용
-          holdings = parseInt(stockInfo.currentHolding);
-        }
-
-        setUserHoldings(holdings);
-      } catch (parseError) {
-        console.error("JSON 파싱 오류:", parseError);
-        // 오류 시 기본값 사용
-        setUserHoldings(parseInt(stockInfo.currentHolding));
+      const data = await response.json();
+      let holdings = 0;
+      if (data?.status === "success" && data?.data?.quantity !== undefined) {
+        holdings = data.data.quantity;
+      } else if (data?.quantity !== undefined) {
+        holdings = data.quantity;
+      } else {
+        holdings = parseInt(stockInfo.currentHolding);
       }
+      setUserHoldings(holdings);
     } catch (error) {
-      console.error("보유 주식 불러오기 실패:", error);
-      // 오류 시 기본값 사용
       setUserHoldings(parseInt(stockInfo.currentHolding));
     }
   };
 
-  const [quantity, setQuantity] = useState("1");
-
-  // 수량에 따른 총액 계산 (콤마 제거 후 계산)
   const calculateTotal = () => {
     const priceWithoutComma = stockInfo.price.replace(/,/g, "");
     const total = parseInt(priceWithoutComma) * parseInt(quantity || 0);
     return total.toLocaleString();
   };
 
-  // 양수 표시를 위한 색상
-  const totalColor = "#F074BA"; // 분홍색 (양수)
+  const totalColor = "#F074BA";
   const totalAmount = `+${calculateTotal()}원`;
 
   return (
@@ -165,72 +183,21 @@ const TradingSellScreen = ({ route, navigation }) => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
     >
       <SafeAreaView style={styles.safeArea}>
-        {/* 헤더 */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backText}>{"<"}</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>매도</Text>
-        </View>
-
-        {/* 주식 정보 */}
-        <View style={styles.stockInfoContainer}>
-          <Text style={styles.stockName}>{stockInfo.name}</Text>
-          <View style={styles.priceContainer}>
-            <Text style={styles.stockPrice}>{stockInfo.price}원</Text>
-            <Text style={styles.stockChange}>
-              ▲{stockInfo.change.replace("+", "")}%
-            </Text>
-          </View>
-        </View>
-
+        <Header navigation={navigation} />
+        <StockInfo stockInfo={stockInfo} />
         <View style={styles.divider} />
-
-        {/* 현재 보유량 */}
-        <View style={styles.holdingContainer}>
-          <Text style={styles.holdingLabel}>현재 보유량</Text>
-          <Text style={styles.holdingValue}>{stockInfo.currentHolding}</Text>
-        </View>
-
-        {/* 매도할 수량 */}
-        <View style={styles.quantityContainer}>
-          <Text style={styles.quantityLabel}>얼마나 매도할까요?</Text>
-          <View style={styles.quantityInputContainer}>
-            <TextInput
-              style={styles.quantityInput}
-              value={quantity}
-              onChangeText={setQuantity}
-              keyboardType="numeric"
-              maxLength={3}
-            />
-            <Text style={styles.quantityUnit}>주</Text>
-          </View>
-        </View>
-
-        {/* 총액 */}
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>총</Text>
-          <Text style={[styles.totalAmount, { color: totalColor }]}>
-            {totalAmount}
-          </Text>
-        </View>
-
-        {/* 매도하기 버튼 */}
+        <HoldingInfo currentHolding={stockInfo.currentHolding} />
+        <QuantitySelector quantity={quantity} setQuantity={setQuantity} />
+        <TotalAmountDisplay totalAmount={totalAmount} totalColor={totalColor} />
         <TouchableOpacity
           style={styles.sellButton}
           onPress={() => {
-            // 매도 처리 로직 구현
             alert(`${quantity}주 매도가 완료되었습니다.`);
             navigation.goBack();
           }}
         >
           <Text style={styles.sellButtonText}>매도하기</Text>
         </TouchableOpacity>
-
-        {/* 홈 인디케이터 */}
         <View style={styles.homeIndicator} />
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -339,9 +306,6 @@ const styles = StyleSheet.create({
   },
   totalContainer: {
     marginBottom: 40,
-  },
-  totalAmountContainer: {
-    marginTop: 10,
   },
   totalLabel: {
     fontSize: 16,
