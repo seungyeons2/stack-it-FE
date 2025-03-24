@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SearchIcon from '../../assets/icons/search.svg';
-import { getNewAccessToken } from '../utils/auth';
+import { getNewAccessToken } from '../utils/token';
 
 const StockTradeScreen = ({ navigation }) => {
   const [portfolioData, setPortfolioData] = useState([]);
@@ -18,25 +18,43 @@ const StockTradeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchPortfolio = async () => {
+    console.log("📥 포트폴리오 요청 시작");
+  
     const accessToken = await getNewAccessToken();
     const userId = await AsyncStorage.getItem('userId');
-
-    if (!accessToken || !userId) return;
-
+  
+    console.log("🔐 가져온 Access Token:", accessToken);
+    console.log("👤 저장된 userId:", userId);
+  
+    if (!accessToken || !userId) {
+      console.error("❌ AccessToken 또는 userId 없음. 요청 중단.");
+      return;
+    }
+  
+    const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/4${userId}/`;
+    console.log("📡 요청 URL:", url);
+  
     try {
-      const response = await fetch(
-        `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/4/`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const result = await response.json();
-
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+  
+      console.log("📬 응답 상태 코드:", response.status);
+  
+      const responseText = await response.text(); // 일단 text로 받아서 로그로 찍기
+      console.log("📦 응답 본문:\n", responseText);
+  
+      const result = JSON.parse(responseText);
+  
+      if (result?.status !== "success" || !Array.isArray(result.portfolio)) {
+        console.warn("⚠️ 응답 구조가 예상과 다릅니다:", result);
+        return;
+      }
+  
       const parsedData = result.portfolio.map((item, index) => ({
         id: index + 1,
         name: item.stock_code,
@@ -44,15 +62,17 @@ const StockTradeScreen = ({ navigation }) => {
         change: item.profit_rate.toFixed(2),
         volume: `${item.quantity}주`,
       }));
-
+  
+      console.log("✅ 파싱된 포트폴리오 데이터:", parsedData);
+  
       setPortfolioData(parsedData);
     } catch (error) {
-      console.error('❌ 포트폴리오 요청 실패:', error);
+      console.error("❌ 포트폴리오 요청 실패:", error);
     } finally {
       setLoading(false);
     }
   };
-
+  
   const searchStocks = async () => {
     if (!searchText.trim()) return;
 

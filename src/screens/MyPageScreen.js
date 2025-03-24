@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getNewAccessToken } from '../utils/token';
 
 const MyPageScreen = ({ navigation }) => {
   console.log('📌 MyPageScreen 렌더링');
@@ -16,45 +17,45 @@ const MyPageScreen = ({ navigation }) => {
   const profileImage = 'https://via.placeholder.com/100';
   const userInfoUrl =
     'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/me';
-  const tokenUrl =
-    'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/';
+  // const tokenUrl =
+  //   'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/';
 
-  // 🔹 새로운 Access Token 요청 (이메일 + 비밀번호 로그인 방식)
-  const getNewAccessToken = async () => {
-    try {
-      const email = await AsyncStorage.getItem('userEmail');
-      const password = await AsyncStorage.getItem('userPassword');
+  // // 🔹 새로운 Access Token 요청 (이메일 + 비밀번호 로그인 방식)
+  // const getNewAccessToken = async () => {
+  //   try {
+  //     const email = await AsyncStorage.getItem('userEmail');
+  //     const password = await AsyncStorage.getItem('userPassword');
 
-      if (!email || !password) {
-        console.error('❌ 저장된 이메일 또는 비밀번호 없음');
-        navigation.navigate('Login');
-        return null;
-      }
+  //     if (!email || !password) {
+  //       console.error('❌ 저장된 이메일 또는 비밀번호 없음');
+  //       navigation.navigate('Login');
+  //       return null;
+  //     }
 
-      console.log('🔄 Access Token 요청 중...');
-      const response = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+  //     console.log('🔄 Access Token 요청 중...');
+  //     const response = await fetch(tokenUrl, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ email, password }),
+  //     });
 
-      console.log('📡 응답 상태 코드:', response.status);
-      const responseText = await response.text();
-      console.log('📡 응답 본문:', responseText);
+  //     console.log('📡 응답 상태 코드:', response.status);
+  //     const responseText = await response.text();
+  //     console.log('📡 응답 본문:', responseText);
 
-      if (!response.ok) throw new Error('❌ Access Token 발급 실패');
+  //     if (!response.ok) throw new Error('❌ Access Token 발급 실패');
 
-      const data = JSON.parse(responseText);
+  //     const data = JSON.parse(responseText);
 
-      await AsyncStorage.setItem('accessToken', data.access);
-      console.log('✅ 새 Access Token 저장 완료:', data.access);
+  //     await AsyncStorage.setItem('accessToken', data.access);
+  //     console.log('✅ 새 Access Token 저장 완료:', data.access);
 
-      return data.access;
-    } catch (error) {
-      console.error('❌ Access Token 요청 실패:', error);
-      return null;
-    }
-  };
+  //     return data.access;
+  //   } catch (error) {
+  //     console.error('❌ Access Token 요청 실패:', error);
+  //     return null;
+  //   }
+  // };
 
   // 🔹 사용자 정보 가져오기 (401 발생 시 자동 재시도)
   const fetchUserInfo = async (retry = true) => {

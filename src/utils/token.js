@@ -1,9 +1,10 @@
-// utils/auth.js
+// utils/token.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const tokenUrl =
   'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/';
 
+//토큰 생성 api
 export const getNewAccessToken = async (navigation) => {
   try {
     const email = await AsyncStorage.getItem('userEmail');

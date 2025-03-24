@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-import { getNewAccessToken } from '../utils/auth';
+import { getNewAccessToken } from '../utils/token';
 import { fetchUserBalance } from '../utils/account';
 
 const TradingBuyScreen = ({ route, navigation }) => {
