@@ -1,4 +1,3 @@
-// utils/account.js
 import { getNewAccessToken } from './token';
 
 // 사용자 잔고를 불러와 setBalance에 설정해주는 함수

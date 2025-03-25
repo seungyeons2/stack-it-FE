@@ -9,97 +9,158 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SearchIcon from '../../assets/icons/search.svg';
+import { fetchUserInfo } from '../utils/user';
 import { getNewAccessToken } from '../utils/token';
+import { fetchPortfolio } from '../utils/portfolio';
+
 
 const StockTradeScreen = ({ navigation }) => {
+  console.log('📌 StockTradeScreen 렌더링');
+  const [userInfo, setUserInfo] = useState(null);
   const [portfolioData, setPortfolioData] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPortfolio = async () => {
-    console.log("📥 포트폴리오 요청 시작");
+//  const fetchPortfolio = async (navigation, setPortfolioData, setLoading) => {
+//     console.log("📥 포트폴리오 요청 시작");
   
-    const accessToken = await getNewAccessToken();
-    const userId = await AsyncStorage.getItem('userId');
+//     try {
+//       const accessToken = await getNewAccessToken(navigation);
+//       if (!accessToken) {
+//         console.error("❌ AccessToken 없음. 요청 중단.");
+//         setLoading(false);
+//         return;
+//       }
   
-    console.log("🔐 가져온 Access Token:", accessToken);
-    console.log("👤 저장된 userId:", userId);
+//       // 사용자 정보 요청
+//       let userId = null;
+//       await fetchUserInfo(navigation, (userInfo) => {
+//         if (userInfo && userInfo.id) {
+//           userId = userInfo.id;
+//         }
+//       });
   
-    if (!accessToken || !userId) {
-      console.error("❌ AccessToken 또는 userId 없음. 요청 중단.");
-      return;
-    }
+//       if (!userId) {
+//         console.error("❌ userId 없음. 요청 중단.");
+//         setLoading(false);
+//         return;
+//       }
   
-    const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/4${userId}/`;
-    console.log("📡 요청 URL:", url);
+//       const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/${userId}/`;
+//       console.log("📡 요청 URL:", url);
+  
+//       const response = await fetch(url, {
+//         method: 'GET',
+//         headers: {
+//           'Authorization': `Bearer ${accessToken}`,
+//           'Content-Type': 'application/json',
+//         },
+//       });
+  
+//       console.log("📬 응답 상태 코드:", response.status);
+  
+//       const responseText = await response.text();
+//       console.log("📦 응답 본문:\n", responseText);
+  
+//       const result = JSON.parse(responseText);
+  
+//       if (result?.status !== "success" || !Array.isArray(result.portfolio)) {
+//         console.warn("⚠️ 응답 구조가 예상과 다릅니다:", result);
+//         return;
+//       }
+  
+//       const parsedData = result.portfolio.map((item, index) => ({
+//         id: index + 1,
+//         name: item.stock_code,
+//         price: item.current_price.toLocaleString(),
+//         change: item.profit_rate.toFixed(2),
+//         quantity: item.quantity,
+//         average_price: item.average_price,
+//         totalBuyPrice: (item.average_price * item.quantity),
+//       }));
+      
+  
+//       console.log("✅ 파싱된 포트폴리오 데이터:", parsedData);
+  
+//       setPortfolioData(parsedData);
+//     } catch (error) {
+//       console.error("❌ 포트폴리오 요청 실패:", error);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+  
+  
+  const searchStocks = async () => {
+    const query = searchText.trim();
+    if (!query) return;
   
     try {
+      const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/stock/search/?query=${encodeURIComponent(query)}`;
+      console.log('🔍 검색어:', query);
+      console.log('🔄 검색 URL:', url);
+  
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json', // ← 헤더 요구사항 반영
         },
       });
   
-      console.log("📬 응답 상태 코드:", response.status);
-  
-      const responseText = await response.text(); // 일단 text로 받아서 로그로 찍기
-      console.log("📦 응답 본문:\n", responseText);
-  
-      const result = JSON.parse(responseText);
-  
-      if (result?.status !== "success" || !Array.isArray(result.portfolio)) {
-        console.warn("⚠️ 응답 구조가 예상과 다릅니다:", result);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn('❌ 검색 실패 응답:', errorText);
+        setSearchResults([]);
         return;
       }
   
-      const parsedData = result.portfolio.map((item, index) => ({
-        id: index + 1,
-        name: item.stock_code,
-        price: item.current_price.toLocaleString(),
-        change: item.profit_rate.toFixed(2),
-        volume: `${item.quantity}주`,
-      }));
-  
-      console.log("✅ 파싱된 포트폴리오 데이터:", parsedData);
-  
-      setPortfolioData(parsedData);
-    } catch (error) {
-      console.error("❌ 포트폴리오 요청 실패:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const searchStocks = async () => {
-    if (!searchText.trim()) return;
-
-    try {
-      const response = await fetch(
-        `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/stock/search/?query=${encodeURIComponent(searchText.trim())}`
-      );
-
       const result = await response.json();
-
+      console.log('🔍 검색 응답:', result);
+  
+      if (!Array.isArray(result)) {
+        console.warn('❗️검색 결과가 배열이 아닙니다:', result);
+        setSearchResults([]);
+        return;
+      }
+  
       const parsed = result.map((item, index) => ({
         id: index + 1,
-        name: item.name || item.stock_code,
-        price: item.current_price?.toLocaleString() || '0',
-        change: item.change_rate?.toFixed(2) || '0.00',
-        volume: item.volume ? `${item.volume.toLocaleString()}주` : '0주',
+        name: item.name,
+        price: '-', // 가격 없음, placeholder로 처리
+        change: '-', // 등락률 없음
+        volume: '-', // 거래량 없음
+        symbol: item.symbol, // ← 종목코드 필요 시
       }));
-
+  
+      console.log('✅ 파싱된 검색결과:', parsed);
       setSearchResults(parsed);
     } catch (error) {
       console.error('❌ 주식 검색 실패:', error);
+      setSearchResults([]);
     }
   };
+  
+  
 
   useEffect(() => {
-    fetchPortfolio();
+    const load = async () => {
+      await fetchUserInfo(navigation, setUserInfo);
+      await fetchPortfolio(navigation, setPortfolioData, setLoading);
+      await searchStocks();
+    };
+    load();
   }, []);
+  
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log("📥 다시 focus됨: 포트폴리오 재요청");
+      fetchPortfolio(navigation, setPortfolioData, setLoading);
+    });
+  
+    return unsubscribe;
+  }, [navigation]);
+  
 
   return (
     <View style={styles.container}>
@@ -131,7 +192,13 @@ const StockTradeScreen = ({ navigation }) => {
                     {Math.abs(parseFloat(stock.change)).toFixed(2)}%
                   </Text>
                 </View>
-                <Text style={styles.stockVolume}>보유 수량: {stock.volume}</Text>
+                <Text style={styles.averageLine}>
+                평균 단가: {stock.average_price.toLocaleString()}원
+                </Text>
+                <Text style={styles.stockLine}>
+                총 매수 금액: {stock.totalBuyPrice.toLocaleString()}원
+                </Text>
+                <Text style={styles.quantity}>보유 수량: {stock.quantity}</Text>
               </View>
 
               <View style={styles.buttonContainer}>
@@ -153,6 +220,8 @@ const StockTradeScreen = ({ navigation }) => {
           </View>
         ))}
 
+
+
         {/* 전체 주식 검색 */}
         <Text style={styles.sectionTitle}>전체 주식</Text>
         <View style={styles.divider} />
@@ -172,47 +241,54 @@ const StockTradeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {searchResults.length > 0 && (
-          <>
-            <View style={styles.divider} />
-            {searchResults.map(stock => (
-              <View key={stock.id}>
-                <View style={styles.stockItem}>
-                  <View style={styles.stockInfo}>
-                    <Text style={styles.stockName}>{stock.name}</Text>
-                    <View style={styles.priceContainer}>
-                      <Text style={styles.stockPrice}>{stock.price}원</Text>
-                      <Text style={[
-                        styles.stockChange,
-                        parseFloat(stock.change) < 0 && { color: '#00BFFF' }
-                      ]}>
-                        {parseFloat(stock.change) >= 0 ? '▲' : '▼'}
-                        {Math.abs(parseFloat(stock.change)).toFixed(2)}%
-                      </Text>
-                    </View>
-                    <Text style={styles.stockVolume}>거래량: {stock.volume}</Text>
-                  </View>
-
-                  <View style={styles.buttonContainer}>
-                    <TouchableOpacity
-                      style={styles.buyButton}
-                      onPress={() => navigation.navigate('TradingBuy', { stock })}
-                    >
-                      <Text style={styles.buyText}>매수</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.sellButton}
-                      onPress={() => navigation.navigate('TradingSell', { stock })}
-                    >
-                      <Text style={styles.sellText}>매도</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={styles.divider} />
+        {searchText !== '' && (
+  <>
+    <View style={styles.divider} />
+    {searchResults.length > 0 ? (
+      searchResults.map(stock => (
+        <View key={stock.id}>
+          <View style={styles.stockItem}>
+            <View style={styles.stockInfo}>
+              <Text style={styles.stockName}>{stock.name}</Text>
+              <View style={styles.priceContainer}>
+                <Text style={styles.stockPrice}>{stock.price}원</Text>
+                <Text style={[
+                  styles.stockChange,
+                  parseFloat(stock.change) < 0 && { color: '#00BFFF' }
+                ]}>
+                  {parseFloat(stock.change) >= 0 ? '▲' : '▼'}
+                  {Math.abs(parseFloat(stock.change)).toFixed(2)}%
+                </Text>
               </View>
-            ))}
-          </>
-        )}
+              <Text style={styles.stockVolume}>거래량: {stock.volume}</Text>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.buyButton}
+                onPress={() => navigation.navigate('TradingBuy', { stock })}
+              >
+                <Text style={styles.buyText}>매수</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sellButton}
+                onPress={() => navigation.navigate('TradingSell', { stock })}
+              >
+                <Text style={styles.sellText}>매도</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.divider} />
+        </View>
+      ))
+    ) : (
+      <Text style={{ color: '#EFF1F5', textAlign: 'center', marginTop: 10 }}>
+        검색 결과가 없습니다.
+      </Text>
+    )}
+  </>
+)}
+
       </ScrollView>
     </View>
   );
@@ -296,7 +372,18 @@ const styles = StyleSheet.create({
     color: '#F074BA',
     fontWeight: 'bold',
   },
-  stockVolume: {
+  averageLine: {
+    fontSize: 16,
+    color: '#11A5CF',
+    marginTop: 10,
+  },
+
+  stockLine: {
+    fontSize: 16,
+    color: '#AFA5CF',
+    marginTop: 4,
+  },
+  quantity: {
     fontSize: 14,
     color: '#EFF1F5',
     marginTop: 4,

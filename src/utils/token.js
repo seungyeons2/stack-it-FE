@@ -1,4 +1,3 @@
-// utils/token.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const tokenUrl =
@@ -32,7 +31,7 @@ export const getNewAccessToken = async (navigation) => {
     const data = JSON.parse(responseText);
 
     await AsyncStorage.setItem('accessToken', data.access);
-    console.log('✅ 새 Access Token 저장 완료:', data.access);
+    //console.log('✅ 새 Access Token 저장 완료:', data.access);
 
     return data.access;
   } catch (error) {

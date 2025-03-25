@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBalance } from '../utils/account';
+import { fetchUserInfo } from '../utils/user';
+
 
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
@@ -40,14 +42,34 @@ const mockStocks = [
 
 const MainScreen = ({ navigation }) => {
   console.log('📌 MainScreen 렌더링');
+  const [userInfo, setUserInfo] = useState(null);
 
   const [searchText, setSearchText] = useState('');
   const [watchlist, setWatchlist] = useState(mockStocks);
   const [balance, setBalance] = useState('0원');
 
+  // useEffect(() => {
+  //   fetchUserBalance(navigation, setBalance);
+  // }, []);
+
+
   useEffect(() => {
-    fetchUserBalance(navigation, setBalance);
+    const load = async () => {
+      await fetchUserInfo(navigation, setUserInfo);
+      await fetchUserBalance(navigation, setBalance);
+    };
+    load();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      console.log("📥 MainScreen 다시 focus됨 → 잔고 재요청");
+      fetchUserBalance(navigation, setBalance);
+    });
+  
+    return unsubscribe;
+  }, [navigation]);
+
 
   const toggleFavorite = (id) => {
     setWatchlist(
