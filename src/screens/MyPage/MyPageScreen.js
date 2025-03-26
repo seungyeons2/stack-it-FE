@@ -20,15 +20,23 @@ const MyPageScreen = ({ navigation }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [badgeList, setBadgeList] = useState([]); // 전체 뱃지
-const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3개
 
-  const profileImage = 'https://via.placeholder.com/100';
+  const [equippedBadges, setEquippedBadges] = useState(['🔥', '🌟', '💯']);
+  const [introText, setIntroText] = useState('티끌 모아 태산');
+  const [isEditingIntro, setIsEditingIntro] = useState(false);
 
-  // const MenuButton = ({ label, onPress }) => (
-  //   <TouchableOpacity style={styles.menuButton} onPress={onPress}>
-  //     <Text style={styles.menuText}>{label}</Text>
-  //   </TouchableOpacity>
-  // );
+  const profileImage = require('../../assets/profile.png');
+
+  const saveIntroText = async (text) => {
+    try {
+      // 서버로 PATCH 요청
+      // await updateIntroAPI(text);
+      console.log('✔ 한줄소개 저장됨:', text);
+    } catch (err) {
+      Alert.alert('저장 실패', '한줄소개 저장에 실패했습니다.');
+    }
+  };
+
 
   const MenuButton = ({ label, onPress }) => (
     <TouchableOpacity style={styles.menuButton} onPress={onPress}>
@@ -38,12 +46,12 @@ const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3�
       </View>
     </TouchableOpacity>
   );
-  
+
   const handleLogout = () => {
     Alert.alert('로그아웃', '정상적으로 로그아웃되었습니다.');
     navigation.navigate('Login');
   };
-  
+
   const handleDeleteAccount = () => {
     Alert.alert(
       '회원탈퇴',
@@ -61,7 +69,7 @@ const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3�
       ]
     );
   };
-  
+
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -97,13 +105,60 @@ const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3�
   return (
     <View style={styles.container}>
       <View style={styles.profileSection}>
-        <Image
-          source={{ uri: userInfo?.profileImage || profileImage }}
-          style={styles.profileImage}
-        />
-        <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
-      </View>
+        {/* 왼쪽: 이미지 + 닉네임 */}
+        <View style={styles.profileLeft}>
+          <Image
+            source={
+              userInfo?.profileImage
+                ? { uri: userInfo.profileImage }
+                : require('../../assets/profile.png')
+            }
+            style={styles.profileImage}
+          />
 
+
+
+
+        </View>
+
+
+
+
+        {/* 오른쪽: 뱃지 + 한줄소개 */}
+        <View style={styles.profileRight}>
+          <View style={styles.badgeRow}>
+            {equippedBadges.map((badge, index) => (
+              <View key={index} style={styles.badgeBox}>
+                <Text style={styles.badgeText}>{badge}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
+
+          <View style={styles.introRow}>
+            <Icon
+              name="edit-3"
+              size={16}
+              color="#ccc"
+              style={{ marginRight: 6 }}
+              onPress={() => setIsEditingIntro(true)}
+            />
+            {isEditingIntro ? (
+              <TextInput
+                value={introText}
+                onChangeText={setIntroText}
+                onSubmitEditing={() => setIsEditingIntro(false)}
+                style={styles.introInput}
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setIsEditingIntro(true)}>
+                <Text style={styles.introText}>: {introText}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
       <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
         <MenuButton label="회원정보 수정" onPress={() => navigation.navigate('EditUserInfo')} />
         <MenuButton label="테마 설정" onPress={() => console.log('EditTheme')} />
@@ -138,10 +193,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 60,
   },
+
   profileSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
+
+    marginTop: 30,
+    marginBottom: 60,
+  },
+
+  profileLeft: {
+    alignItems: 'center',
+    marginRight: 30,
+  },
+
+  profileRight: {
+    flex: 1,
+    justifyContent: 'center',
   },
   profileImage: {
     width: 100,
@@ -150,45 +218,73 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#F074BA',
   },
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 0,
+  },
+  badgeBox: {
+    backgroundColor: '#FFFFFF90',
+    borderRadius: 50,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    marginRight: 8,
+  },
+  badgeText: {
+    fontSize: 15,
+    color: 'white',
+    fontWeight: 'bold',
+  },
   userName: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: 'bold',
     color: 'white',
     marginTop: 10,
+    marginBottom: 5,
+  },
+
+  introRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 0,
+    marginLeft: 0,
+  },
+  introText: {
+    fontSize: 15,
+    color: '#EEEEEE',
+  },
+  introInput: {
+    fontSize: 14,
+    color: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#888',
+    flex: 1,
   },
 
   scrollContainer: {
     width: '100%',
   },
-  
   menuContainer: {
     paddingVertical: 0,
     paddingHorizontal: 0,
   },
-  
-
-
   menuRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  
-
-
   menuButton: {
     backgroundColor: '#D4DDEF30',
     padding: 15,
     borderRadius: 10,
     marginBottom: 13,
   },
-  
   menuText: {
     fontSize: 16,
     color: 'white',
     fontWeight: 'bold',
   }
-  
+
 });
 
 export default MyPageScreen;
