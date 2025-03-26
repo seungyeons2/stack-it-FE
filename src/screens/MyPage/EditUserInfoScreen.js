@@ -66,7 +66,7 @@ const EditUserInfoScreen = ({ navigation }) => {
             }
             style={styles.profileImage}
           />
-        <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
+        <Text style={styles.userName}>{userInfo?.nickname || '개굴개굴 개구리'}</Text>
       </View>
 
       <ScrollView>
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#F8C7CC',
     marginTop: 10,
   },
 

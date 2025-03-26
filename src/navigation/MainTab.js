@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import MainScreen from '../screens/Main/MainScreen';
+import GuideScreen from '../screens/Guide/GuideScreen';
 import ChatbotScreen from '../screens/Chatbot/ChatbotScreen';
 import MyPageScreen from '../screens/MyPage/MyPageScreen';
 
@@ -18,7 +19,7 @@ const MainTab = () => {
   console.log('MainTab 나타났음');
   return (
     <Tab.Navigator
-      screenOptions={({route}) => ({
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
           backgroundColor: '#003340',
@@ -32,10 +33,12 @@ const MainTab = () => {
           elevation: 0,
           zIndex: 999,
         },
-        tabBarIcon: ({focused, size}) => {
+        tabBarIcon: ({ focused, size }) => {
           console.log(`Tab pressed: ${route.name}, focused: ${focused}`);
           let Icon;
           if (route.name === 'Home') {
+            Icon = focused ? HomeSelectedIcon : HomeIcon;
+          } else if (route.name === 'Guide') {
             Icon = focused ? HomeSelectedIcon : HomeIcon;
           } else if (route.name === 'Chatbot') {
             Icon = focused ? ChatbotSelectedIcon : ChatbotIcon;
@@ -46,8 +49,8 @@ const MainTab = () => {
         },
         tabBarShowLabel: false,
       })}>
-      <Tab.Screen 
-        name="Home" 
+      <Tab.Screen
+        name="Home"
         component={MainScreen}
         listeners={{
           tabPress: e => {
@@ -55,8 +58,17 @@ const MainTab = () => {
           },
         }}
       />
-      <Tab.Screen 
-        name="Chatbot" 
+      <Tab.Screen
+        name="Guide"
+        component={GuideScreen}
+        listeners={{
+          tabPress: e => {
+            console.log('Guide tab pressed');
+          },
+        }}
+      />
+      <Tab.Screen
+        name="Chatbot"
         component={ChatbotScreen}
         listeners={{
           tabPress: e => {
@@ -64,8 +76,8 @@ const MainTab = () => {
           },
         }}
       />
-      <Tab.Screen 
-        name="MyPage" 
+      <Tab.Screen
+        name="MyPage"
         component={MyPageScreen}
         listeners={{
           tabPress: e => {

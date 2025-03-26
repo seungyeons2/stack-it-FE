@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#F074BA',
   },
   badgeRow: {
@@ -246,10 +246,10 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   badgeBox: {
-    backgroundColor: '#FFFFFF90',
+    backgroundColor: '#FFFFFF80',
     borderRadius: 50,
     paddingVertical: 6,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
     marginRight: 8,
   },
   badgeText: {
