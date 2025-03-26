@@ -88,6 +88,9 @@ const SignUp2Screen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Text style={styles.backText}>{'<'}</Text>
+            </TouchableOpacity>
       <Text style={styles.title}>회원가입 (1/3)</Text>
 
       {/* ✅ 스크롤 가능한 입력 영역 */}
@@ -181,6 +184,16 @@ const styles = StyleSheet.create({
     // alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+  },
+  backText: {
+    fontSize: 36,
+    color: '#F074BA',
   },
 
   title: {
