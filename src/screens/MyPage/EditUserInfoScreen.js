@@ -9,59 +9,16 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
 
 import { getNewAccessToken } from '../../Utils/token';
 import { fetchUserInfo } from '../../Utils/user';
 
-const MyPageScreen = ({ navigation }) => {
-  console.log('📌 MyPageScreen 렌더링');
+const EditUserInfoScreen = ({ navigation }) => {
+  console.log('📌 EditUserInfoScreen 렌더링');
 
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [badgeList, setBadgeList] = useState([]); // 전체 뱃지
-const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3개
-
   const profileImage = 'https://via.placeholder.com/100';
-
-  // const MenuButton = ({ label, onPress }) => (
-  //   <TouchableOpacity style={styles.menuButton} onPress={onPress}>
-  //     <Text style={styles.menuText}>{label}</Text>
-  //   </TouchableOpacity>
-  // );
-
-  const MenuButton = ({ label, onPress }) => (
-    <TouchableOpacity style={styles.menuButton} onPress={onPress}>
-      <View style={styles.menuRow}>
-        <Text style={styles.menuText}>{label}</Text>
-        <Icon name="chevron-right" size={20} color="#ffffff" />
-      </View>
-    </TouchableOpacity>
-  );
-  
-  const handleLogout = () => {
-    Alert.alert('로그아웃', '정상적으로 로그아웃되었습니다.');
-    navigation.navigate('Login');
-  };
-  
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      '회원탈퇴',
-      '정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '탈퇴하기', style: 'destructive',
-          onPress: () => {
-            // 탈퇴 API 호출
-            Alert.alert('탈퇴 완료', '계정이 삭제되었습니다.');
-            navigation.navigate('Login');
-          }
-        }
-      ]
-    );
-  };
-  
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -96,6 +53,10 @@ const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3�
 
   return (
     <View style={styles.container}>
+              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <Text style={styles.backText}>{'<'}</Text>
+              </TouchableOpacity>
+              
       <View style={styles.profileSection}>
         <Image
           source={{ uri: userInfo?.profileImage || profileImage }}
@@ -104,15 +65,15 @@ const [equippedBadges, setEquippedBadges] = useState([]); // 장착한 뱃지 3�
         <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
-        <MenuButton label="회원정보 수정" onPress={() => navigation.navigate('EditUserInfo')} />
-        <MenuButton label="테마 설정" onPress={() => console.log('EditTheme')} />
-        <MenuButton label="공지사항" onPress={() => console.log('Notice')} />
-        <MenuButton label="자주 묻는 질문(FAQ)" onPress={() => console.log('FAQ')} />
-        <MenuButton label="로그아웃" onPress={handleLogout} />
-        <MenuButton label="회원 탈퇴" onPress={handleDeleteAccount} />
-      </ScrollView>
-
+      <ScrollView>
+      {/* <View style={styles.infoContainer}> */}
+        <InfoItem label="닉네임" value={userInfo?.nickname || '없음'} />
+        <InfoItem label="성별" value={userInfo?.gender === 'male' ? '남자' : userInfo?.gender === 'female' ? '여자' : '미등록'} />
+        <InfoItem label="생일" value={userInfo?.birthdate || '미등록'} />
+        <InfoItem label="이메일" value={userInfo?.email || '미등록'} />
+        <InfoItem label="주소" value={userInfo?.address || '미등록'} />
+      {/* </View> */}
+    </ScrollView>
     </View>
   );
 };
@@ -138,6 +99,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 60,
   },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 10,
+  },
+  backText: {
+    fontSize: 36,
+    color: '#F074BA',
+  },
+
   profileSection: {
     alignItems: 'center',
     marginTop: 40,
@@ -161,34 +133,26 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   
-  menuContainer: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
-  },
-  
-
-
-  menuRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  
-
-
-  menuButton: {
+  // infoContainer: {
+  //   width: '100%',
+  // },
+  infoBox: {
     backgroundColor: '#D4DDEF30',
-    padding: 15,
+    padding: 18,
     borderRadius: 10,
-    marginBottom: 13,
+    marginBottom: 15,
   },
-  
-  menuText: {
-    fontSize: 16,
-    color: 'white',
+  infoLabel: {
+    fontSize: 15,
+    color: '#A9C4D3',
+    marginBottom: 10,
+  },
+  infoValue: {
+    fontSize: 18,
     fontWeight: 'bold',
-  }
-  
+    color: 'white',
+    marginTop: 3,
+  },
 });
 
-export default MyPageScreen;
+export default EditUserInfoScreen;
