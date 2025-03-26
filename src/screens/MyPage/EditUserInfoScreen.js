@@ -18,7 +18,7 @@ const EditUserInfoScreen = ({ navigation }) => {
 
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const profileImage = 'https://via.placeholder.com/100';
+  const profileImage = require('../../assets/profile.png');
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -58,10 +58,14 @@ const EditUserInfoScreen = ({ navigation }) => {
               </TouchableOpacity>
               
       <View style={styles.profileSection}>
-        <Image
-          source={{ uri: userInfo?.profileImage || profileImage }}
-          style={styles.profileImage}
-        />
+          <Image
+            source={
+              userInfo?.profileImage
+                ? { uri: userInfo.profileImage }
+                : require('../../assets/profile.png')
+            }
+            style={styles.profileImage}
+          />
         <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
       </View>
 

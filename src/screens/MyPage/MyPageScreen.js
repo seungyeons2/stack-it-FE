@@ -22,7 +22,7 @@ const MyPageScreen = ({ navigation }) => {
   const [badgeList, setBadgeList] = useState([]); // 전체 뱃지
 
   const [equippedBadges, setEquippedBadges] = useState(['🔥', '🌟', '💯']);
-  const [introText, setIntroText] = useState('티끌 모아 태산');
+  const [introText, setIntroText] = useState('티끌 모아 태산이긴해!');
   const [isEditingIntro, setIsEditingIntro] = useState(false);
 
   const profileImage = require('../../assets/profile.png');
@@ -104,7 +104,9 @@ const MyPageScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      
       <View style={styles.profileSection}>
+
         {/* 왼쪽: 이미지 + 닉네임 */}
         <View style={styles.profileLeft}>
           <Image
@@ -115,14 +117,7 @@ const MyPageScreen = ({ navigation }) => {
             }
             style={styles.profileImage}
           />
-
-
-
-
         </View>
-
-
-
 
         {/* 오른쪽: 뱃지 + 한줄소개 */}
         <View style={styles.profileRight}>
@@ -133,7 +128,7 @@ const MyPageScreen = ({ navigation }) => {
               </View>
             ))}
           </View>
-          <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
+          <Text style={styles.userName}>{userInfo?.nickname || '개굴개굴 개구리'}</Text>
 
           <View style={styles.introRow}>
             <Icon
@@ -157,8 +152,34 @@ const MyPageScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
           </View>
+          
         </View>
+
       </View>
+            
+      <View style={styles.divider} />
+      <Text style={styles.moneyTitle}>🐹 햄햄이네 해바라기씨 농장</Text>
+<View style={styles.moneyButtonContainer}>
+  
+  <TouchableOpacity
+    style={styles.tiggleButton}
+    onPress={() => navigation.navigate('Tiggle')}
+  >
+    <Text style={styles.moneyButtonText}>티끌 모으기</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={styles.taesanButton}
+    onPress={() => navigation.navigate('Taesan')}
+  >
+    <Text style={styles.moneyButtonText}>태산 만들기</Text>
+  </TouchableOpacity>
+</View>
+
+<View style={styles.divider} />
+
+
+ 
       <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
         <MenuButton label="회원정보 수정" onPress={() => navigation.navigate('EditUserInfo')} />
         <MenuButton label="테마 설정" onPress={() => console.log('EditTheme')} />
@@ -169,6 +190,7 @@ const MyPageScreen = ({ navigation }) => {
       </ScrollView>
 
     </View>
+    
   );
 };
 
@@ -197,13 +219,13 @@ const styles = StyleSheet.create({
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-
     marginTop: 30,
-    marginBottom: 60,
+    marginBottom: 0,
   },
 
   profileLeft: {
     alignItems: 'center',
+    marginLeft: 10,
     marginRight: 30,
   },
 
@@ -236,9 +258,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   userName: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#F8C7CC',
     marginTop: 10,
     marginBottom: 5,
   },
@@ -260,6 +282,57 @@ const styles = StyleSheet.create({
     borderBottomColor: '#888',
     flex: 1,
   },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#4A5A60',
+    marginVertical: 20,
+  },
+
+  moneyTitle: {
+    color: "#EEEEEE",
+    fontSize: 18,
+    marginBottom: 20,
+    marginLeft: 15,
+    marginTop: 5,
+    fontWeight: "600",
+  },
+
+  moneyButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  
+  tiggleButton: {
+    flex: 1,
+    backgroundColor: '#5DB996E0',
+    paddingVertical: 20,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    alignItems: 'center',
+    
+  },
+
+  taesanButton: {
+    flex: 1,
+    backgroundColor: '#F074BAE0',
+    paddingVertical: 20,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    alignItems: 'center',
+  },
+  
+  moneyButtonText: {
+    fontFamily: 'Times New Roman',
+    color: '#EFF1F5',
+    fontSize: 18,
+    fontWeight: '500',
+    // textShadowColor: '#CCC',
+    // textShadowOffset: { width: 1, height: 1 },
+    // textShadowRadius: 3,
+  },
+  
 
   scrollContainer: {
     width: '100%',
