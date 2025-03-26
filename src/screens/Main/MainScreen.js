@@ -9,8 +9,8 @@ import {
   Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchUserBalance } from '../utils/account';
-import { fetchUserInfo } from '../utils/user';
+import { fetchUserBalance } from '../../Utils/account';
+import { fetchUserInfo } from '../../Utils/user';
 
 
 import BellIcon from "../../assets/icons/bell.svg";

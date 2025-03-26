@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { getNewAccessToken } from '../utils/token';
-import { fetchUserInfo } from '../utils/user';
-import { fetchPortfolio } from '../utils/portfolio';
+import { getNewAccessToken } from '../../Utils/token';
+import { fetchUserInfo } from '../../Utils/user';
+//import { fetchPortfolio } from '../utils/portfolio';
 
 
 const TradingBuyScreen = ({ route, navigation }) => {
@@ -37,14 +37,14 @@ const TradingBuyScreen = ({ route, navigation }) => {
     init();
   }, []);
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log("📥 다시 focus됨: 포트폴리오 재요청");
-      fetchPortfolio(navigation, setPortfolioData, setLoading);
-    });
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener('focus', () => {
+  //     console.log("📥 다시 focus됨: 포트폴리오 재요청");
+  //     fetchPortfolio(navigation, setPortfolioData, setLoading);
+  //   });
   
-    return unsubscribe;
-  }, [navigation]);
+  //   return unsubscribe;
+  // }, [navigation]);
 
   const handleBuy = async () => {
     setLoading(true);
@@ -77,7 +77,7 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
       const result = await response.json();
       if (response.ok && result?.status === 'success') {
-        Alert.alert('✅ 매수 성공', result.message);
+        Alert.alert('매수 성공', result.message);
         navigation.goBack();
       } else {
         Alert.alert('❌ 매수 실패', result?.message || '오류 발생');

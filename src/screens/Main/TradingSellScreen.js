@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { getNewAccessToken } from '../utils/token';
-import { fetchUserInfo } from '../utils/user';
-import { fetchPortfolio } from '../utils/portfolio';
+import { getNewAccessToken } from '../../Utils/token';
+import { fetchUserInfo } from '../../Utils/user';
+import { fetchPortfolio } from '../../Utils/portfolio';
 
 
 const TradingSellScreen = ({ route, navigation }) => {
@@ -84,7 +84,7 @@ const TradingSellScreen = ({ route, navigation }) => {
 
       const result = await response.json();
       if (response.ok && result?.status === 'success') {
-        Alert.alert('✅ 매도 성공', result.message);
+        Alert.alert('매도 성공', result.message);
         navigation.goBack();
       } else {
         Alert.alert('❌ 매도 실패', result?.message || '오류 발생');

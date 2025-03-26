@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import EyeOpen from '../components/EyeOpen';
-import EyeClosed from '../components/EyeClosed';
+import EyeOpen from '../../components/EyeOpen';
+import EyeClosed from '../../components/EyeClosed';
 
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);

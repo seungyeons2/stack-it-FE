@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import CheckBoxChecked from '../components/CheckBoxChecked';
-import CheckBoxUnchecked from '../components/CheckBoxUnchecked';
+import CheckBoxChecked from '../../components/CheckBoxChecked';
+import CheckBoxUnchecked from '../../components/CheckBoxUnchecked';
 
 const SignUp1Screen = ({ navigation }) => {
   const [agreements, setAgreements] = useState({

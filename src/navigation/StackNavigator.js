@@ -1,20 +1,20 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 //import { NavigationContainer } from '@react-navigation/native';
-import LoginScreen from './screens/LoginScreen';
-import SignUp1Screen from './screens/SignUp1Screen';
-import SignUp2Screen from './screens/SignUp2Screen';
-import SignUp3Screen from './screens/SignUp3Screen';
+import LoginScreen from '../screens/Auth/LoginScreen';
+import SignUp1Screen from '../screens/Auth/SignUp1Screen';
+import SignUp2Screen from '../screens/Auth/SignUp2Screen';
+import SignUp3Screen from '../screens/Auth/SignUp3Screen';
 // import SignUp4Screen from './screens/SignUp4Screen';
-import FindIdScreen from './screens/FindIdScreen';
-import FindPasswordScreen from './screens/FindPasswordScreen';
-import SplashScreen from './src/screens/SplashScreen';
-import MainTab from './src/navigation/MainTab';
-import StockTradeScreen from './src/screens/StockTradeScreen';
+import FindIdScreen from '../screens/Auth/FindIdScreen';
+import FindPasswordScreen from '../screens/Auth/FindPasswordScreen';
+import SplashScreen from '../screens/Auth/SplashScreen';
+import MainTab from './MainTab';
+import StockTradeScreen from '../screens/Main/StockTradeScreen';
 //import StockBuying from './src/screens/StockBuying';
 //import StockSelling from './src/screens/StockSelling';
-import TradingBuyScreen from './src/screens/TradingBuyScreen';
-import TradingSellScreen from './src/screens/TradingSellScreen';
+import TradingBuyScreen from '../screens/Main/TradingBuyScreen';
+import TradingSellScreen from '../screens/Main/TradingSellScreen';
 
 const Stack = createStackNavigator();
 

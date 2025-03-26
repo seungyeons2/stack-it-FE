@@ -1,16 +1,16 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import MainScreen from '../screens/MainScreen';
-import ChatbotScreen from '../screens/ChatbotScreen';
-import MyPageScreen from '../screens/MyPageScreen';
+import MainScreen from '../screens/Main/MainScreen';
+import ChatbotScreen from '../screens/Chatbot/ChatbotScreen';
+import MyPageScreen from '../screens/MyPage/MyPageScreen';
 
 // SVG imports
-import HomeIcon from '../../assets/icons/home.svg';
-import HomeSelectedIcon from '../../assets/icons/home-selected.svg';
-import ChatbotIcon from '../../assets/icons/chatbot.svg';
-import ChatbotSelectedIcon from '../../assets/icons/chatbot-selected.svg';
-import MyPageIcon from '../../assets/icons/mypage.svg';
-import MyPageSelectedIcon from '../../assets/icons/mypage-selected.svg';
+import HomeIcon from '../assets/icons/home.svg';
+import HomeSelectedIcon from '../assets/icons/home-selected.svg';
+import ChatbotIcon from '../assets/icons/chatbot.svg';
+import ChatbotSelectedIcon from '../assets/icons/chatbot-selected.svg';
+import MyPageIcon from '../assets/icons/mypage.svg';
+import MyPageSelectedIcon from '../assets/icons/mypage-selected.svg';
 
 const Tab = createBottomTabNavigator();
 

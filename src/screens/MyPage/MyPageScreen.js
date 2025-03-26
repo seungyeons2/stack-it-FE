@@ -8,8 +8,8 @@ import {
   Alert,
 } from 'react-native';
 
-import { getNewAccessToken } from '../utils/token';
-import { fetchUserInfo } from '../utils/user';
+import { getNewAccessToken } from '../../Utils/token';
+import { fetchUserInfo } from '../../Utils/user';
 
 const MyPageScreen = ({ navigation }) => {
   console.log('📌 MyPageScreen 렌더링');
