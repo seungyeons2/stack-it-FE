@@ -9,9 +9,9 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SearchIcon from '../../assets/icons/search.svg';
-import { fetchUserInfo } from '../../Utils/user';
-import { getNewAccessToken } from '../../Utils/token';
-import { fetchPortfolio } from '../../Utils/portfolio';
+import { fetchUserInfo } from '../../utils/user';
+import { getNewAccessToken } from '../../utils/token';
+import { fetchPortfolio } from '../../utils/portfolio';
 
 
 const StockTradeScreen = ({ navigation }) => {

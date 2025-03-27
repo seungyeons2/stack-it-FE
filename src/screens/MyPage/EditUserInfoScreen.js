@@ -12,9 +12,9 @@ import {
   Keyboard,
 } from 'react-native';
 
-import { getNewAccessToken } from '../../Utils/token';
-import { fetchUserInfo } from '../../Utils/user';
-import { updateUserInfo } from '../../Utils/user';
+import { getNewAccessToken } from '../../utils/token';
+import { fetchUserInfo } from '../../utils/user';
+import { updateUserInfo } from '../../utils/user';
 
 
 const EditUserInfoScreen = ({ navigation }) => {
