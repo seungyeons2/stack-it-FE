@@ -6,7 +6,10 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  TouchableOpacity,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
 
 import { getNewAccessToken } from '../../Utils/token';
 import { fetchUserInfo } from '../../Utils/user';
@@ -16,7 +19,88 @@ const MyPageScreen = ({ navigation }) => {
 
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const profileImage = 'https://via.placeholder.com/100';
+  const [badgeList, setBadgeList] = useState([]); // 전체 뱃지
+
+  const [equippedBadges, setEquippedBadges] = useState(['🔥', '🌟', '💯']);
+  const [introText, setIntroText] = useState('티끌 모아 태산이긴해!');
+  const [isEditingIntro, setIsEditingIntro] = useState(false);
+
+  const profileImage = require('../../assets/profile.png');
+
+  const saveIntroText = async (text) => {
+    try {
+      // 서버로 PATCH 요청
+      // await updateIntroAPI(text);
+      console.log('✔ 한줄소개 저장됨:', text);
+    } catch (err) {
+      Alert.alert('저장 실패', '한줄소개 저장에 실패했습니다.');
+    }
+  };
+
+
+  const MenuButton = ({ label, onPress }) => (
+    <TouchableOpacity style={styles.menuButton} onPress={onPress}>
+      <View style={styles.menuRow}>
+        <Text style={styles.menuText}>{label}</Text>
+        <Icon name="chevron-right" size={20} color="#ffffff" />
+      </View>
+    </TouchableOpacity>
+  );
+
+  const handleLogout = () => {
+    Alert.alert('로그아웃', '정상적으로 로그아웃되었습니다.');
+    navigation.navigate('Login');
+  };
+
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      '회원 탈퇴',
+      '정말 탈퇴하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '탈퇴하기',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const accessToken = await getNewAccessToken(navigation);
+              if (!accessToken) {
+                Alert.alert('인증 오류', '토큰이 만료되었습니다. 다시 로그인해주세요.');
+                navigation.navigate('Login');
+                return;
+              }
+  
+              const response = await fetch(
+                'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/delete/',
+                {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+  
+              if (response.ok) {
+                Alert.alert('탈퇴 완료', '계정이 삭제되었습니다.');
+                navigation.navigate('Login');
+              } else {
+                const text = await response.text();
+                console.error('회원 탈퇴 실패 응답:', text);
+                Alert.alert('오류', '회원 탈퇴에 실패했습니다.');
+              }
+            } catch (err) {
+              console.error('회원 탈퇴 중 오류:', err);
+              Alert.alert('오류', '네트워크 오류로 탈퇴에 실패했습니다.');
+            }
+          },
+        },
+      ]
+    );
+  };
+  
+
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -51,22 +135,93 @@ const MyPageScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      
       <View style={styles.profileSection}>
-        <Image
-          source={{ uri: userInfo?.profileImage || profileImage }}
-          style={styles.profileImage}
-        />
-        <Text style={styles.userName}>{userInfo?.nickname || '닉네임 없음'}</Text>
-      </View>
 
-      <View style={styles.infoContainer}>
-        <InfoItem label="닉네임" value={userInfo?.nickname || '없음'} />
-        <InfoItem label="성별" value={userInfo?.gender === 'male' ? '남자' : userInfo?.gender === 'female' ? '여자' : '미등록'} />
-        <InfoItem label="생일" value={userInfo?.birthdate || '미등록'} />
-        <InfoItem label="이메일" value={userInfo?.email || '미등록'} />
-        <InfoItem label="주소" value={userInfo?.address || '미등록'} />
+        {/* 왼쪽: 이미지 + 닉네임 */}
+        <View style={styles.profileLeft}>
+          <Image
+            source={
+              userInfo?.profileImage
+                ? { uri: userInfo.profileImage }
+                : require('../../assets/profile.png')
+            }
+            style={styles.profileImage}
+          />
+        </View>
+
+        {/* 오른쪽: 뱃지 + 한줄소개 */}
+        <View style={styles.profileRight}>
+          <View style={styles.badgeRow}>
+            {equippedBadges.map((badge, index) => (
+              <View key={index} style={styles.badgeBox}>
+                <Text style={styles.badgeText}>{badge}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.userName}>{userInfo?.nickname || '개굴개굴 개구리'}</Text>
+
+          <View style={styles.introRow}>
+            <Icon
+              name="edit-3"
+              size={16}
+              color="#ccc"
+              style={{ marginRight: 6 }}
+              onPress={() => setIsEditingIntro(true)}
+            />
+            {isEditingIntro ? (
+              <TextInput
+                value={introText}
+                onChangeText={setIntroText}
+                onSubmitEditing={() => setIsEditingIntro(false)}
+                style={styles.introInput}
+                autoFocus
+              />
+            ) : (
+              <TouchableOpacity onPress={() => setIsEditingIntro(true)}>
+                <Text style={styles.introText}>: {introText}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          
+        </View>
+
       </View>
+            
+      <View style={styles.divider} />
+      <Text style={styles.moneyTitle}>🐹 햄햄이네 해바라기씨 농장</Text>
+<View style={styles.moneyButtonContainer}>
+  
+  <TouchableOpacity
+    style={styles.tiggleButton}
+    onPress={() => navigation.navigate('Tiggle')}
+  >
+    <Text style={styles.moneyButtonText}>티끌 모으기</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={styles.taesanButton}
+    onPress={() => navigation.navigate('Taesan')}
+  >
+    <Text style={styles.moneyButtonText}>태산 만들기</Text>
+  </TouchableOpacity>
+</View>
+
+<View style={styles.divider} />
+
+
+ 
+      <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
+        <MenuButton label="회원정보 수정" onPress={() => navigation.navigate('EditUserInfo')} />
+        <MenuButton label="테마 설정" onPress={() => console.log('EditTheme')} />
+        <MenuButton label="공지사항" onPress={() => console.log('Notice')} />
+        <MenuButton label="자주 묻는 질문(FAQ)" onPress={() => console.log('FAQ')} />
+        <MenuButton label="로그아웃" onPress={handleLogout} />
+        <MenuButton label="회원 탈퇴" onPress={handleDeleteAccount} />
+      </ScrollView>
+
     </View>
+    
   );
 };
 
@@ -78,49 +233,162 @@ const InfoItem = ({ label, value }) => (
 );
 
 const styles = StyleSheet.create({
+  // container: {
+  //   flex: 1,
+  //   backgroundColor: '#003340',
+  //   alignItems: 'center',
+  //   padding: 20,
+  // },
+
   container: {
     flex: 1,
     backgroundColor: '#003340',
-    alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 30,
+    paddingTop: 60,
   },
+
   profileSection: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 30,
+    marginTop: 30,
+    marginBottom: 0,
+  },
+
+  profileLeft: {
+    alignItems: 'center',
+    marginLeft: 10,
+    marginRight: 30,
+  },
+
+  profileRight: {
+    flex: 1,
+    justifyContent: 'center',
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: '#F074BA',
   },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 0,
+  },
+  badgeBox: {
+    backgroundColor: '#FFFFFF80',
+    borderRadius: 50,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    marginRight: 8,
+  },
+  badgeText: {
+    fontSize: 15,
     color: 'white',
-    marginTop: 10,
+    fontWeight: 'bold',
   },
-  infoContainer: {
-    width: '90%',
-  },
-  infoBox: {
-    backgroundColor: '#2C4A52',
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 10,
-  },
-  infoLabel: {
-    fontSize: 16,
-    color: '#A9C4D3',
-  },
-  infoValue: {
+  userName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: 'white',
-    marginTop: 3,
+    color: '#F8C7CC',
+    marginTop: 10,
+    marginBottom: 5,
   },
+
+  introRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 0,
+    marginLeft: 0,
+  },
+  introText: {
+    fontSize: 15,
+    color: '#EEEEEE',
+  },
+  introInput: {
+    fontSize: 14,
+    color: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#888',
+    flex: 1,
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#4A5A60',
+    marginVertical: 20,
+  },
+
+  moneyTitle: {
+    color: "#EEEEEE",
+    fontSize: 18,
+    marginBottom: 20,
+    marginLeft: 15,
+    marginTop: 5,
+    fontWeight: "600",
+  },
+
+  moneyButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  
+  tiggleButton: {
+    flex: 1,
+    backgroundColor: '#5DB996E0',
+    paddingVertical: 20,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    alignItems: 'center',
+    
+  },
+
+  taesanButton: {
+    flex: 1,
+    backgroundColor: '#F074BAE0',
+    paddingVertical: 20,
+    borderRadius: 20,
+    marginHorizontal: 10,
+    alignItems: 'center',
+  },
+  
+  moneyButtonText: {
+    fontFamily: 'Times New Roman',
+    color: '#EFF1F5',
+    fontSize: 18,
+    fontWeight: '500',
+    // textShadowColor: '#CCC',
+    // textShadowOffset: { width: 1, height: 1 },
+    // textShadowRadius: 3,
+  },
+  
+
+  scrollContainer: {
+    width: '100%',
+  },
+  menuContainer: {
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  menuButton: {
+    backgroundColor: '#D4DDEF30',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 13,
+  },
+  menuText: {
+    fontSize: 16,
+    color: 'white',
+    fontWeight: 'bold',
+  }
+
 });
 
 export default MyPageScreen;

@@ -46,3 +46,41 @@ export const fetchUserInfo = async (navigation, setUserInfo) => {
     setUserInfo(null);
   }
 };
+
+// 사용자 정보 수정 함수
+export const updateUserInfo = async (navigation, updatedFields) => {
+  try {
+    const accessToken = await getNewAccessToken(navigation);
+    if (!accessToken) {
+      console.error('액세스 토큰이 없습니다.');
+      return false;
+    }
+
+    console.log('🔧 수정 요청 보낼 필드:', updatedFields);
+
+    const response = await fetch(
+      'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/me/',
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedFields),
+      }
+    );
+
+    console.log('🔧 수정 응답 상태:', response.status);
+    const text = await response.text();
+    console.log('🔧 수정 응답 본문:', text);
+
+    if (response.ok) {
+      return true; // 성공
+    } else {
+      return false; // 실패
+    }
+  } catch (err) {
+    console.error('사용자 정보 수정 실패:', err);
+    return false;
+  }
+};

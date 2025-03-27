@@ -15,7 +15,7 @@ import StockTradeScreen from '../screens/Main/StockTradeScreen';
 //import StockSelling from './src/screens/StockSelling';
 import TradingBuyScreen from '../screens/Main/TradingBuyScreen';
 import TradingSellScreen from '../screens/Main/TradingSellScreen';
-
+import EditUserInfoScreen from '../screens/MyPage/EditUserInfoScreen';
 const Stack = createStackNavigator();
 
 export default function StackNavigator() {
@@ -35,6 +35,7 @@ export default function StackNavigator() {
       {/* <Stack.Screen name="StockSelling" component={StockSelling} /> */}
       <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
       <Stack.Screen name="TradingSell" component={TradingSellScreen} />
+      <Stack.Screen name="EditUserInfo" component={EditUserInfoScreen} />
     </Stack.Navigator>
   );
 }

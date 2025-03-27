@@ -63,7 +63,8 @@ const LoginScreen = ({ navigation }) => {
         navigation.navigate('MainTab');
       } else {
         console.log('❌ 로그인 실패:', data);
-        Alert.alert('오류', data.detail || '로그인에 실패했습니다.');
+        //Alert.alert('오리꽥류', data.detail || '로그인에 실패했습니다.');
+        Alert.alert('오류', '로그인 정보가 일치하지 않습니다.\n다시 확인해 주세요.');
       }
     } catch (error) {
       console.error('❌ Login error:', error);
