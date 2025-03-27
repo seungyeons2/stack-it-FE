@@ -52,23 +52,54 @@ const MyPageScreen = ({ navigation }) => {
     navigation.navigate('Login');
   };
 
+
   const handleDeleteAccount = () => {
     Alert.alert(
-      '회원탈퇴',
-      '정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+      '회원 탈퇴',
+      '정말 탈퇴하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
       [
         { text: '취소', style: 'cancel' },
         {
-          text: '탈퇴하기', style: 'destructive',
-          onPress: () => {
-            // 탈퇴 API 호출
-            Alert.alert('탈퇴 완료', '계정이 삭제되었습니다.');
-            navigation.navigate('Login');
-          }
-        }
+          text: '탈퇴하기',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const accessToken = await getNewAccessToken(navigation);
+              if (!accessToken) {
+                Alert.alert('인증 오류', '토큰이 만료되었습니다. 다시 로그인해주세요.');
+                navigation.navigate('Login');
+                return;
+              }
+  
+              const response = await fetch(
+                'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/delete/',
+                {
+                  method: 'DELETE',
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+  
+              if (response.ok) {
+                Alert.alert('탈퇴 완료', '계정이 삭제되었습니다.');
+                navigation.navigate('Login');
+              } else {
+                const text = await response.text();
+                console.error('회원 탈퇴 실패 응답:', text);
+                Alert.alert('오류', '회원 탈퇴에 실패했습니다.');
+              }
+            } catch (err) {
+              console.error('회원 탈퇴 중 오류:', err);
+              Alert.alert('오류', '네트워크 오류로 탈퇴에 실패했습니다.');
+            }
+          },
+        },
       ]
     );
   };
+  
 
 
   useEffect(() => {

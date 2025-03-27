@@ -8,24 +8,26 @@ import {
   Alert,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Keyboard,
 } from 'react-native';
 
 import { getNewAccessToken } from '../../Utils/token';
 import { fetchUserInfo } from '../../Utils/user';
+import { updateUserInfo } from '../../Utils/user';
+
 
 const EditUserInfoScreen = ({ navigation }) => {
-  console.log('📌 EditUserInfoScreen 렌더링');
-
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const profileImage = require('../../assets/profile.png');
+  const [editingField, setEditingField] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
         const accessToken = await getNewAccessToken(navigation);
         if (!accessToken) {
-          console.error('❌ 액세스 토큰 없음, 로그인으로 이동');
           Alert.alert('인증 만료', '다시 로그인해주세요.');
           navigation.navigate('Login');
           return;
@@ -33,7 +35,6 @@ const EditUserInfoScreen = ({ navigation }) => {
 
         await fetchUserInfo(navigation, setUserInfo);
       } catch (err) {
-        console.error('❌ 사용자 정보 불러오기 실패:', err);
         Alert.alert('오류', '사용자 정보를 불러오지 못했습니다.');
       } finally {
         setLoading(false);
@@ -43,6 +44,38 @@ const EditUserInfoScreen = ({ navigation }) => {
     loadUserData();
   }, []);
 
+  const handleEdit = (field, value) => {
+    setEditingField(field);
+    setEditValue(value);
+  };
+
+  const saveEdit = async () => {
+    if (editingField) {
+      const trimmed = editValue?.trim();
+      if (trimmed === userInfo[editingField]) {
+        // 값이 안 바뀌었으면 서버 요청 안 보냄
+        setEditingField(null);
+        return;
+      }
+  
+      const success = await updateUserInfo(navigation, {
+        [editingField]: trimmed,
+      });
+  
+      if (success) {
+        setUserInfo((prev) => ({
+          ...prev,
+          [editingField]: trimmed,
+        }));
+      } else {
+        Alert.alert('수정 실패', '정보 수정 중 오류가 발생했습니다.');
+      }
+  
+      setEditingField(null);
+      setEditValue('');
+      Keyboard.dismiss();
+    }
+  };
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center' }]}>
@@ -53,50 +86,59 @@ const EditUserInfoScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                <Text style={styles.backText}>{'<'}</Text>
-              </TouchableOpacity>
-              
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Text style={styles.backText}>{'<'}</Text>
+      </TouchableOpacity>
+
       <View style={styles.profileSection}>
-          <Image
-            source={
-              userInfo?.profileImage
-                ? { uri: userInfo.profileImage }
-                : require('../../assets/profile.png')
-            }
-            style={styles.profileImage}
-          />
+        <Image
+          source={
+            userInfo?.profileImage
+              ? { uri: userInfo.profileImage }
+              : require('../../assets/profile.png')
+          }
+          style={styles.profileImage}
+        />
         <Text style={styles.userName}>{userInfo?.nickname || '개굴개굴 개구리'}</Text>
       </View>
 
       <ScrollView>
-      {/* <View style={styles.infoContainer}> */}
-        <InfoItem label="닉네임" value={userInfo?.nickname || '없음'} />
-        <InfoItem label="성별" value={userInfo?.gender === 'male' ? '남자' : userInfo?.gender === 'female' ? '여자' : '미등록'} />
-        <InfoItem label="생일" value={userInfo?.birthdate || '미등록'} />
-        <InfoItem label="이메일" value={userInfo?.email || '미등록'} />
-        <InfoItem label="주소" value={userInfo?.address || '미등록'} />
-      {/* </View> */}
-    </ScrollView>
+        {renderEditableItem('nickname', '닉네임', userInfo?.nickname)}
+        {renderEditableItem('gender', '성별', userInfo?.gender === 'male' ? '남자' : userInfo?.gender === 'female' ? '여자' : '미등록')}
+        {renderEditableItem('birthdate', '생일', userInfo?.birthdate)}
+        {renderEditableItem('email', '이메일', userInfo?.email)}
+        {renderEditableItem('address', '주소', userInfo?.address)}
+      </ScrollView>
     </View>
   );
+
+  function renderEditableItem(field, label, value) {
+    const isEditing = editingField === field;
+
+    return (
+      <TouchableOpacity onPress={() => handleEdit(field, value)} activeOpacity={0.8}>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>{label}:</Text>
+          {isEditing ? (
+            <TextInput
+              style={styles.input}
+              value={editValue}
+              onChangeText={setEditValue}
+              onBlur={saveEdit}
+              onSubmitEditing={saveEdit}
+              autoFocus
+              returnKeyType="done"
+            />
+          ) : (
+            <Text style={styles.infoValue}>{value || '미등록'}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
 };
 
-const InfoItem = ({ label, value }) => (
-  <View style={styles.infoBox}>
-    <Text style={styles.infoLabel}>{label}:</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  // container: {
-  //   flex: 1,
-  //   backgroundColor: '#003340',
-  //   alignItems: 'center',
-  //   padding: 20,
-  // },
-
   container: {
     flex: 1,
     backgroundColor: '#003340',
@@ -113,7 +155,6 @@ const styles = StyleSheet.create({
     fontSize: 36,
     color: '#F074BA',
   },
-
   profileSection: {
     alignItems: 'center',
     marginTop: 40,
@@ -132,14 +173,6 @@ const styles = StyleSheet.create({
     color: '#F8C7CC',
     marginTop: 10,
   },
-
-  scrollContainer: {
-    width: '100%',
-  },
-  
-  // infoContainer: {
-  //   width: '100%',
-  // },
   infoBox: {
     backgroundColor: '#D4DDEF30',
     padding: 18,
@@ -156,6 +189,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
     marginTop: 3,
+  },
+  input: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F074BA',
+    paddingVertical: 4,
   },
 });
 

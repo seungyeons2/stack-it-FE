@@ -12,7 +12,8 @@ import ChatbotIcon from '../assets/icons/chatbot.svg';
 import ChatbotSelectedIcon from '../assets/icons/chatbot-selected.svg';
 import MyPageIcon from '../assets/icons/mypage.svg';
 import MyPageSelectedIcon from '../assets/icons/mypage-selected.svg';
-
+import GuideIcon from '../assets/icons/guide.svg';
+import GuideSelectedIcon from '../assets/icons/guide-selected.svg';
 const Tab = createBottomTabNavigator();
 
 const MainTab = () => {
@@ -39,7 +40,7 @@ const MainTab = () => {
           if (route.name === 'Home') {
             Icon = focused ? HomeSelectedIcon : HomeIcon;
           } else if (route.name === 'Guide') {
-            Icon = focused ? HomeSelectedIcon : HomeIcon;
+            Icon = focused ? GuideSelectedIcon : GuideIcon;
           } else if (route.name === 'Chatbot') {
             Icon = focused ? ChatbotSelectedIcon : ChatbotIcon;
           } else {
