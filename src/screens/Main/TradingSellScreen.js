@@ -11,9 +11,9 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from 'react-native';
-import { getNewAccessToken } from '../../Utils/token';
-import { fetchUserInfo } from '../../Utils/user';
-import { fetchPortfolio } from '../../Utils/portfolio';
+import { getNewAccessToken } from '../../utils/token';
+import { fetchUserInfo } from '../../utils/user';
+import { fetchPortfolio } from '../../utils/portfolio';
 
 
 const TradingSellScreen = ({ route, navigation }) => {

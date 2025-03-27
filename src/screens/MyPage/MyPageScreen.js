@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 
-import { getNewAccessToken } from '../../Utils/token';
-import { fetchUserInfo } from '../../Utils/user';
+import { getNewAccessToken } from '../../utils/token';
+import { fetchUserInfo } from '../../utils/user';
 
 const MyPageScreen = ({ navigation }) => {
   console.log('📌 MyPageScreen 렌더링');
