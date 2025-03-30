@@ -13,6 +13,9 @@ import MainTab from './MainTab';
 import StockTradeScreen from '../screens/Main/StockTradeScreen';
 //import StockBuying from './src/screens/StockBuying';
 //import StockSelling from './src/screens/StockSelling';
+import GuideLevel1 from '../screens/Guide/GuideLevel1';
+
+
 import TradingBuyScreen from '../screens/Main/TradingBuyScreen';
 import TradingSellScreen from '../screens/Main/TradingSellScreen';
 import EditUserInfoScreen from '../screens/MyPage/EditUserInfoScreen';
@@ -31,6 +34,7 @@ export default function StackNavigator() {
       <Stack.Screen name="FindPassword" component={FindPasswordScreen}/>
       <Stack.Screen name="MainTab" component={MainTab}/>
       <Stack.Screen name="StockTrade" component={StockTradeScreen}/>
+      <Stack.Screen name="GuideLevel1" component={GuideLevel1}/>
       {/* <Stack.Screen name="StockBuying" component={StockBuying} /> */}
       {/* <Stack.Screen name="StockSelling" component={StockSelling} /> */}
       <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
