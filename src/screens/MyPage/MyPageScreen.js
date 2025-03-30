@@ -382,6 +382,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginBottom: 13,
+    marginHorizontal: 5,
   },
   menuText: {
     fontSize: 16,
