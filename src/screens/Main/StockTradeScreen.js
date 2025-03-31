@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SearchIcon from '../../assets/icons/search.svg';
@@ -93,9 +94,13 @@ const StockTradeScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
   
-
-
-
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color="#F074BA" />
+      </View>
+    );
+  }
 
 
 
