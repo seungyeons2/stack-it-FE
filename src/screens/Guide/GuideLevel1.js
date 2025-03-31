@@ -1,14 +1,18 @@
 import React from 'react';
 import { View, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Feather';
+
+// SVG 아이콘 import
+import CheckIcon from '../../assets/icons/studycheck.svg';
+import LockIcon from '../../assets/icons/studylock.svg';
+import StudyingIcon from '../../assets/icons/studying.svg';
 
 const levels = [
-  { id: 1, type: 'start' },
-  { id: 2, type: 'done' },
-  { id: 3, type: 'done' },
-  { id: 4, type: 'chest' },
-  { id: 5, type: 'locked' },
-  { id: 6, type: 'locked' },
+  { id: 1, type: 'start', screen: 'Step1' },
+  { id: 2, type: 'done', screen: 'Step2' },
+  { id: 3, type: 'done', screen: 'Step3' },
+  { id: 4, type: 'chest', screen: 'Step4' },
+  { id: 5, type: 'locked', screen: 'Step5' },
+  { id: 6, type: 'locked', screen: 'Step6' },
 ];
 
 const GuideLevel1 = ({ navigation }) => {
@@ -22,16 +26,43 @@ const GuideLevel1 = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollView} showsVerticalScrollIndicator={false}>
         {levels.map((item, index) => {
           const isLeft = index % 2 === 0;
+
+          const renderIcon = () => {
+            switch (item.type) {
+              case 'start':
+                return null; // 나중에 start 아이콘 추가할 예정
+              case 'done':
+                return <CheckIcon width={96} height={96} />;
+              case 'chest':
+                return <StudyingIcon width={128} height={128} />;
+              case 'locked':
+                return <LockIcon width={96} height={96} />;
+              default:
+                return null;
+            }
+          };
+
+          const isClickable = item.type !== 'locked';
+
+          const content =
+            item.type === 'start' ? (
+              <Text style={styles.startText}>START</Text>
+            ) : (
+              renderIcon()
+            );
+
           return (
-            <View key={index} style={[styles.stepContainer, isLeft ? styles.left : styles.right]}>
-              <View style={styles.circleWrapper}>
-                <View style={[styles.circle, circleStyle(item.type)]}>
-                  {item.type === 'start' && <Text style={styles.startText}>START</Text>}
-                  {item.type === 'done' && <Icon name="check" size={24} color="#fff" />}
-                  {item.type === 'chest' && <Icon name="gift" size={24} color="#fff" />}
-                  {item.type === 'locked' && <Icon name="lock" size={24} color="#fff" />}
-                </View>
-              </View>
+            <View
+              key={index}
+              style={[styles.stepContainer, isLeft ? styles.left : styles.right]}
+            >
+              {isClickable ? (
+                <TouchableOpacity onPress={() => navigation.navigate(item.screen)}>
+                  {content}
+                </TouchableOpacity>
+              ) : (
+                content
+              )}
             </View>
           );
         })}
@@ -40,20 +71,16 @@ const GuideLevel1 = ({ navigation }) => {
   );
 };
 
-const circleStyle = (type) => {
-  switch (type) {
-    case 'start': return { backgroundColor: '#F8B5D4' };
-    case 'done': return { backgroundColor: '#F074BA' };
-    case 'chest': return { backgroundColor: '#FFD700' };
-    case 'locked': return { backgroundColor: '#AAAAAA' };
-    default: return { backgroundColor: '#ccc' };
-  }
-};
-
 const styles = StyleSheet.create({
-  container: {
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#B7E2ED',
+//     paddingHorizontal: 30,
+//     paddingTop: 60,
+//   },
+container: {
     flex: 1,
-    backgroundColor: '#003340',
+    backgroundColor: '#6DC0D4',
     paddingHorizontal: 30,
     paddingTop: 60,
   },
@@ -65,20 +92,17 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: '#F074BA',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F074BA',
-    //justifyContent: 'center',
-    //alignItems: 'center',
-    //position: 'absolute',
-    //top: 100,
-    //left: 30,
+    color: '#FFFFFF',
+    alignSelf: 'center',
+    marginBottom: 20,
   },
   scrollView: {
-    marginTop: 150,
+    marginTop: 20,
     paddingBottom: 60,
   },
   stepContainer: {
@@ -89,26 +113,18 @@ const styles = StyleSheet.create({
   },
   left: {
     justifyContent: 'flex-start',
-    paddingLeft: '10%',
+    paddingLeft: '15%',
   },
   right: {
     justifyContent: 'flex-end',
-    paddingRight: '10%',
-  },
-  circleWrapper: {
-    alignItems: 'center',
-  },
-  circle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingRight: '15%',
   },
   startText: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#fff',
+    textAlign: 'center',
+    marginVertical: 10,
   },
 });
 
