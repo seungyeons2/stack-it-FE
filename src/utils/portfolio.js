@@ -26,7 +26,7 @@ export const fetchPortfolio = async (navigation, setPortfolioData, setLoading) =
       return;
     }
 
-    const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/${userId}/`;
+    const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/`;
     console.log("📡 요청 URL:", url);
 
     const response = await fetch(url, {
