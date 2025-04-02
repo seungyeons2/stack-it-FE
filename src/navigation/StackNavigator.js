@@ -8,6 +8,7 @@ import SignUp3Screen from '../screens/Auth/SignUp3Screen';
 // import SignUp4Screen from './screens/SignUp4Screen';
 import FindIdScreen from '../screens/Auth/FindIdScreen';
 import FindPasswordScreen from '../screens/Auth/FindPasswordScreen';
+import ResetPasswordScreen from '../screens/Auth/ResetPasswordScreen';
 import SplashScreen from '../screens/Auth/SplashScreen';
 import MainTab from './MainTab';
 import StockTradeScreen from '../screens/Main/StockTradeScreen';
@@ -34,6 +35,7 @@ export default function StackNavigator() {
       {/* <Stack.Screen name="SignUp4" component={SignUp4Screen}/> */}
       <Stack.Screen name="FindId" component={FindIdScreen}/>
       <Stack.Screen name="FindPassword" component={FindPasswordScreen}/>
+      <Stack.Screen name="ResetPassword" component={ResetPasswordScreen}/>
       <Stack.Screen name="MainTab" component={MainTab}/>
       <Stack.Screen name="StockTrade" component={StockTradeScreen}/>
       <Stack.Screen name="GuideLevel1" component={GuideLevel1}/>

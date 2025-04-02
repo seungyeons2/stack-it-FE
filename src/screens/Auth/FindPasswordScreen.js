@@ -14,7 +14,7 @@ const FindPasswordScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await fetch(
-        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/password_reset/request/',
+        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/password_reset/request/',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -22,10 +22,25 @@ const FindPasswordScreen = ({ navigation }) => {
         }
       );
 
+      // 응답 타입 확인
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error("서버 응답이 JSON이 아님:", textResponse);
+        Alert.alert('오류', '서버 응답 형식 오류');
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert('성공', '비밀번호 재설정 링크를 이메일로 보냈습니다.');
+        Alert.alert('성공', data.message || '비밀번호 재설정 링크를 이메일로 보냈습니다.', [
+          { 
+            text: '다음',
+            onPress: () => navigation.navigate('ResetPassword', { email: email })
+          }
+        ]);
       } else {
         Alert.alert('오류', data.message || '비밀번호 찾기에 실패했습니다.');
       }
@@ -67,6 +82,10 @@ const FindPasswordScreen = ({ navigation }) => {
           <Text style={styles.sendButtonText}>{loading ? '전송 중...' : '전송'}</Text>
         </TouchableOpacity>
       </View>
+
+      <Text style={styles.infoText}>
+        가입하신 이메일로 비밀번호 재설정 링크가 발송됩니다.
+      </Text>
     </View>
   );
 };
@@ -146,6 +165,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'black',
   },
+
+  infoText: {
+    fontSize: 14,
+    color: '#F074BA',
+    textAlign: 'center',
+    marginTop: 20,
+    opacity: 0.7,
+  }
 });
 
 export default FindPasswordScreen;
