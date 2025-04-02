@@ -12,7 +12,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBalance } from '../../utils/account';
 import { fetchUserInfo } from '../../utils/user';
 
-
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
 
@@ -48,11 +47,6 @@ const MainScreen = ({ navigation }) => {
   const [watchlist, setWatchlist] = useState(mockStocks);
   const [balance, setBalance] = useState('0원');
 
-  // useEffect(() => {
-  //   fetchUserBalance(navigation, setBalance);
-  // }, []);
-
-
   useEffect(() => {
     const load = async () => {
       await fetchUserInfo(navigation, setUserInfo);
@@ -70,7 +64,6 @@ const MainScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation]);
 
-
   const toggleFavorite = (id) => {
     setWatchlist(
       watchlist.map((stock) =>
@@ -79,17 +72,22 @@ const MainScreen = ({ navigation }) => {
     );
   };
 
+  // 검색창 클릭 시 SearchScreen으로 이동
+  const handleSearchPress = () => {
+    navigation.navigate("SearchScreen");
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="주식명 검색"
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-        <TouchableOpacity>
-          <SearchIcon style={styles.SearchIcon} width={24} height={24} />
+        {/* 검색창 클릭 시 SearchScreen으로 이동 */}
+        <TouchableOpacity 
+          style={styles.searchInputContainer} 
+          onPress={handleSearchPress}
+          activeOpacity={0.7}
+        >
+          <SearchIcon style={styles.searchIconInInput} width={18} height={18} />
+          <Text style={styles.searchPlaceholder}>주식명 검색</Text>
         </TouchableOpacity>
         <TouchableOpacity>
           <BellIcon style={styles.BellIcon} width={24} height={24} />
@@ -152,6 +150,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
     justifyContent: "space-between",
+  },
+  searchInputContainer: {
+    flex: 1,
+    backgroundColor: "#EFF1F5",
+    borderRadius: 13,
+    padding: 10,
+    marginRight: 10,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  searchIconInInput: {
+    width: 18,
+    height: 18,
+    fill: "#6B7280",
+    marginRight: 8,
+  },
+  searchPlaceholder: {
+    color: "#6B7280",
+    fontSize: 14,
   },
   SearchIcon: {
     width: 24,

@@ -17,6 +17,8 @@ import StockTradeScreen from '../screens/Main/StockTradeScreen';
 import GuideLevel1 from '../screens/Guide/GuideLevel1';
 import GuideLevel2 from '../screens/Guide/GuideLevel2';
 import GuideLevel3 from '../screens/Guide/GuideLevel3';
+import SearchScreen from '../screens/Main/SearchScreen';
+import StockDetail from '../screens/Main/StockDetail';
 
 
 import TradingBuyScreen from '../screens/Main/TradingBuyScreen';
@@ -46,6 +48,8 @@ export default function StackNavigator() {
       <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
       <Stack.Screen name="TradingSell" component={TradingSellScreen} />
       <Stack.Screen name="EditUserInfo" component={EditUserInfoScreen} />
+      <Stack.Screen name="SearchScreen" component={SearchScreen} />
+      <Stack.Screen name="StockDetail" component={StockDetail} />
     </Stack.Navigator>
   );
 }
