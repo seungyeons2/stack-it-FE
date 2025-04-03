@@ -20,10 +20,10 @@ import GuideLevel3 from '../screens/Guide/GuideLevel3';
 import SearchScreen from '../screens/Main/SearchScreen';
 import StockDetail from '../screens/Main/StockDetail';
 
-
 import TradingBuyScreen from '../screens/Main/TradingBuyScreen';
 import TradingSellScreen from '../screens/Main/TradingSellScreen';
 import EditUserInfoScreen from '../screens/MyPage/EditUserInfoScreen';
+import NoticeScreen from '../screens/MyPage/NoticeScreen';
 const Stack = createStackNavigator();
 
 export default function StackNavigator() {
@@ -48,6 +48,7 @@ export default function StackNavigator() {
       <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
       <Stack.Screen name="TradingSell" component={TradingSellScreen} />
       <Stack.Screen name="EditUserInfo" component={EditUserInfoScreen} />
+      <Stack.Screen name="Notice" component={NoticeScreen} />
       <Stack.Screen name="SearchScreen" component={SearchScreen} />
       <Stack.Screen name="StockDetail" component={StockDetail} />
     </Stack.Navigator>

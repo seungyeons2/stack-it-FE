@@ -214,7 +214,7 @@ const MyPageScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
         <MenuButton label="회원정보 수정" onPress={() => navigation.navigate('EditUserInfo')} />
         <MenuButton label="테마 설정" onPress={() => console.log('EditTheme')} />
-        <MenuButton label="공지사항" onPress={() => console.log('Notice')} />
+        <MenuButton label="공지사항" onPress={() => navigation.navigate('Notice')} />
         <MenuButton label="자주 묻는 질문(FAQ)" onPress={() => console.log('FAQ')} />
         <MenuButton label="로그아웃" onPress={handleLogout} />
         <MenuButton label="회원 탈퇴" onPress={handleDeleteAccount} />
