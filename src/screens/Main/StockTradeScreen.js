@@ -13,6 +13,7 @@ import SearchIcon from '../../assets/icons/search.svg';
 import { fetchUserInfo } from '../../utils/user';
 import { getNewAccessToken } from '../../utils/token';
 import { fetchPortfolio } from '../../utils/portfolio';
+import RecommendedStock from '../../components/RecommendedStock';
 
 
 const StockTradeScreen = ({ navigation }) => {
@@ -23,8 +24,7 @@ const StockTradeScreen = ({ navigation }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
-  
+ 
   const searchStocks = async () => {
     const query = searchText.trim();
     if (!query) return;
@@ -73,7 +73,6 @@ const StockTradeScreen = ({ navigation }) => {
       setSearchResults([]);
     }
   };
-  
   
 
   useEffect(() => {
@@ -162,13 +161,18 @@ const StockTradeScreen = ({ navigation }) => {
           </View>
         ))}
 
-
-
-        {/* 전체 주식 검색 */}
-        <Text style={styles.sectionTitle}>전체 주식</Text>
+        <Text style={styles.sectionTitle}>추천 주식</Text>
         <View style={styles.divider} />
+        {['005930', '352820', '035720', '068270', '051910'].map(stockCode => (
+          <RecommendedStock
+            key={stockCode}
+            stockCode={stockCode}
+            navigation={navigation}
+            styles={styles}
+          />
+        ))}
 
-        <View style={styles.searchContainer}>
+        {/* <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
             placeholder="주식명 검색"
@@ -181,9 +185,9 @@ const StockTradeScreen = ({ navigation }) => {
           >
             <SearchIcon width={24} height={24} fill="#003340" />
           </TouchableOpacity>
-        </View>
-
-        {searchText !== '' && (
+        </View> */}
+        {/* 전체 주식 검색 */}
+        {/* {searchText !== '' && (
   <>
     <View style={styles.divider} />
     {searchResults.length > 0 ? (
@@ -229,7 +233,7 @@ const StockTradeScreen = ({ navigation }) => {
       </Text>
     )}
   </>
-)}
+)} */}
       </ScrollView>
     </View>
   );
