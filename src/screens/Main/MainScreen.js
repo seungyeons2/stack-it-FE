@@ -5,15 +5,21 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  TextInput,
   Image,
+  Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBalance } from '../../utils/account';
 import { fetchUserInfo } from '../../utils/user';
+import { PieChart } from 'react-native-chart-kit'; // 추가된 부분
+import { API_BASE_URL } from '../../utils/apiConfig'; // API 설정 import
+import { getNewAccessToken } from '../../utils/token'; // 토큰 가져오기 import
 
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
+
+const screenWidth = Dimensions.get('window').width; // 화면 너비
 
 const mockStocks = [
   {
@@ -46,11 +52,17 @@ const MainScreen = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [watchlist, setWatchlist] = useState(mockStocks);
   const [balance, setBalance] = useState('0원');
+  
+  // 자산 데이터 상태 추가
+  const [assetData, setAssetData] = useState(null);
+  const [assetLoading, setAssetLoading] = useState(true);
+  const [assetError, setAssetError] = useState(null);
 
   useEffect(() => {
     const load = async () => {
       await fetchUserInfo(navigation, setUserInfo);
       await fetchUserBalance(navigation, setBalance);
+      await fetchAssetData(); // 자산 데이터 불러오기
     };
     load();
   }, []);
@@ -59,10 +71,52 @@ const MainScreen = ({ navigation }) => {
     const unsubscribe = navigation.addListener("focus", () => {
       console.log("📥 MainScreen 다시 focus됨 → 잔고 재요청");
       fetchUserBalance(navigation, setBalance);
+      fetchAssetData(); // 화면에 돌아올 때마다 자산 데이터 갱신
     });
   
     return unsubscribe;
   }, [navigation]);
+
+  // 자산 데이터를 가져오는 함수
+  const fetchAssetData = async () => {
+    try {
+      setAssetLoading(true);
+      
+      // 액세스 토큰 가져오기
+      const accessToken = await getNewAccessToken(navigation);
+      
+      if (!accessToken) {
+        setAssetError('인증이 필요합니다');
+        setAssetLoading(false);
+        return;
+      }
+      
+      // 자산 요약 API 호출
+      const response = await fetch(
+        `${API_BASE_URL}/api/asset/summary/`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        setAssetData(data);
+        setAssetError(null);
+      } else {
+        setAssetError('데이터를 불러오는 데 실패했습니다');
+      }
+    } catch (err) {
+      console.error('자산 데이터 로딩 오류:', err);
+      setAssetError('데이터를 불러오는 데 실패했습니다');
+    } finally {
+      setAssetLoading(false);
+    }
+  };
 
   const toggleFavorite = (id) => {
     setWatchlist(
@@ -75,6 +129,40 @@ const MainScreen = ({ navigation }) => {
   // 검색창 클릭 시 SearchScreen으로 이동
   const handleSearchPress = () => {
     navigation.navigate("SearchScreen");
+  };
+
+  // 상세 자산 페이지로 이동
+  const navigateToAssetDetail = () => {
+    navigation.navigate("AssetDetail");
+  };
+
+  // 금액 포맷팅 함수
+  const formatCurrency = (amount) => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  };
+
+  // 차트 데이터 준비
+  const prepareChartData = () => {
+    if (!assetData || !assetData.breakdown) {
+      return [];
+    }
+
+    const chartColors = [
+      '#6366F1', // 인디고
+      '#3B82F6', // 파랑
+      '#34D399', // 에메랄드
+      '#10B981', // 녹색
+      '#F59E0B', // 황색
+      '#EF4444', // 빨강
+    ];
+
+    return assetData.breakdown.map((item, index) => ({
+      name: item.label,
+      value: item.value,
+      color: chartColors[index % chartColors.length],
+      legendFontColor: "#EFF1F5",
+      legendFontSize: 10
+    }));
   };
 
   return (
@@ -97,8 +185,63 @@ const MainScreen = ({ navigation }) => {
       <View style={styles.assetContainer}>
         <Text style={styles.assetLabel}>자산</Text>
         <Text style={styles.assetValue}>{balance}</Text>
+        
+        {/* 그래프 부분 교체 */}
+        
         <View style={styles.graphContainer}>
-          <View style={styles.mockGraph} />
+          {assetLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#F074BA" />
+              <Text style={styles.loadingText}>자산 정보 로딩 중...</Text>
+            </View>
+          ) : assetError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{assetError}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton} 
+                onPress={fetchAssetData}
+              >
+                <Text style={styles.retryButtonText}>다시 시도</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.chartWrapper}>
+              <PieChart
+                data={prepareChartData()}
+                width={screenWidth}
+                height={screenWidth - 60}
+                chartConfig={{
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                }}
+                accessor="value"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                absolute={false}
+                hasLegend={false}
+                center={[screenWidth * 0.13, 0]} // 이 부분 잘 조절해서 중심 맞춰야댐 근데 Android는 다를 수도
+                avoidFalseZero
+                style={styles.chart}
+                innerRadius="70%"
+              />
+              
+              <View style={styles.centerInfo}>
+                <Text style={styles.centerInfoTitle}>총 자산</Text>
+                {assetData && (
+                  <Text style={styles.centerInfoAmount}>
+                    {formatCurrency(assetData.total_asset)}원
+                  </Text>
+                )}
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.detailButton}
+                onPress={navigateToAssetDetail}
+              >
+                <Text style={styles.detailButtonText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
 
@@ -201,11 +344,106 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "bold",
   },
+  // MainScreen.js의 스타일 부분 수정
   graphContainer: {
-    height: 200,
-    backgroundColor: "#004455",
+    height: screenWidth - 60,
+    //backgroundColor: "#004455",
     borderRadius: 8,
     marginTop: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  chartWrapper: {
+    position: 'relative',
+    width: screenWidth - 60,
+    height: screenWidth - 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8.65,
+    elevation: 8, // Android에서의 그림자 효과
+  },
+  chart: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  centerInfo: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  centerInfoTitle: {
+    color: '#003340',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  centerInfoAmount: {
+    color: '#003340',
+    fontSize: 26,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  detailButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    backgroundColor: '#6366F1',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 20,
+  },
+  detailButtonText: {
+    color: '#EFF1F5',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 8,
+    color: '#EFF1F5',
+    fontSize: 14,
+  },
+  errorContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#F074BA',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#EFF1F5',
+    fontWeight: 'bold',
   },
   percentageContainer: {
     position: "absolute",

@@ -113,7 +113,13 @@ const TypeExamScreen = ({ navigation }) => {
       }
 
       // 성공적으로 제출되면 결과 화면으로 이동
-      navigation.navigate("TypeResult");
+      navigation.reset({
+        index: 0,
+        routes: [
+          { name: 'MainTab' },
+          { name: 'TypeResult' }
+        ],
+      });
     } catch (error) {
       console.error("Error submitting answers:", error);
       Alert.alert(

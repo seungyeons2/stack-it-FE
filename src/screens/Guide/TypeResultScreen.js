@@ -213,6 +213,10 @@ const TypeResultScreen = ({ navigation }) => {
     }
   };
 
+  const handleGoBack = () => {
+    navigation.navigate('MainTab', { screen: 'Guide' });
+  };
+
   // 로딩 중 화면
   if (loading) {
     return (
@@ -245,10 +249,10 @@ const TypeResultScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={handleGoBack}
           style={styles.backButton}
         >
-          <Icon name="arrow-left" size={24} color="#FFFFFF" />
+          <Text style={styles.backText}>{'<'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>나의 투자 유형</Text>
         <TouchableOpacity onPress={handleShare} style={styles.shareButton}>
@@ -506,6 +510,11 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: "#003340",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  backText: {
+    color: "#FFFFFF",
+    fontSize: 24,
     fontWeight: "bold",
   },
 });

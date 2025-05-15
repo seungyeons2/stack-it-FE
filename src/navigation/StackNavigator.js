@@ -28,6 +28,8 @@ import TradingBuyScreen from "../screens/Main/TradingBuyScreen";
 import TradingSellScreen from "../screens/Main/TradingSellScreen";
 import EditUserInfoScreen from "../screens/MyPage/EditUserInfoScreen";
 import NoticeScreen from "../screens/MyPage/NoticeScreen";
+
+import AssetDetailScreen from "../screens/Main/AssetDetailScreen";
 const Stack = createStackNavigator();
 
 export default function StackNavigator() {
@@ -44,9 +46,11 @@ export default function StackNavigator() {
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="MainTab" component={MainTab} />
       <Stack.Screen name="StockTrade" component={StockTradeScreen} />
+      
+      <Stack.Screen name="AssetDetail" component={AssetDetailScreen} options={{ headerShown: false }}/>
       <Stack.Screen name="GuideLevel1" component={GuideLevel1} />
       <Stack.Screen name="GuideLevel2" component={GuideLevel2} />
-      <Stack.Screen name="GuideLevel3" component={GuideLevel3} />
+      <Stack.Screen name="GuideLevel3" component={GuideLevel3} /> 
 
       <Stack.Screen name="TypeExam" component={TypeExamScreen} />
       <Stack.Screen name="TypeResult" component={TypeResultScreen} />
