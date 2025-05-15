@@ -1,42 +1,38 @@
-import React from 'react';
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-} from 'react-native';
+} from "react-native";
 
-import Icon from 'react-native-vector-icons/Feather';
+import Icon from "react-native-vector-icons/Feather";
 //import { LearningProgressBar } from '../../components/LearningProgressBar';
-import LearningProgressBar from '../../components/LearningProgressBar';
-import InspectIcon from '../../assets/icons/stock-inspect.svg';
-import ResultIcon from '../../assets/icons/stock-result.svg';
+import LearningProgressBar from "../../components/LearningProgressBar";
+import InspectIcon from "../../assets/icons/stock-inspect.svg";
+import ResultIcon from "../../assets/icons/stock-result.svg";
 
 import LockIcon from "../../assets/icons/lock.svg";
 
 const GuideScreen = ({ navigation }) => {
+  const UnClearButton = ({ onPress, children }) => (
+    <TouchableOpacity style={styles.unclearButton} onPress={onPress}>
+      <View style={styles.menuRow}>
+        {children}
+        <Icon name="chevron-right" size={20} color="#ffffff" />
+      </View>
+    </TouchableOpacity>
+  );
 
-    const UnClearButton = ({ onPress, children }) => (
-      <TouchableOpacity style={styles.unclearButton} onPress={onPress}>
-        <View style={styles.menuRow}>
-          {children}
-          <Icon name="chevron-right" size={20} color="#ffffff" />
-        </View>
-      </TouchableOpacity>
-    );
-    
-
-
-
-    const ClearButton = ({ label, onPress }) => (
-      <TouchableOpacity style={styles.clearButton} onPress={onPress}>
-        <View style={styles.menuRow}>
-          <Text style={styles.menuText}>{label}</Text>
-          <Icon name="chevron-right" size={20} color="#ffffff" />
-        </View>
-      </TouchableOpacity>
-    );
+  const ClearButton = ({ label, onPress }) => (
+    <TouchableOpacity style={styles.clearButton} onPress={onPress}>
+      <View style={styles.menuRow}>
+        <Text style={styles.menuText}>{label}</Text>
+        <Icon name="chevron-right" size={20} color="#ffffff" />
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
@@ -58,37 +54,45 @@ const GuideScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View> */}
       <View style={styles.buttonContainer}>
-  <TouchableOpacity
-    style={styles.examButton}
-    onPress={() => navigation.navigate('TypeExam')}
-  >
-    <InspectIcon width={90} height={90} />
-    <Text style={styles.buttonText}>유형 검사하기</Text>
-  </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.examButton}
+          onPress={() => navigation.navigate("TypeExam")}
+        >
+          <InspectIcon width={90} height={90} />
+          <Text style={styles.buttonText}>유형 검사하기</Text>
+        </TouchableOpacity>
 
-  <TouchableOpacity
-    style={styles.resultButton}
-    onPress={() => navigation.navigate('ExamResult')}
-  >
-    <ResultIcon width={90} height={90} />
-    <Text style={styles.buttonText}>유형 결과 확인하기</Text>
-  </TouchableOpacity>
-</View>
-
+        <TouchableOpacity
+          style={styles.resultButton}
+          onPress={() => navigation.navigate("TypeResult")}
+        >
+          <ResultIcon width={90} height={90} />
+          <Text style={styles.buttonText}>유형 결과 확인하기</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.divider} />
       <Text style={styles.title}>✏️ 주식 초보를 위한 학습가이드</Text>
-      <ScrollView contentContainerStyle={styles.menuContainer} showsVerticalScrollIndicator={false}>
-        <ClearButton label="1단계" onPress={() => navigation.navigate('GuideLevel1')} />
+      <ScrollView
+        contentContainerStyle={styles.menuContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        <ClearButton
+          label="1단계"
+          onPress={() => navigation.navigate("GuideLevel1")}
+        />
         <LearningProgressBar current={17} total={17} />
-        <ClearButton label="2단계" onPress={() => navigation.navigate('GuideLevel2')} />
+        <ClearButton
+          label="2단계"
+          onPress={() => navigation.navigate("GuideLevel2")}
+        />
         <LearningProgressBar current={2} total={10} />
-        <UnClearButton onPress={() => navigation.navigate('GuideLevel3')}>
-  <View style={styles.labelWithIcon}>
-    <Text style={styles.menuText}>3단계</Text>
-    <LockIcon style={styles.lockIcon} width={20} height={20} />
-  </View>
-</UnClearButton>
+        <UnClearButton onPress={() => navigation.navigate("GuideLevel3")}>
+          <View style={styles.labelWithIcon}>
+            <Text style={styles.menuText}>3단계</Text>
+            <LockIcon style={styles.lockIcon} width={20} height={20} />
+          </View>
+        </UnClearButton>
 
         <LearningProgressBar current={0} total={10} />
       </ScrollView>
@@ -99,7 +103,7 @@ const GuideScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
+    backgroundColor: "#003340",
     paddingHorizontal: 30,
     paddingTop: 60,
   },
@@ -112,8 +116,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 10,
   },
   // examButton: {
@@ -145,35 +149,34 @@ const styles = StyleSheet.create({
   examButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: '#6EE69EE0',
+    backgroundColor: "#6EE69EE0",
     borderRadius: 20,
     marginHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
   },
   resultButton: {
     flex: 1,
     aspectRatio: 1,
-    backgroundColor: '#F074BAE0',
+    backgroundColor: "#F074BAE0",
     borderRadius: 20,
     marginHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
   },
   buttonText: {
-    fontFamily: 'System',
-    color: '#EFF1F5',
+    fontFamily: "System",
+    color: "#EFF1F5",
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     marginTop: 10,
   },
-  
 
   divider: {
     height: 1,
-    backgroundColor: '#4A5A60',
+    backgroundColor: "#4A5A60",
     marginVertical: 20,
   },
   menuContainer: {
@@ -181,12 +184,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   menuRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   clearButton: {
-    backgroundColor: '#D4DDEF60',
+    backgroundColor: "#D4DDEF60",
     padding: 15,
     borderRadius: 15,
     marginTop: 10,
@@ -194,7 +197,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   unclearButton: {
-    backgroundColor: '#D4DDEF20',
+    backgroundColor: "#D4DDEF20",
     padding: 15,
     borderRadius: 15,
     marginTop: 10,
@@ -203,21 +206,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   labelWithIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   lockIcon: {
     marginLeft: 6,
     marginTop: 1, // 살짝 정렬 맞춤용
   },
-  
+
   menuText: {
     fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
-
-  
 });
 
 export default GuideScreen;
