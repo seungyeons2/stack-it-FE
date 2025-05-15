@@ -16,6 +16,8 @@ export const API_ENDPOINTS = {
   // 주식 가격 관련 API
   STOCK_PRICE: '/trading/stock_price',
   PRICE_CHANGE: '/stocks/price_change',
+
+  ASSET_SUMMARY: '/api/asset/summary/',
 };
 
 export const fetchAPI = async (endpoint, options = {}) => {
