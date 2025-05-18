@@ -17,6 +17,7 @@ import StockTradeScreen from "../screens/Main/StockTradeScreen";
 import GuideLevel1 from "../screens/Guide/GuideLevel1";
 import GuideLevel2 from "../screens/Guide/GuideLevel2";
 import GuideLevel3 from "../screens/Guide/GuideLevel3";
+import StudyScreen from "../screens/Guide/StudyScreen";
 
 import SearchScreen from "../screens/Main/SearchScreen";
 import StockDetail from "../screens/Main/StockDetail";
@@ -51,6 +52,7 @@ export default function StackNavigator() {
       <Stack.Screen name="GuideLevel1" component={GuideLevel1} />
       <Stack.Screen name="GuideLevel2" component={GuideLevel2} />
       <Stack.Screen name="GuideLevel3" component={GuideLevel3} /> 
+      <Stack.Screen name="StudyScreen" component={StudyScreen} />
 
       <Stack.Screen name="TypeExam" component={TypeExamScreen} />
       <Stack.Screen name="TypeResult" component={TypeResultScreen} />
