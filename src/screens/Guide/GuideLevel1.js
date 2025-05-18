@@ -7,12 +7,14 @@ import LockIcon from '../../assets/icons/studylock.svg';
 import StudyingIcon from '../../assets/icons/studying.svg';
 
 const levels = [
-  { id: 1, type: 'start', screen: 'Step1' },
+  { id: 1, type: 'done', screen: 'Step1' },
   { id: 2, type: 'done', screen: 'Step2' },
   { id: 3, type: 'done', screen: 'Step3' },
   { id: 4, type: 'chest', screen: 'Step4' },
   { id: 5, type: 'locked', screen: 'Step5' },
   { id: 6, type: 'locked', screen: 'Step6' },
+  { id: 7, type: 'locked', screen: 'Step7' },
+  { id: 8, type: 'locked', screen: 'Step8' },
 ];
 
 const GuideLevel1 = ({ navigation }) => {
@@ -57,12 +59,13 @@ const GuideLevel1 = ({ navigation }) => {
               style={[styles.stepContainer, isLeft ? styles.left : styles.right]}
             >
               {isClickable ? (
-                <TouchableOpacity onPress={() => navigation.navigate(item.screen)}>
+                <TouchableOpacity onPress={() => navigation.navigate('StudyScreen', { guideId: item.id })}>
                   {content}
                 </TouchableOpacity>
               ) : (
                 content
               )}
+
             </View>
           );
         })}
@@ -72,13 +75,13 @@ const GuideLevel1 = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: '#B7E2ED',
-//     paddingHorizontal: 30,
-//     paddingTop: 60,
-//   },
-container: {
+  //   container: {
+  //     flex: 1,
+  //     backgroundColor: '#B7E2ED',
+  //     paddingHorizontal: 30,
+  //     paddingTop: 60,
+  //   },
+  container: {
     flex: 1,
     backgroundColor: '#6DC0D4',
     paddingHorizontal: 30,
