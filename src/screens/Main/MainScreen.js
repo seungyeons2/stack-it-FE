@@ -365,7 +365,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8.65,
-    elevation: 8, // Android에서의 그림자 효과
+    elevation: 8, 
   },
   chart: {
     position: 'absolute',
