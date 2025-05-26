@@ -1,7 +1,11 @@
-import { getNewAccessToken } from './token';
-import { fetchUserInfo } from './user';
+import { getNewAccessToken } from "./token";
+import { fetchUserInfo } from "./user";
 
-export const fetchPortfolio = async (navigation, setPortfolioData, setLoading) => {
+export const fetchPortfolio = async (
+  navigation,
+  setPortfolioData,
+  setLoading
+) => {
   console.log("📥 포트폴리오 요청 시작");
 
   try {
@@ -26,14 +30,14 @@ export const fetchPortfolio = async (navigation, setPortfolioData, setLoading) =
       return;
     }
 
-    const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/portfolio/`;
+    const url = `http://43.200.211.76:8000/trading/portfolio/`;
     console.log("📡 요청 URL:", url);
 
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
     });
 

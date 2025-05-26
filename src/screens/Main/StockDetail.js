@@ -20,29 +20,35 @@ const StockDetail = ({ route, navigation }) => {
     const fetchStockDetails = async () => {
       try {
         setLoading(true);
-        
+
         // 1. 기존 토큰 삭제
-        await fetch('http://127.0.0.1:8000/trade_hantu/destroy_access_token/', {
-          method: 'POST'
-        });
-        
+        await fetch(
+          "http://43.200.211.76:8000/trade_hantu/destroy_access_token/",
+          {
+            method: "POST",
+          }
+        );
+
         // 2. 새 토큰 생성
-        await fetch('http://127.0.0.1:8000/trade_hantu/issue_access_token/', {
-          method: 'POST'
-        });
-        
+        await fetch(
+          "http://43.200.211.76:8000/trade_hantu/issue_access_token/",
+          {
+            method: "POST",
+          }
+        );
+
         // 3. 현재가 조회
         const priceResponse = await fetch(
-          `http://127.0.0.1:8000/trading/stock_price/?stock_code=${symbol}`
+          `http://43.200.211.76:8000/trading/stock_price/?stock_code=${symbol}`
         );
         const priceData = await priceResponse.json();
-        
+
         // 4. 전일대비 변동 정보 조회
         const changeResponse = await fetch(
-          `http://127.0.0.1:8000/stocks/price_change/?stock_code=${symbol}`
+          `http://43.200.211.76:8000/stocks/price_change/?stock_code=${symbol}`
         );
         const changeData = await changeResponse.json();
-        
+
         // 데이터 설정
         if (priceData.status === "success" && changeData.status === "success") {
           setStockData({
@@ -53,10 +59,10 @@ const StockDetail = ({ route, navigation }) => {
             changeStatus: changeData.change_status,
             priceChange: changeData.price_change.toLocaleString(),
             previousPrice: changeData.previous_price.toLocaleString(),
-            // volume: "조회 중", 
-            // marketCap: "조회 중", 
-            // high52Week: "조회 중", 
-            // low52Week: "조회 중", 
+            // volume: "조회 중",
+            // marketCap: "조회 중",
+            // high52Week: "조회 중",
+            // low52Week: "조회 중",
             currentDate: changeData.current_date,
             previousDate: changeData.previous_date,
           });
@@ -71,7 +77,7 @@ const StockDetail = ({ route, navigation }) => {
             priceChange: "0",
             previousPrice: "0",
             // volume: "조회 실패",
-            // marketCap: "조회 실패", 
+            // marketCap: "조회 실패",
             // high52Week: "조회 실패",
             // low52Week: "조회 실패",
             currentDate: "",
@@ -89,10 +95,10 @@ const StockDetail = ({ route, navigation }) => {
           changeStatus: "none",
           priceChange: "0",
           previousPrice: "0",
-        //   volume: "조회 실패",
-        //   marketCap: "조회 실패", 
-        //   high52Week: "조회 실패",
-        //   low52Week: "조회 실패",
+          //   volume: "조회 실패",
+          //   marketCap: "조회 실패",
+          //   high52Week: "조회 실패",
+          //   low52Week: "조회 실패",
           currentDate: "",
           previousDate: "",
         });
@@ -125,10 +131,13 @@ const StockDetail = ({ route, navigation }) => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{'<'}</Text>
+          <Text style={styles.backText}>{"<"}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{name}</Text>
-        <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
+        <TouchableOpacity
+          onPress={toggleFavorite}
+          style={styles.favoriteButton}
+        >
           {isFavorite ? (
             <Text style={styles.starIcon}>★</Text>
           ) : (
@@ -144,8 +153,8 @@ const StockDetail = ({ route, navigation }) => {
           <Text
             style={[
               styles.changeText,
-              stockData.changeStatus === "up" 
-                ? styles.positiveChange 
+              stockData.changeStatus === "up"
+                ? styles.positiveChange
                 : stockData.changeStatus === "down"
                 ? styles.negativeChange
                 : styles.neutralChange,
@@ -161,43 +170,46 @@ const StockDetail = ({ route, navigation }) => {
 
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>주요 지표</Text>
-          
+
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>전일 종가 ({stockData.previousDate})</Text>
+            <Text style={styles.statLabel}>
+              전일 종가 ({stockData.previousDate})
+            </Text>
             <Text style={styles.statValue}>{stockData.previousPrice}원</Text>
           </View>
-          
+
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>현재가 ({stockData.currentDate})</Text>
+            <Text style={styles.statLabel}>
+              현재가 ({stockData.currentDate})
+            </Text>
             <Text style={styles.statValue}>{stockData.price}원</Text>
           </View>
-          
+
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>전일대비 변동</Text>
-            <Text style={[
-              styles.statValue, 
-              stockData.changeStatus === "up" 
-                ? styles.positiveChange 
-                : stockData.changeStatus === "down"
-                ? styles.negativeChange
-                : null
-            ]}>
+            <Text
+              style={[
+                styles.statValue,
+                stockData.changeStatus === "up"
+                  ? styles.positiveChange
+                  : stockData.changeStatus === "down"
+                  ? styles.negativeChange
+                  : null,
+              ]}
+            >
               {stockData.priceChange}원 ({stockData.change}%)
             </Text>
           </View>
-          
+
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>거래량</Text>
             <Text style={styles.statValue}>{stockData.volume}</Text>
           </View>
-          
+
           <View style={styles.statRow}>
             <Text style={styles.statLabel}>시가총액</Text>
             <Text style={styles.statValue}>{stockData.marketCap}</Text>
           </View>
-          
-          
-          
         </View>
 
         <TouchableOpacity

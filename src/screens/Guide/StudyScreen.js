@@ -1,16 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
-  View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Animated, StyleSheet
-} from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import Markdown from 'react-native-markdown-display';
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+} from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import Markdown from "react-native-markdown-display";
 
 const StudyScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const { guideId } = route.params; // ← navigation.navigate('StudyScreen', { guideId: 1 }) 형태로 호출
 
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [progressIndex, setProgressIndex] = useState(0);
   const [showButton, setShowButton] = useState(true);
@@ -20,13 +26,15 @@ const StudyScreen = () => {
   useEffect(() => {
     const fetchGuide = async () => {
       try {
-        const res = await fetch(`https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/guides/${guideId}/`)
+        const res = await fetch(
+          `http://43.200.211.76:8000/api/guides/${guideId}/`
+        );
         const data = await res.json();
-        console.log('[content]', data.content);  // 🔍 확인용
+        console.log("[content]", data.content); // 🔍 확인용
 
         setContent(data.content); // 마크다운이지만 그냥 텍스트로 출력
       } catch (error) {
-        setContent('[불러오기 실패]');
+        setContent("[불러오기 실패]");
       } finally {
         setLoading(false);
       }
@@ -44,15 +52,15 @@ const StudyScreen = () => {
     const level = Math.floor(scrollPercent * 5); // 0~5 단계로 나눔
     setProgressIndex(Math.min(level, 5));
 
-    const direction = currentOffset > scrollOffset.current ? 'down' : 'up';
-    if (direction === 'down' && showButton) {
+    const direction = currentOffset > scrollOffset.current ? "down" : "up";
+    if (direction === "down" && showButton) {
       setShowButton(false);
       Animated.timing(buttonAnim, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
       }).start();
-    } else if (direction === 'up' && !showButton) {
+    } else if (direction === "up" && !showButton) {
       setShowButton(true);
       Animated.timing(buttonAnim, {
         toValue: 1,
@@ -68,8 +76,11 @@ const StudyScreen = () => {
     <View style={styles.container}>
       {/* 상단 바 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>{'<'}</Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <Text style={styles.backText}>{"<"}</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.chapterNumber}>1-{guideId}</Text>
@@ -79,9 +90,14 @@ const StudyScreen = () => {
       </View>
 
       {/* 스크롤 진행 바 */}
-      <View style={{ alignItems: 'center' }}>
+      <View style={{ alignItems: "center" }}>
         <View style={styles.progressBarContainer}>
-          <View style={[styles.progressBarFill, { width: `${progressIndex * 20}%` }]} />
+          <View
+            style={[
+              styles.progressBarFill,
+              { width: `${progressIndex * 20}%` },
+            ]}
+          />
         </View>
       </View>
 
@@ -94,10 +110,7 @@ const StudyScreen = () => {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          
-<Markdown style={markdownStyles}>
-  {content}
-</Markdown>
+          <Markdown style={markdownStyles}>{content}</Markdown>
         </ScrollView>
       )}
 
@@ -106,12 +119,14 @@ const StudyScreen = () => {
         style={[
           styles.completeButton,
           {
-            transform: [{
-              translateY: buttonAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [100, 0],
-              }),
-            }],
+            transform: [
+              {
+                translateY: buttonAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [100, 0],
+                }),
+              },
+            ],
           },
         ]}
       >
@@ -126,47 +141,47 @@ const StudyScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9FA',
+    backgroundColor: "#F7F9FA",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 10,
-    backgroundColor: '#E0F4F9',
+    backgroundColor: "#E0F4F9",
   },
   backButton: {
     marginRight: 10,
   },
   backText: {
     fontSize: 28,
-    color: '#003340',
+    color: "#003340",
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   chapterNumber: {
     fontSize: 14,
-    color: '#003340',
+    color: "#003340",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#003340',
+    fontWeight: "bold",
+    color: "#003340",
   },
   progressBarContainer: {
     height: 6,
-    width: '80%',
-    backgroundColor: '#D0DCE0',
+    width: "80%",
+    backgroundColor: "#D0DCE0",
     borderRadius: 3,
     marginTop: 10,
     marginBottom: 6,
   },
   progressBarFill: {
     height: 6,
-    backgroundColor: '#00AACC',
+    backgroundColor: "#00AACC",
     borderRadius: 3,
   },
   scrollArea: {
@@ -177,50 +192,47 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 16,
     lineHeight: 26,
-    color: '#333',
+    color: "#333",
   },
   completeButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: '#003340',
+    backgroundColor: "#003340",
     paddingVertical: 14,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-
-  
 });
 
 const markdownStyles = {
   body: {
     fontSize: 16,
     lineHeight: 26,
-    color: '#333',
+    color: "#333",
   },
   heading1: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 20,
     marginBottom: 8,
   },
   heading2: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 18,
     marginBottom: 6,
   },
   list_item: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
 };
-
 
 export default StudyScreen;

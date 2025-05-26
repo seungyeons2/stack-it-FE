@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, Pressable, ScrollView, Dimensions } from 'react-native';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Pressable,
+  ScrollView,
+  Dimensions,
+} from "react-native";
 
 // ✅ 현재 기기의 높이 가져오기
-const { height } = Dimensions.get('window');
+const { height } = Dimensions.get("window");
 
 const SignUp2Screen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [gender, setGender] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [birthdate, setBirthdate] = useState('');
-  const [address, setAddress] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [gender, setGender] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [address, setAddress] = useState("");
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,79 +33,92 @@ const SignUp2Screen = ({ navigation }) => {
     return dateRegex.test(date);
   };
 
-  const handleSignUp = async () => { 
+  const handleSignUp = async () => {
     if (!validateEmail(email)) {
-      Alert.alert('오류', '올바른 이메일 형식을 입력해주세요.');
+      Alert.alert("오류", "올바른 이메일 형식을 입력해주세요.");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('오류', '비밀번호는 최소 6자 이상이어야 합니다.');
+      Alert.alert("오류", "비밀번호는 최소 6자 이상이어야 합니다.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('오류', '비밀번호가 일치하지 않습니다.');
+      Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
       return;
     }
 
     if (!gender || !nickname || !birthdate || !address) {
-      Alert.alert('오류', '모든 필드를 입력해주세요.');
+      Alert.alert("오류", "모든 필드를 입력해주세요.");
       return;
     }
 
     if (!isValidDate(birthdate)) {
-      Alert.alert('오류', '생년월일은 YYYY-MM-DD 형식으로 입력해야 합니다.');
+      Alert.alert("오류", "생년월일은 YYYY-MM-DD 형식으로 입력해야 합니다.");
       return;
     }
 
     try {
-      const response = await fetch(
-        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/users/',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, gender, nickname, birthdate, address }),
-        }
-      );
+      const response = await fetch("http://43.200.211.76:8000/users/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          gender,
+          nickname,
+          birthdate,
+          address,
+        }),
+      });
 
       const data = await response.json();
       console.log("✅ 회원가입 응답 데이터:", data);
 
-      if (response.status === 201 && data.status === 'success') {
-        const { id } = data.data;  
+      if (response.status === 201 && data.status === "success") {
+        const { id } = data.data;
         console.log("✅ 회원가입 성공, id:", id);
 
         Alert.alert(
-          '회원가입 성공', 
-          '이메일에서 인증 링크를 확인하고, 토큰을 복사하여 입력해주세요.',
+          "회원가입 성공",
+          "이메일에서 인증 링크를 확인하고, 토큰을 복사하여 입력해주세요.",
           [
-            { text: "확인", onPress: () => navigation.navigate('SignUp3', { email, id }) }
+            {
+              text: "확인",
+              onPress: () => navigation.navigate("SignUp3", { email, id }),
+            },
           ]
         );
-      } 
-      else if (response.status === 400 && data.errors?.email) {
-        Alert.alert('오류', '이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요.');
-      } 
-      else {
-        Alert.alert('오류', data.message || '회원가입 실패');
+      } else if (response.status === 400 && data.errors?.email) {
+        Alert.alert(
+          "오류",
+          "이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요."
+        );
+      } else {
+        Alert.alert("오류", data.message || "회원가입 실패");
       }
     } catch (error) {
       console.error("🚨 Network Error:", error);
-      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+      Alert.alert("오류", "네트워크 오류가 발생했습니다.");
     }
   };
 
   return (
     <View style={styles.container}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Text style={styles.backText}>{'<'}</Text>
-            </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButton}
+      >
+        <Text style={styles.backText}>{"<"}</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>회원가입 (1/3)</Text>
 
       {/* ✅ 스크롤 가능한 입력 영역 */}
-      <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
-        
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* ✅ 이메일 입력 */}
         <Text style={styles.label}>이메일</Text>
         <TextInput
@@ -118,7 +141,7 @@ const SignUp2Screen = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
         />
-        
+
         {/* ✅ 비밀번호 확인 */}
         <Text style={styles.label}>비밀번호 확인</Text>
         <TextInput
@@ -133,29 +156,49 @@ const SignUp2Screen = ({ navigation }) => {
         {/* ✅ 성별 선택 */}
         <Text style={styles.label}>성별</Text>
         <View style={styles.genderContainer}>
-          <Pressable style={[styles.checkBox, gender === 'male' && styles.checkedBox]} onPress={() => setGender('male')}>
-            {gender === 'male' && <Text style={styles.checkMark}>✓</Text>}
+          <Pressable
+            style={[styles.checkBox, gender === "male" && styles.checkedBox]}
+            onPress={() => setGender("male")}
+          >
+            {gender === "male" && <Text style={styles.checkMark}>✓</Text>}
           </Pressable>
           <Text style={styles.checkBoxText}>남성</Text>
 
-          <Pressable style={[styles.checkBox, gender === 'female' && styles.checkedBox]} onPress={() => setGender('female')}>
-            {gender === 'female' && <Text style={styles.checkMark}>✓</Text>}
+          <Pressable
+            style={[styles.checkBox, gender === "female" && styles.checkedBox]}
+            onPress={() => setGender("female")}
+          >
+            {gender === "female" && <Text style={styles.checkMark}>✓</Text>}
           </Pressable>
           <Text style={styles.checkBoxText}>여성</Text>
         </View>
 
         {/* ✅ 닉네임 입력 */}
         <Text style={styles.label}>닉네임</Text>
-        <TextInput style={styles.input} placeholder="닉네임 입력" value={nickname} onChangeText={setNickname} />
+        <TextInput
+          style={styles.input}
+          placeholder="닉네임 입력"
+          value={nickname}
+          onChangeText={setNickname}
+        />
 
         {/* ✅ 생년월일 입력 */}
         <Text style={styles.label}>생년월일</Text>
-        <TextInput style={styles.input} placeholder="YYYY-MM-DD" value={birthdate} onChangeText={setBirthdate} />
+        <TextInput
+          style={styles.input}
+          placeholder="YYYY-MM-DD"
+          value={birthdate}
+          onChangeText={setBirthdate}
+        />
 
         {/* ✅ 주소 입력 */}
         <Text style={styles.label}>주소</Text>
-        <TextInput style={styles.input} placeholder="주소 입력" value={address} onChangeText={setAddress} />
-      
+        <TextInput
+          style={styles.input}
+          placeholder="주소 입력"
+          value={address}
+          onChangeText={setAddress}
+        />
       </ScrollView>
 
       {/* ✅ 다음 버튼 */}
@@ -180,32 +223,31 @@ const styles = StyleSheet.create({
   // },
   container: {
     flexGrow: 1,
-    backgroundColor: '#003340',
+    backgroundColor: "#003340",
     // alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingHorizontal: 30,
   },
   backButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     left: 20,
     zIndex: 10,
   },
   backText: {
     fontSize: 36,
-    color: '#F074BA',
+    color: "#F074BA",
   },
 
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#F074BA',
-    position: 'absolute',
+    fontWeight: "bold",
+    color: "#F074BA",
+    position: "absolute",
     top: 150,
     left: 30,
   },
 
-  
   // scrollContainer: {
   //   flex: 1,
   //   marginTop: height * 0.25,  // 🔥 전체 높이의 20%부터 시작
@@ -214,7 +256,6 @@ const styles = StyleSheet.create({
   // scrollContent: {
   //   paddingBottom: height * 0.02,  // 🔥 전체 높이의 2% 여백 추가
   // },
-
 
   // scrollView: {
   //   flex: 1,
@@ -232,36 +273,35 @@ const styles = StyleSheet.create({
 
   // scrollContainer: {
   //   flex: 1,
-  //   marginTop: 200, 
-  //   marginBottom: 150, 
+  //   marginTop: 200,
+  //   marginBottom: 150,
   // },
   // scrollContent: {
   //   paddingBottom: 20,
   // },
   label: {
     fontSize: 16,
-    color: '#F074BA',
+    color: "#F074BA",
     marginTop: 10,
     marginBottom: 10,
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    color: 'black',
+    backgroundColor: "#f9f9f9",
+    color: "black",
   },
 
-
   genderContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
     marginTop: 5,
     marginBottom: 15,
   },
@@ -269,28 +309,25 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: '#F074BA',
+    borderColor: "#F074BA",
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkedBox: {
-    backgroundColor: '#F074BA',
+    backgroundColor: "#F074BA",
   },
   checkMark: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   checkBoxText: {
     fontSize: 16,
-    color: '#F074BA',
+    color: "#F074BA",
     marginLeft: 9,
     marginRight: 15,
   },
-
-
-
 
   // button: {
   //   width: '100%',
@@ -309,27 +346,23 @@ const styles = StyleSheet.create({
   //   fontWeight: 'bold',
   // },
 
-
   button: {
-    width: '100%',
+    width: "100%",
     height: 50,
-    backgroundColor: '#F074BA',
+    backgroundColor: "#F074BA",
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
     bottom: 80,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
 
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-
-
 });
 
 export default SignUp2Screen;
-

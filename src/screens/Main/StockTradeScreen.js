@@ -30,7 +30,7 @@ const StockTradeScreen = ({ navigation }) => {
   //   if (!query) return;
   
   //   try {
-  //     const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/stock/search/?query=${encodeURIComponent(query)}`;
+  //     const url = `http://43.200.211.76:8000/api/stock/search/?query=${encodeURIComponent(query)}`;
   //     console.log('🔍 검색어:', query);
   //     console.log('🔄 검색 URL:', url);
   

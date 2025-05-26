@@ -1,74 +1,81 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import EyeOpen from '../../components/EyeOpen';
-import EyeClosed from '../../components/EyeClosed';
+import React, { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import EyeOpen from "../../components/EyeOpen";
+import EyeClosed from "../../components/EyeClosed";
 
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('알림', '이메일과 비밀번호를 모두 입력해주세요.');
+      Alert.alert("알림", "이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     try {
-      console.log('로그인 시도:', { email, password: '***' });
+      console.log("로그인 시도:", { email, password: "***" });
 
-      const response = await fetch(
-        'https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/api/token/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const response = await fetch("http://43.200.211.76:8000/api/token/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
 
-      console.log('응답 상태:', response.status);
-      
+      console.log("응답 상태:", response.status);
+
       const responseText = await response.text();
-      console.log('응답 본문:', responseText);
-      
+      console.log("응답 본문:", responseText);
+
       let data;
       try {
         data = JSON.parse(responseText);
       } catch (e) {
-        console.error('JSON 파싱 오류:', e);
-        Alert.alert('오류', '서버 응답을 처리할 수 없습니다.');
+        console.error("JSON 파싱 오류:", e);
+        Alert.alert("오류", "서버 응답을 처리할 수 없습니다.");
         setIsLoading(false);
         return;
       }
 
       if (response.ok && data.access) {
-        console.log('✅ 토큰 발급 성공');
+        console.log("✅ 토큰 발급 성공");
 
         // 🔹 Access Token, Refresh Token, Email, Password 저장
-        await AsyncStorage.setItem('accessToken', data.access);
-        await AsyncStorage.setItem('refreshToken', data.refresh);
-        await AsyncStorage.setItem('userEmail', email);
-        await AsyncStorage.setItem('userPassword', password); // ❗ 자동 로그인을 위해 password도 저장
+        await AsyncStorage.setItem("accessToken", data.access);
+        await AsyncStorage.setItem("refreshToken", data.refresh);
+        await AsyncStorage.setItem("userEmail", email);
+        await AsyncStorage.setItem("userPassword", password); // ❗ 자동 로그인을 위해 password도 저장
 
-        console.log('🔹 로그인 성공, MainTab으로 이동 시도');
-        navigation.navigate('MainTab');
+        console.log("🔹 로그인 성공, MainTab으로 이동 시도");
+        navigation.navigate("MainTab");
       } else {
-        console.log('❌ 로그인 실패:', data);
+        console.log("❌ 로그인 실패:", data);
         //Alert.alert('오리꽥류', data.detail || '로그인에 실패했습니다.');
-        Alert.alert('오류', '로그인 정보가 일치하지 않습니다.\n다시 확인해 주세요.');
+        Alert.alert(
+          "오류",
+          "로그인 정보가 일치하지 않습니다.\n다시 확인해 주세요."
+        );
       }
     } catch (error) {
-      console.error('❌ Login error:', error);
-      Alert.alert('오류', '네트워크 오류가 발생했습니다.');
+      console.error("❌ Login error:", error);
+      Alert.alert("오류", "네트워크 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +84,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>로그인</Text>
-      
+
       <Text style={styles.label}>이메일</Text>
       <TextInput
         style={styles.input}
@@ -88,7 +95,7 @@ const LoginScreen = ({ navigation }) => {
         keyboardType="email-address"
         autoCapitalize="none"
       />
-      
+
       <Text style={styles.label}>비밀번호</Text>
       <View style={styles.inputContainer}>
         <TextInput
@@ -99,31 +106,43 @@ const LoginScreen = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity onPress={() => setSeePassword(!seePassword)} style={styles.icon}>
+        <TouchableOpacity
+          onPress={() => setSeePassword(!seePassword)}
+          style={styles.icon}
+        >
           {seePassword ? <EyeClosed /> : <EyeOpen />}
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={handleLogin}
         disabled={isLoading}
       >
         <Text style={styles.buttonText}>
-          {isLoading ? '로그인 중...' : '로그인'}
+          {isLoading ? "로그인 중..." : "로그인"}
         </Text>
       </TouchableOpacity>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate('FindId')} style={styles.findIdButton}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("FindId")}
+          style={styles.findIdButton}
+        >
           <Text style={styles.findIdText}>이메일 찾기</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity onPress={() => navigation.navigate('FindPassword')} style={styles.findPasswordButton}>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("FindPassword")}
+          style={styles.findPasswordButton}
+        >
           <Text style={styles.findPasswordText}>비밀번호 찾기</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp1')} style={styles.signUpButton}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("SignUp1")}
+          style={styles.signUpButton}
+        >
           <Text style={styles.findPasswordText}>회원가입</Text>
         </TouchableOpacity>
       </View>
@@ -134,46 +153,46 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#003340",
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 30,
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#F074BA',
-    position: 'absolute',
+    fontWeight: "bold",
+    color: "#F074BA",
+    position: "absolute",
     top: 150,
     left: 30,
   },
   label: {
     fontSize: 16,
-    color: '#F074BA',
-    alignSelf: 'flex-start',
+    color: "#F074BA",
+    alignSelf: "flex-start",
     marginTop: 10,
     marginBottom: 10,
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 5,
     fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    color: 'black',
+    backgroundColor: "#f9f9f9",
+    color: "black",
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     marginBottom: 15,
     paddingHorizontal: 10,
   },
@@ -181,55 +200,55 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     fontSize: 16,
-    color: 'black',
+    color: "black",
   },
   icon: {
     padding: 10,
   },
   button: {
-    width: '100%',
+    width: "100%",
     height: 50,
-    backgroundColor: '#F074BA',
+    backgroundColor: "#F074BA",
     borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
+    alignItems: "center",
+    justifyContent: "center",
+    position: "absolute",
     bottom: 80,
   },
   buttonDisabled: {
-    backgroundColor: '#d3d3d3',
+    backgroundColor: "#d3d3d3",
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   buttonContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 10,
     paddingHorizontal: 10,
   },
   findIdButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 10,
   },
   findIdText: {
-    color: '#EFF1F5',
+    color: "#EFF1F5",
     fontSize: 16,
   },
   findPasswordButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 80,
   },
   findPasswordText: {
-    color: '#EFF1F5',
+    color: "#EFF1F5",
     fontSize: 16,
   },
   signUpButton: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   signUpText: {
-    color: '#EFF1F5',
+    color: "#EFF1F5",
     fontSize: 16,
   },
 });
