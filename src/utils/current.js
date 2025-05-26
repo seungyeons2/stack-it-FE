@@ -1,7 +1,7 @@
 //   const fetchRealTimePrice = async () => {
 //     try {
 //       const accessToken = await getNewAccessToken(navigation);
-//       const url = `https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/trading/stock_price/?stock_code=${stockInfo.symbol}`;
+//       const url = `http://43.200.211.76:8000/trading/stock_price/?stock_code=${stockInfo.symbol}`;
 //       const response = await fetch(url, {
 //         method: "GET",
 //         headers: {
