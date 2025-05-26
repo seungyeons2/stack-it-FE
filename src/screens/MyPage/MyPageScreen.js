@@ -13,6 +13,8 @@ import Icon from "react-native-vector-icons/Feather";
 
 import { getNewAccessToken } from "../../utils/token";
 import { fetchUserInfo } from "../../utils/user";
+import { fetchUserMbtiType, getMbtiImage } from "../../utils/mbtiType";
+
 
 const MyPageScreen = ({ navigation }) => {
   console.log("📌 MyPageScreen 렌더링");
@@ -25,7 +27,14 @@ const MyPageScreen = ({ navigation }) => {
   const [introText, setIntroText] = useState("티끌 모아 태산이긴해!");
   const [isEditingIntro, setIsEditingIntro] = useState(false);
 
-  const profileImage = require("../../assets/profile.png");
+  //const profileImage = require("../../assets/profile.png");
+  const [mbtiType, setMbtiType] = useState(null);
+
+
+useEffect(() => {
+  fetchUserMbtiType(navigation, setMbtiType);
+}, []);
+
 
   const saveIntroText = async (text) => {
     try {
@@ -46,10 +55,45 @@ const MyPageScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const handleLogout = () => {
-    Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
-    navigation.navigate("Login");
-  };
+  // const handleLogout = () => {
+  //   Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
+  //   navigation.navigate("Login");
+  // };
+
+  const handleLogout = async () => {
+  try {
+    const accessToken = await getNewAccessToken(navigation);
+    if (!accessToken) {
+      Alert.alert(
+        "인증 오류",
+        "토큰이 만료되었습니다. 다시 로그인해주세요."
+      );
+      navigation.navigate("Login");
+      return;
+    }
+
+    const response = await fetch("http://43.200.211.76:8000/logout/", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
+      navigation.navigate("Login");
+    } else {
+      const text = await response.text();
+      console.error("로그아웃 실패 응답:", text);
+      Alert.alert("오류", "로그아웃에 실패했습니다.");
+    }
+  } catch (err) {
+    console.error("로그아웃 중 오류:", err);
+    Alert.alert("오류", "네트워크 오류로 로그아웃에 실패했습니다.");
+  }
+};
+
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -136,7 +180,7 @@ const MyPageScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.profileSection}>
         {/* 왼쪽: 이미지 + 닉네임 */}
-        <View style={styles.profileLeft}>
+        {/* <View style={styles.profileLeft}>
           <Image
             source={
               userInfo?.profileImage
@@ -145,7 +189,20 @@ const MyPageScreen = ({ navigation }) => {
             }
             style={styles.profileImage}
           />
-        </View>
+        </View> */}
+        <View style={styles.profileLeft}>
+  <Image
+    source={
+      mbtiType && getMbtiImage(mbtiType)
+        ? getMbtiImage(mbtiType)
+        : require("../../assets/profile.png")
+    }
+    style={styles.profileImage}
+  />
+</View>
+
+
+
 
         {/* 오른쪽: 뱃지 + 한줄소개 */}
         <View style={styles.profileRight}>
@@ -157,7 +214,7 @@ const MyPageScreen = ({ navigation }) => {
             ))}
           </View>
           <Text style={styles.userName}>
-            {userInfo?.nickname || "개굴개굴 개구리"}
+            {userInfo?.nickname || "잔고가 두둑한 햄스터"}
           </Text>
 
           <View style={styles.introRow}>
@@ -276,7 +333,9 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: "#F074BA",
+    borderColor: "#FFFFFFB0",
+    backgroundColor: "#D4DDEF60", // ✅ 원하는 배경색
+
   },
   badgeRow: {
     flexDirection: "row",
