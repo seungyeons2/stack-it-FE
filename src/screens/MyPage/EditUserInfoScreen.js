@@ -15,6 +15,8 @@ import {
 import { getNewAccessToken } from '../../utils/token';
 import { fetchUserInfo } from '../../utils/user';
 import { updateUserInfo } from '../../utils/user';
+import { fetchUserMbtiType, getMbtiImage } from "../../utils/mbtiType";
+
 
 
 const EditUserInfoScreen = ({ navigation }) => {
@@ -22,6 +24,11 @@ const EditUserInfoScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [mbtiType, setMbtiType] = useState(null);
+
+  useEffect(() => {
+    fetchUserMbtiType(navigation, setMbtiType);
+  }, []);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -91,15 +98,24 @@ const EditUserInfoScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <View style={styles.profileSection}>
-        <Image
+        {/* <Image
           source={
             userInfo?.profileImage
               ? { uri: userInfo.profileImage }
               : require('../../assets/profile.png')
           }
           style={styles.profileImage}
-        />
-        <Text style={styles.userName}>{userInfo?.nickname || '개굴개굴 개구리'}</Text>
+        /> */}
+          <Image
+            source={
+              mbtiType && getMbtiImage(mbtiType)
+                ? getMbtiImage(mbtiType)
+                : require("../../assets/profile.png")
+            }
+            style={styles.profileImage}
+          />
+
+        <Text style={styles.userName}>{userInfo?.nickname || '잔고가 두둑한 햄스터'}</Text>
       </View>
 
       <ScrollView>
@@ -164,8 +180,9 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    borderWidth: 2,
-    borderColor: '#F074BA',
+    borderWidth: 3,
+    borderColor: "#FFFFFFB0",
+    backgroundColor: "#D4DDEF60", // ✅ 원하는 배경색
   },
   userName: {
     fontSize: 20,
