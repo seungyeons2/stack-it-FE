@@ -30,7 +30,7 @@ const SearchScreen = ({ navigation }) => {
         `${API_BASE_URL}/api/stock/autocomplete/?query=${query}`
       );
       const data = await response.json();
-      
+
       // results 배열이 있는지 확인하고 처리
       if (data.results) {
         setAutoCompleteResults(data.results);
@@ -40,7 +40,7 @@ const SearchScreen = ({ navigation }) => {
         console.error("예상치 못한 데이터 형식:", data);
         setAutoCompleteResults([]);
       }
-      
+
       console.log("자동완성 결과:", autoCompleteResults);
     } catch (error) {
       console.error("자동완성 API 오류:", error);
@@ -57,7 +57,7 @@ const SearchScreen = ({ navigation }) => {
         `${API_BASE_URL}/api/stock/search/?query=${query}`
       );
       const data = await response.json();
-      
+
       // results 배열이 있는지 확인하고 처리
       if (data.results) {
         setSearchResults(data.results);
@@ -67,7 +67,7 @@ const SearchScreen = ({ navigation }) => {
         console.error("예상치 못한 데이터 형식:", data);
         setSearchResults([]);
       }
-      
+
       setHasSearched(true);
       setAutoCompleteResults([]); // 자동완성 결과 초기화
     } catch (error) {
@@ -79,13 +79,13 @@ const SearchScreen = ({ navigation }) => {
 
   // 검색어 변경 시 자동완성 결과 요청
   useEffect(() => {
-    console.log('검색어 변경:', searchQuery);
+    console.log("검색어 변경:", searchQuery);
     const delayDebounceFn = setTimeout(() => {
       if (searchQuery) {
-        console.log('자동완성 API 호출 시도:', searchQuery);
+        console.log("자동완성 API 호출 시도:", searchQuery);
         fetchAutoComplete(searchQuery);
       }
-    }, 300); // 300ms 디바운스 *** 추후 늘릴수도..?
+    }, 800); // 800ms 디바운스 *** 추후 늘릴수도..?
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
@@ -99,9 +99,9 @@ const SearchScreen = ({ navigation }) => {
   // 이건 검색 결과 항목 선택 시 호출함
   const handleSelectStock = (item) => {
     // 선택한 주식의 상세 화면으로
-    navigation.navigate("StockDetail", { 
-      symbol: item.symbol, 
-      name: item.name 
+    navigation.navigate("StockDetail", {
+      symbol: item.symbol,
+      name: item.name,
     });
   };
 
@@ -113,7 +113,7 @@ const SearchScreen = ({ navigation }) => {
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{'<'}</Text>
+          <Text style={styles.backText}>{"<"}</Text>
         </TouchableOpacity>
         <TextInput
           style={styles.searchInput}
@@ -145,12 +145,14 @@ const SearchScreen = ({ navigation }) => {
 
       {/* 로그찍어본것 */}
       {!hasSearched && autoCompleteResults.length > 0 && (
-        <Text style={{color: '#FFF'}}>결과 수: {autoCompleteResults.length}</Text>
+        <Text style={{ color: "#FFF" }}>
+          결과 수: {autoCompleteResults.length}
+        </Text>
       )}
 
       {/* 자동완성 결과 */}
       {!hasSearched && autoCompleteResults.length > 0 && (
-        <View style={[styles.resultsContainer, {flex: 1, maxHeight: '70%'}]}>
+        <View style={[styles.resultsContainer, { flex: 1, maxHeight: "70%" }]}>
           <Text style={styles.resultTitle}>추천 검색어</Text>
           <FlatList
             data={autoCompleteResults}
@@ -170,7 +172,7 @@ const SearchScreen = ({ navigation }) => {
 
       {/* 검색 결과*/}
       {hasSearched && searchResults.length > 0 && (
-        <View style={[styles.resultsContainer, {flex: 1}]}>
+        <View style={[styles.resultsContainer, { flex: 1 }]}>
           <Text style={styles.resultTitle}>검색 결과</Text>
           <FlatList
             data={searchResults}
@@ -243,12 +245,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   resultsContainer: {
-    flex: 1, 
+    flex: 1,
     marginTop: 8,
-    //backgroundColor: '#004455', 
+    //backgroundColor: '#004455',
     borderRadius: 10,
     padding: 10,
-    zIndex: 10, 
+    zIndex: 10,
   },
   resultTitle: {
     color: "#F074BA",
@@ -264,14 +266,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#004455",
-    backgroundColor: '#002530', 
+    backgroundColor: "#002530",
     marginBottom: 4,
     borderRadius: 8,
   },
   itemName: {
     color: "#EFF1F5",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   itemSymbol: {
     color: "#9ca3af",

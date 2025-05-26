@@ -59,10 +59,6 @@ const StockDetail = ({ route, navigation }) => {
             changeStatus: changeData.change_status,
             priceChange: changeData.price_change.toLocaleString(),
             previousPrice: changeData.previous_price.toLocaleString(),
-            // volume: "조회 중",
-            // marketCap: "조회 중",
-            // high52Week: "조회 중",
-            // low52Week: "조회 중",
             currentDate: changeData.current_date,
             previousDate: changeData.previous_date,
           });
@@ -76,10 +72,6 @@ const StockDetail = ({ route, navigation }) => {
             changeStatus: "none",
             priceChange: "0",
             previousPrice: "0",
-            // volume: "조회 실패",
-            // marketCap: "조회 실패",
-            // high52Week: "조회 실패",
-            // low52Week: "조회 실패",
             currentDate: "",
             previousDate: "",
           });
@@ -95,10 +87,6 @@ const StockDetail = ({ route, navigation }) => {
           changeStatus: "none",
           priceChange: "0",
           previousPrice: "0",
-          //   volume: "조회 실패",
-          //   marketCap: "조회 실패",
-          //   high52Week: "조회 실패",
-          //   low52Week: "조회 실패",
           currentDate: "",
           previousDate: "",
         });
@@ -112,7 +100,35 @@ const StockDetail = ({ route, navigation }) => {
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
-    // 즐겨찾기 관룐 -> 이거 구현되면 추가할예정
+    // 즐겨찾기 관련 -> 이거 구현되면 추가할예정
+  };
+
+  // 매수 버튼 핸들러
+  const handleBuyPress = () => {
+    // TradingBuyScreen에서 요구하는 stock 객체 형태로 생성
+    const stock = {
+      name: stockData.name,
+      price: stockData.price,
+      change: stockData.change,
+      symbol: stockData.symbol,
+      quantity: 0, // 새로 매수하는 경우이므로 0으로 설정
+    };
+
+    navigation.navigate("TradingBuy", { stock });
+  };
+
+  // 매도 버튼 핸들러
+  const handleSellPress = () => {
+    // TradingSellScreen에서 요구하는 stock 객체 형태로 생성
+    const stock = {
+      name: stockData.name,
+      price: stockData.price,
+      change: stockData.change,
+      symbol: stockData.symbol,
+      quantity: 0, // 실제로는 보유 수량을 조회해야 하지만, 일단 0으로 설정
+    };
+
+    navigation.navigate("TradingSell", { stock });
   };
 
   if (loading) {
@@ -212,12 +228,16 @@ const StockDetail = ({ route, navigation }) => {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.tradeButton}
-          onPress={() => navigation.navigate("StockTrade", { symbol, name })}
-        >
-          <Text style={styles.tradeButtonText}>이 주식 거래하기</Text>
-        </TouchableOpacity>
+        {/* 매수/매도 버튼 컨테이너 */}
+        <View style={styles.tradeButtonContainer}>
+          <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
+            <Text style={styles.buyButtonText}>매수</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.sellButton} onPress={handleSellPress}>
+            <Text style={styles.sellButtonText}>매도</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -338,16 +358,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
   },
-  tradeButton: {
+  // 새로 추가된 매수/매도 버튼 스타일
+  tradeButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    marginBottom: 32,
+  },
+  buyButton: {
+    flex: 1,
+    backgroundColor: "#6EE69E",
+    padding: 16,
+    borderRadius: 13,
+    alignItems: "center",
+    marginLeft: 10,
+    marginRight: 4,
+  },
+  buyButtonText: {
+    color: "#003340",
+    fontSize: 20,
+    fontWeight: "900",
+  },
+  sellButton: {
+    flex: 1,
     backgroundColor: "#F074BA",
     padding: 16,
     borderRadius: 13,
     alignItems: "center",
-    marginBottom: 32,
+    marginRight: 10,
+    marginLeft: 4,
   },
-  tradeButtonText: {
-    color: "#EFF1F5",
-    fontSize: 18,
+  sellButtonText: {
+    color: "#003340",
+    fontSize: 20,
     fontWeight: "900",
   },
 });
