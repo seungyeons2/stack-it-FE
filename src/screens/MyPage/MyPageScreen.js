@@ -13,6 +13,8 @@ import Icon from "react-native-vector-icons/Feather";
 
 import { getNewAccessToken } from "../../utils/token";
 import { fetchUserInfo } from "../../utils/user";
+import { fetchUserMbtiType, getMbtiImage } from "../../utils/mbtiType";
+
 
 const MyPageScreen = ({ navigation }) => {
   console.log("📌 MyPageScreen 렌더링");
@@ -25,7 +27,14 @@ const MyPageScreen = ({ navigation }) => {
   const [introText, setIntroText] = useState("티끌 모아 태산이긴해!");
   const [isEditingIntro, setIsEditingIntro] = useState(false);
 
-  const profileImage = require("../../assets/profile.png");
+  //const profileImage = require("../../assets/profile.png");
+  const [mbtiType, setMbtiType] = useState(null);
+
+
+useEffect(() => {
+  fetchUserMbtiType(navigation, setMbtiType);
+}, []);
+
 
   const saveIntroText = async (text) => {
     try {
@@ -171,7 +180,7 @@ const MyPageScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.profileSection}>
         {/* 왼쪽: 이미지 + 닉네임 */}
-        <View style={styles.profileLeft}>
+        {/* <View style={styles.profileLeft}>
           <Image
             source={
               userInfo?.profileImage
@@ -180,7 +189,20 @@ const MyPageScreen = ({ navigation }) => {
             }
             style={styles.profileImage}
           />
-        </View>
+        </View> */}
+        <View style={styles.profileLeft}>
+  <Image
+    source={
+      mbtiType && getMbtiImage(mbtiType)
+        ? getMbtiImage(mbtiType)
+        : require("../../assets/profile.png")
+    }
+    style={styles.profileImage}
+  />
+</View>
+
+
+
 
         {/* 오른쪽: 뱃지 + 한줄소개 */}
         <View style={styles.profileRight}>
@@ -192,7 +214,7 @@ const MyPageScreen = ({ navigation }) => {
             ))}
           </View>
           <Text style={styles.userName}>
-            {userInfo?.nickname || "개굴개굴 개구리"}
+            {userInfo?.nickname || "잔고가 두둑한 햄스터"}
           </Text>
 
           <View style={styles.introRow}>
@@ -311,7 +333,9 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: "#F074BA",
+    borderColor: "#FFFFFFB0",
+    backgroundColor: "#D4DDEF60", // ✅ 원하는 배경색
+
   },
   badgeRow: {
     flexDirection: "row",
