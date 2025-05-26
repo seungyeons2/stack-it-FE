@@ -10,16 +10,16 @@ import {
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { fetchUserBalance } from '../../utils/account';
-import { fetchUserInfo } from '../../utils/user';
-import { PieChart } from 'react-native-chart-kit'; // 추가된 부분
-import { API_BASE_URL } from '../../utils/apiConfig'; // API 설정 import
-import { getNewAccessToken } from '../../utils/token'; // 토큰 가져오기 import
+import { fetchUserBalance } from "../../utils/account";
+import { fetchUserInfo } from "../../utils/user";
+import { PieChart } from "react-native-chart-kit"; // 추가된 부분
+import { API_BASE_URL } from "../../utils/apiConfig"; // API 설정 import
+import { getNewAccessToken } from "../../utils/token"; // 토큰 가져오기 import
 
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
 
-const screenWidth = Dimensions.get('window').width; // 화면 너비
+const screenWidth = Dimensions.get("window").width; // 화면 너비
 
 const mockStocks = [
   {
@@ -46,13 +46,13 @@ const mockStocks = [
 ];
 
 const MainScreen = ({ navigation }) => {
-  console.log('📌 MainScreen 렌더링');
+  console.log("📌 MainScreen 렌더링");
   const [userInfo, setUserInfo] = useState(null);
 
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [watchlist, setWatchlist] = useState(mockStocks);
-  const [balance, setBalance] = useState('0원');
-  
+  const [balance, setBalance] = useState("0원");
+
   // 자산 데이터 상태 추가
   const [assetData, setAssetData] = useState(null);
   const [assetLoading, setAssetLoading] = useState(true);
@@ -73,7 +73,7 @@ const MainScreen = ({ navigation }) => {
       fetchUserBalance(navigation, setBalance);
       fetchAssetData(); // 화면에 돌아올 때마다 자산 데이터 갱신
     });
-  
+
     return unsubscribe;
   }, [navigation]);
 
@@ -81,38 +81,35 @@ const MainScreen = ({ navigation }) => {
   const fetchAssetData = async () => {
     try {
       setAssetLoading(true);
-      
+
       // 액세스 토큰 가져오기
       const accessToken = await getNewAccessToken(navigation);
-      
+
       if (!accessToken) {
-        setAssetError('인증이 필요합니다');
+        setAssetError("인증이 필요합니다");
         setAssetLoading(false);
         return;
       }
-      
+
       // 자산 요약 API 호출
-      const response = await fetch(
-        `${API_BASE_URL}/api/asset/summary/`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-      
+      const response = await fetch(`${API_BASE_URL}/api/asset/summary/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       const data = await response.json();
-      
-      if (data.status === 'success') {
+
+      if (data.status === "success") {
         setAssetData(data);
         setAssetError(null);
       } else {
-        setAssetError('데이터를 불러오는 데 실패했습니다');
+        setAssetError("데이터를 불러오는 데 실패했습니다");
       }
     } catch (err) {
-      console.error('자산 데이터 로딩 오류:', err);
-      setAssetError('데이터를 불러오는 데 실패했습니다');
+      console.error("자산 데이터 로딩 오류:", err);
+      setAssetError("데이터를 불러오는 데 실패했습니다");
     } finally {
       setAssetLoading(false);
     }
@@ -138,7 +135,7 @@ const MainScreen = ({ navigation }) => {
 
   // 금액 포맷팅 함수
   const formatCurrency = (amount) => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   // 차트 데이터 준비
@@ -148,12 +145,12 @@ const MainScreen = ({ navigation }) => {
     }
 
     const chartColors = [
-      '#6366F1', // 인디고
-      '#3B82F6', // 파랑
-      '#34D399', // 에메랄드
-      '#10B981', // 녹색
-      '#F59E0B', // 황색
-      '#EF4444', // 빨강
+      "#6366F1", // 인디고
+      "#3B82F6", // 파랑
+      "#34D399", // 에메랄드
+      "#10B981", // 녹색
+      "#F59E0B", // 황색
+      "#EF4444", // 빨강
     ];
 
     return assetData.breakdown.map((item, index) => ({
@@ -161,7 +158,7 @@ const MainScreen = ({ navigation }) => {
       value: item.value,
       color: chartColors[index % chartColors.length],
       legendFontColor: "#EFF1F5",
-      legendFontSize: 10
+      legendFontSize: 10,
     }));
   };
 
@@ -169,8 +166,8 @@ const MainScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.searchContainer}>
         {/* 검색창 클릭 시 SearchScreen으로 이동 */}
-        <TouchableOpacity 
-          style={styles.searchInputContainer} 
+        <TouchableOpacity
+          style={styles.searchInputContainer}
           onPress={handleSearchPress}
           activeOpacity={0.7}
         >
@@ -183,11 +180,11 @@ const MainScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.assetContainer}>
-        <Text style={styles.assetLabel}>자산</Text>
+        <Text style={styles.assetLabel}>예수금</Text>
         <Text style={styles.assetValue}>{balance}</Text>
-        
+
         {/* 그래프 부분 교체 */}
-        
+
         <View style={styles.graphContainer}>
           {assetLoading ? (
             <View style={styles.loadingContainer}>
@@ -197,8 +194,8 @@ const MainScreen = ({ navigation }) => {
           ) : assetError ? (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{assetError}</Text>
-              <TouchableOpacity 
-                style={styles.retryButton} 
+              <TouchableOpacity
+                style={styles.retryButton}
                 onPress={fetchAssetData}
               >
                 <Text style={styles.retryButtonText}>다시 시도</Text>
@@ -212,7 +209,8 @@ const MainScreen = ({ navigation }) => {
                 height={screenWidth - 60}
                 chartConfig={{
                   color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) =>
+                    `rgba(255, 255, 255, ${opacity})`,
                 }}
                 accessor="value"
                 backgroundColor="transparent"
@@ -224,7 +222,7 @@ const MainScreen = ({ navigation }) => {
                 style={styles.chart}
                 innerRadius="70%"
               />
-              
+
               <View style={styles.centerInfo}>
                 <Text style={styles.centerInfoTitle}>총 자산</Text>
                 {assetData && (
@@ -233,8 +231,8 @@ const MainScreen = ({ navigation }) => {
                   </Text>
                 )}
               </View>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.detailButton}
                 onPress={navigateToAssetDetail}
               >
@@ -350,55 +348,55 @@ const styles = StyleSheet.create({
     //backgroundColor: "#004455",
     borderRadius: 8,
     marginTop: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
   },
   chartWrapper: {
-    position: 'relative',
+    position: "relative",
     width: screenWidth - 60,
     height: screenWidth - 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8.65,
-    elevation: 8, 
+    elevation: 8,
   },
   chart: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
   },
   centerInfo: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10,
   },
   centerInfoTitle: {
-    color: '#003340',
+    color: "#003340",
     fontSize: 18,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   centerInfoAmount: {
-    color: '#003340',
+    color: "#003340",
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 4,
   },
   detailButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     right: 10,
-    backgroundColor: '#6366F1',
+    backgroundColor: "#6366F1",
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -410,40 +408,40 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   detailButtonText: {
-    color: '#EFF1F5',
+    color: "#EFF1F5",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   loadingText: {
     marginTop: 8,
-    color: '#EFF1F5',
+    color: "#EFF1F5",
     fontSize: 14,
   },
   errorContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
   },
   errorText: {
-    color: '#FF6B6B',
+    color: "#FF6B6B",
     marginBottom: 12,
-    textAlign: 'center',
+    textAlign: "center",
   },
   retryButton: {
-    backgroundColor: '#F074BA',
+    backgroundColor: "#F074BA",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#EFF1F5',
-    fontWeight: 'bold',
+    color: "#EFF1F5",
+    fontWeight: "bold",
   },
   percentageContainer: {
     position: "absolute",
