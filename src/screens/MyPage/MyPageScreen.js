@@ -46,10 +46,45 @@ const MyPageScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const handleLogout = () => {
-    Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
-    navigation.navigate("Login");
-  };
+  // const handleLogout = () => {
+  //   Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
+  //   navigation.navigate("Login");
+  // };
+
+  const handleLogout = async () => {
+  try {
+    const accessToken = await getNewAccessToken(navigation);
+    if (!accessToken) {
+      Alert.alert(
+        "인증 오류",
+        "토큰이 만료되었습니다. 다시 로그인해주세요."
+      );
+      navigation.navigate("Login");
+      return;
+    }
+
+    const response = await fetch("http://43.200.211.76:8000/logout/", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (response.ok) {
+      Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
+      navigation.navigate("Login");
+    } else {
+      const text = await response.text();
+      console.error("로그아웃 실패 응답:", text);
+      Alert.alert("오류", "로그아웃에 실패했습니다.");
+    }
+  } catch (err) {
+    console.error("로그아웃 중 오류:", err);
+    Alert.alert("오류", "네트워크 오류로 로그아웃에 실패했습니다.");
+  }
+};
+
 
   const handleDeleteAccount = () => {
     Alert.alert(
