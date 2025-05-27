@@ -1,5 +1,5 @@
 import { getNewAccessToken } from "./token";
-import { fetchUserInfo } from "./user";
+// import { fetchUserInfo } from "./user";
 
 export const fetchPortfolio = async (
   navigation,
@@ -17,18 +17,18 @@ export const fetchPortfolio = async (
     }
 
     // 사용자 정보 요청
-    let userId = null;
-    await fetchUserInfo(navigation, (userInfo) => {
-      if (userInfo && userInfo.id) {
-        userId = userInfo.id;
-      }
-    });
+    // let userId = null;
+    // await fetchUserInfo(navigation, (userInfo) => {
+    //   if (userInfo && userInfo.id) {
+    //     userId = userInfo.id;
+    //   }
+    // });
 
-    if (!userId) {
-      console.error("❌ userId 없음. 요청 중단.");
-      setLoading(false);
-      return;
-    }
+    // if (!userId) {
+    //   console.error("❌ userId 없음. 요청 중단.");
+    //   setLoading(false);
+    //   return;
+    // }
 
     const url = `http://43.200.211.76:8000/trading/portfolio/`;
     console.log("📡 요청 URL:", url);

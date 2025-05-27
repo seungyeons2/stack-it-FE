@@ -14,6 +14,7 @@ import Icon from "react-native-vector-icons/Feather";
 import { getNewAccessToken } from "../../utils/token";
 import { fetchUserInfo } from "../../utils/user";
 import { fetchUserMbtiType, getMbtiImage } from "../../utils/mbtiType";
+import { increaseBalance } from "../../utils/point";
 
 
 const MyPageScreen = ({ navigation }) => {
@@ -29,6 +30,8 @@ const MyPageScreen = ({ navigation }) => {
 
   //const profileImage = require("../../assets/profile.png");
   const [mbtiType, setMbtiType] = useState(null);
+
+  const DEPOSIT_AMOUNT = 100000;
 
 
 useEffect(() => {
@@ -245,12 +248,26 @@ useEffect(() => {
       <View style={styles.divider} />
       <Text style={styles.moneyTitle}>🐹 햄햄이네 해바라기씨 농장</Text>
       <View style={styles.moneyButtonContainer}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.tiggleButton}
           onPress={() => navigation.navigate("Tiggle")}
         >
           <Text style={styles.moneyButtonText}>티끌 모으기</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
+
+            <TouchableOpacity
+      style={styles.tiggleButton}
+      onPress={async () => {
+        try {
+          const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
+          Alert.alert("예수금 추가 완료", message);
+        } catch (error) {
+          Alert.alert("에러", error.message || "예수금 추가에 실패했습니다.");
+        }
+      }}
+    >
+      <Text style={styles.moneyButtonText}>티끌 모으기</Text>
+    </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.taesanButton}
