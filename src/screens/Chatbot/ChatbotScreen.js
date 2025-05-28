@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   suggestionContainer: {
   flexDirection: 'row',
   flexWrap: 'wrap',
-  bottom: 80,
+  bottom: 140,
   paddingHorizontal: 20,
   paddingTop: 20,
   paddingBottom: 20,
