@@ -260,9 +260,9 @@ useEffect(() => {
       onPress={async () => {
         try {
           const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
-          Alert.alert("예수금 추가 완료", message);
+          Alert.alert("티끌 모으기", message);
         } catch (error) {
-          Alert.alert("에러", error.message || "예수금 추가에 실패했습니다.");
+          Alert.alert("에러", error.message || "티끌 모으기에 실패했습니다.");
         }
       }}
     >

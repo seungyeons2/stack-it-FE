@@ -5,7 +5,7 @@ import LoginScreen from "../screens/Auth/LoginScreen";
 import SignUp1Screen from "../screens/Auth/SignUp1Screen";
 import SignUp2Screen from "../screens/Auth/SignUp2Screen";
 import SignUp3Screen from "../screens/Auth/SignUp3Screen";
-// import SignUp4Screen from './screens/SignUp4Screen';
+import SignUp4Screen from '../screens/Auth/SignUp4Screen';
 import FindIdScreen from "../screens/Auth/FindIdScreen";
 import FindPasswordScreen from "../screens/Auth/FindPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
@@ -43,7 +43,8 @@ export default function StackNavigator() {
       <Stack.Screen name="SignUp1" component={SignUp1Screen} />
       <Stack.Screen name="SignUp2" component={SignUp2Screen} />
       <Stack.Screen name="SignUp3" component={SignUp3Screen} />
-      {/* <Stack.Screen name="SignUp4" component={SignUp4Screen}/> */}
+      <Stack.Screen name="SignUp4" component={SignUp4Screen}/> 
+
       <Stack.Screen name="FindId" component={FindIdScreen} />
       <Stack.Screen name="FindPassword" component={FindPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />

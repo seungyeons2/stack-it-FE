@@ -166,7 +166,7 @@ const StockTradeScreen = ({ navigation }) => {
           </View>
         ))}
 
-        {/* <Text style={styles.sectionTitle}>추천 주식</Text>
+        <Text style={styles.sectionTitle}>추천 주식</Text>
         <View style={styles.divider} />
         {["005930", "352820"].map((stockCode) => (
           <RecommendedStock
@@ -175,7 +175,7 @@ const StockTradeScreen = ({ navigation }) => {
             navigation={navigation}
             styles={styles}
           />
-        ))} */}
+        ))}
 
         {/* <View style={styles.searchContainer}>
           <TextInput

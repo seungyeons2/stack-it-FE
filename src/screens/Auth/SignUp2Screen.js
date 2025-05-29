@@ -81,8 +81,8 @@ const SignUp2Screen = ({ navigation }) => {
         console.log("✅ 회원가입 성공, id:", id);
 
         Alert.alert(
-          "회원가입 성공",
-          "이메일에서 인증 링크를 확인하고, 토큰을 복사하여 입력해주세요.",
+          "이메일로 링크 전송",
+          "이메일에서 인증 링크를 클릭하여,\n회원가입을 진행해주세요.",
           [
             {
               text: "확인",
@@ -112,7 +112,7 @@ const SignUp2Screen = ({ navigation }) => {
       >
         <Text style={styles.backText}>{"<"}</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>회원가입 (1/3)</Text>
+      <Text style={styles.title}>회원가입</Text>
 
       {/* ✅ 스크롤 가능한 입력 영역 */}
       <ScrollView
@@ -203,7 +203,7 @@ const SignUp2Screen = ({ navigation }) => {
 
       {/* ✅ 다음 버튼 */}
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>다음</Text>
+        <Text style={styles.buttonText}>인증하기</Text>
       </TouchableOpacity>
     </View>
   );
