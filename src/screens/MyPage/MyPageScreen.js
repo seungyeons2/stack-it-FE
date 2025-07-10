@@ -247,7 +247,7 @@ useEffect(() => {
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.moneyTitle}>🐹 햄햄이네 해바라기씨 농장</Text>
+      <Text style={styles.moneyTitle}>🐹 티끌 모아 태산 🐹</Text>
       <View style={styles.moneyButtonContainer}>
         {/* <TouchableOpacity
           style={styles.tiggleButton}
@@ -261,20 +261,20 @@ useEffect(() => {
       onPress={async () => {
         try {
           const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
-          Alert.alert("티끌 모으기", message);
+          Alert.alert("출석 보상 받기", message);
         } catch (error) {
-          Alert.alert("에러", error.message || "티끌 모으기에 실패했습니다.");
+          Alert.alert("에러", error.message || "보상 받기에 실패했습니다.");
         }
       }}
     >
-      <Text style={styles.moneyButtonText}>티끌 모으기</Text>
+      <Text style={styles.moneyButtonText}>출석 보상 받기</Text>
     </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.taesanButton}
-          onPress={() => navigation.navigate("Taesan")}
+          onPress={() => navigation.navigate("Roulette")}
         >
-          <Text style={styles.moneyButtonText}>태산 만들기</Text>
+          <Text style={styles.moneyButtonText}>룰렛 돌리기</Text>
         </TouchableOpacity>
       </View>
 
@@ -299,6 +299,10 @@ useEffect(() => {
         <MenuButton
           label="자주 묻는 질문(FAQ)"
           onPress={() =>  navigation.navigate("FAQ")}
+        />
+        <MenuButton
+          label="비밀번호 변경"
+          onPress={() => navigation.navigate("ChangePassword")}
         />
         <MenuButton label="로그아웃" onPress={handleLogout} />
         <MenuButton label="회원 탈퇴" onPress={handleDeleteAccount} />

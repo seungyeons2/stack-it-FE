@@ -127,12 +127,12 @@ const LoginScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => navigation.navigate("FindId")}
           style={styles.findIdButton}
         >
           <Text style={styles.findIdText}>이메일 찾기</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           onPress={() => navigation.navigate("FindPassword")}
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   findPasswordButton: {
-    alignItems: "center",
-    marginRight: 80,
+    alignItems: "flex-start",
+    marginRight: 180,
   },
   findPasswordText: {
     color: "#EFF1F5",
