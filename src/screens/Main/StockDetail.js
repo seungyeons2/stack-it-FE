@@ -10,10 +10,12 @@ import {
   Dimensions,
   Modal,
   TouchableWithoutFeedback,
+  Alert,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { fetchWithHantuToken } from "../../utils/hantuToken";
+import { fetchWithAuth } from "../../utils/token";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -23,79 +25,138 @@ const StockDetail = ({ route, navigation }) => {
   const [stockData, setStockData] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  // 보유 수량 관련 state
+  const [ownedQuantity, setOwnedQuantity] = useState(0);
+  const [averagePrice, setAveragePrice] = useState(0);
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
+
   // 차트 관련 state
   const [chartData, setChartData] = useState(null);
   const [chartLoading, setChartLoading] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("1M"); // 1M, 3M, 6M
+  const [selectedPeriod, setSelectedPeriod] = useState("1M");
 
   // 차트 포인트 클릭 관련 state
   const [selectedPoint, setSelectedPoint] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // 한국투자 토큰 생성 및 주식 상세 정보 가져오는부분
+  // 포트폴리오에서 해당 종목의 보유 수량 조회
+  const fetchOwnedQuantity = async () => {
+    try {
+      setPortfolioLoading(true);
+      console.log(`📊 ${symbol} 보유 수량 조회 시작`);
+
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}trading/portfolio/`,
+        { method: "GET" },
+        navigation
+      );
+
+      if (!response.ok) {
+        throw new Error(`포트폴리오 조회 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result?.status === "success" && Array.isArray(result.portfolio)) {
+        // 현재 종목과 일치하는 항목 찾기
+        const ownedStock = result.portfolio.find(
+          (item) => item.stock_code === symbol && item.quantity > 0
+        );
+
+        if (ownedStock) {
+          setOwnedQuantity(ownedStock.quantity);
+          setAveragePrice(ownedStock.average_price);
+          console.log(
+            `✅ ${symbol} 보유 수량: ${ownedStock.quantity}주, 평균단가: ${ownedStock.average_price}원`
+          );
+        } else {
+          setOwnedQuantity(0);
+          setAveragePrice(0);
+          console.log(`📍 ${symbol} 보유하지 않음`);
+        }
+      } else {
+        console.warn("포트폴리오 응답 형식이 예상과 다름:", result);
+        setOwnedQuantity(0);
+        setAveragePrice(0);
+      }
+    } catch (error) {
+      console.error(`❌ ${symbol} 보유 수량 조회 실패:`, error);
+      setOwnedQuantity(0);
+      setAveragePrice(0);
+    } finally {
+      setPortfolioLoading(false);
+    }
+  };
+
+  // 주식 데이터 조회 함수
+  const fetchStockData = async () => {
+    try {
+      // 1. 현재 주가 조회
+      const priceResult = await fetchWithHantuToken(
+        `${API_BASE_URL}trading/stock_price/?stock_code=${symbol}`
+      );
+      if (!priceResult.success) throw new Error(priceResult.error);
+      const priceData = priceResult.data;
+
+      // 2. 가격 변동 정보 조회
+      const changeResult = await fetchWithHantuToken(
+        `${API_BASE_URL}stocks/price_change/?stock_code=${symbol}`
+      );
+      if (!changeResult.success) throw new Error(changeResult.error);
+      const changeData = changeResult.data;
+
+      // 3. 데이터 설정
+      if (priceData.status === "success" && changeData.status === "success") {
+        const changeSign =
+          changeData.change_status === "up"
+            ? " ⏶ "
+            : changeData.change_status === "down"
+            ? " ⏷ "
+            : "";
+
+        const priceChangeSign =
+          changeData.change_status === "up"
+            ? "+"
+            : changeData.change_status === "down"
+            ? "-"
+            : "";
+
+        setStockData({
+          symbol: symbol,
+          name: name,
+          price: priceData.current_price.toLocaleString(),
+          change: `${changeSign}${Math.abs(
+            changeData.price_change_percentage
+          ).toFixed(2)}`,
+          changeStatus: changeData.change_status,
+          priceChange: `${priceChangeSign}${Math.abs(
+            changeData.price_change
+          ).toLocaleString()}`,
+          previousPrice: changeData.previous_price.toLocaleString(),
+          currentDate: changeData.current_date,
+          previousDate: changeData.previous_date,
+        });
+      } else {
+        throw new Error("주식 가격 또는 변동 정보 조회 실패");
+      }
+    } catch (error) {
+      console.error("fetchStockData 오류:", error);
+      throw error;
+    }
+  };
+
+  // 초기 데이터 로딩
   useEffect(() => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        // 기존 토큰 파괴/발급 코드 완전 제거
-        const priceResult = await fetchWithHantuToken(`${API_BASE_URL}trading/stock_price/?stock_code=${symbol}`);
-        if (!priceResult.success) throw new Error(priceResult.error);
-        const priceData = priceResult.data;
-        const changeResult = await fetchWithHantuToken(`${API_BASE_URL}stocks/price_change/?stock_code=${symbol}`);
-        if (!changeResult.success) throw new Error(changeResult.error);
-        const changeData = changeResult.data;
-        const dailyResult = await fetchWithHantuToken(`${API_BASE_URL}stocks/daily_stock_price/?stock_code=${symbol}&start_date=${startDateStr}&end_date=${endDateStr}`);
-        if (!dailyResult.success) throw new Error(dailyResult.error);
-        const dailyData = dailyResult.data;
-        // 데이터 설정
-        if (priceData.status === "success" && changeData.status === "success") {
-          // 상승/하락 부호 추가
-          const changeSign =
-            changeData.change_status === "up"
-              ? " ⏶ "
-              : changeData.change_status === "down"
-              ? " ⏷ "
-              : "";
 
-          const priceChangeSign =
-            changeData.change_status === "up"
-              ? "+"
-              : changeData.change_status === "down"
-              ? "-"
-              : "";
-
-          setStockData({
-            symbol: symbol,
-            name: name,
-            price: priceData.current_price.toLocaleString(),
-            change: `${changeSign}${Math.abs(
-              changeData.price_change_percentage
-            ).toFixed(2)}`,
-            changeStatus: changeData.change_status,
-            priceChange: `${priceChangeSign}${Math.abs(
-              changeData.price_change
-            ).toLocaleString()}`,
-            previousPrice: changeData.previous_price.toLocaleString(),
-            currentDate: changeData.current_date,
-            previousDate: changeData.previous_date,
-          });
-        } else {
-          // API 오류 시 임시 데이터 설정
-          setStockData({
-            symbol: symbol,
-            name: name,
-            price: "0",
-            change: "0.00",
-            changeStatus: "none",
-            priceChange: "0",
-            previousPrice: "0",
-            currentDate: "",
-            previousDate: "",
-          });
-        }
+        // 병렬로 데이터 조회
+        await Promise.all([fetchStockData(), fetchOwnedQuantity()]);
       } catch (err) {
-        console.error('StockDetail 데이터 로딩 실패:', err);
-        // 오류 시 임시 데이터
+        console.error("StockDetail 데이터 로딩 실패:", err);
+
+        // 오류 시 기본값 설정
         setStockData({
           symbol: symbol,
           name: name,
@@ -104,9 +165,15 @@ const StockDetail = ({ route, navigation }) => {
           changeStatus: "none",
           priceChange: "0",
           previousPrice: "0",
-          currentDate: "",
-          previousDate: "",
+          currentDate: new Date().toISOString().split("T")[0],
+          previousDate: new Date().toISOString().split("T")[0],
         });
+
+        Alert.alert(
+          "데이터 로딩 오류",
+          "주식 정보를 불러오는 중 문제가 발생했습니다. 기본 정보만 표시됩니다.",
+          [{ text: "확인" }]
+        );
       } finally {
         setLoading(false);
       }
@@ -115,7 +182,7 @@ const StockDetail = ({ route, navigation }) => {
     fetchAll();
   }, [symbol]);
 
-  // 일봉 데이터 가져오기
+  // 차트 데이터 가져오기
   const fetchChartData = async (period) => {
     setChartLoading(true);
     try {
@@ -156,29 +223,34 @@ const StockDetail = ({ route, navigation }) => {
         `${API_BASE_URL}stocks/daily_stock_price/?stock_code=${symbol}&start_date=${startDateStr}&end_date=${endDateStr}`
       );
 
+      if (!response.success) {
+        console.warn("일봉 데이터 조회 실패:", response.error);
+        setChartData(null);
+        return;
+      }
+
       const data = response.data;
       console.log("📊 일봉 응답:", data);
 
-      // fetchChartData 함수 내부의 데이터 처리 부분만 변경
       if (data.status === "success" && data.chart_data) {
         // 데이터를 차트에 맞게 변환
         const sortedData = data.chart_data.sort(
           (a, b) => new Date(a.date) - new Date(b.date)
         );
 
-        // 최대 표시할 점의 개수 설정 (1개월 뷰와 유사한 수준)
-        const maxDataPoints = 25; // 1개월은 보통 20-30개 정도
+        // 최대 표시할 점의 개수 설정
+        const maxDataPoints = 25;
         const dataInterval = Math.max(
           1,
           Math.ceil(sortedData.length / maxDataPoints)
         );
 
-        // 데이터 샘플링: 일정 간격으로 데이터 선택
+        // 데이터 샘플링
         const sampledData = sortedData.filter(
           (_, index) => index % dataInterval === 0
         );
 
-        // 마지막 데이터는 항상 포함 (최신 정보)
+        // 마지막 데이터는 항상 포함
         if (
           sortedData.length > 0 &&
           sampledData[sampledData.length - 1] !==
@@ -194,7 +266,7 @@ const StockDetail = ({ route, navigation }) => {
 
         const prices = sampledData.map((item) => item.close);
 
-        // x축 레이블 개수 조정 (너무 많으면 겹치므로)
+        // x축 레이블 개수 조정
         const maxLabelCount = 8;
         const labelInterval = Math.max(
           1,
@@ -218,8 +290,8 @@ const StockDetail = ({ route, navigation }) => {
               strokeWidth: 2,
             },
           ],
-          rawData: sampledData, // 샘플링된 데이터 보관
-          yAxisSegments: 6, // y축 세그먼트는 고정으로 6개
+          rawData: sampledData,
+          yAxisSegments: 6,
         });
       } else {
         console.warn("일봉 데이터를 불러올 수 없습니다:", data);
@@ -240,36 +312,34 @@ const StockDetail = ({ route, navigation }) => {
     }
   }, [selectedPeriod, stockData]);
 
+  // 즐겨찾기 토글
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
-    // 즐겨찾기 관련 -> 이거 구현되면 추가할예정
+    // 즐겨찾기 관련 API 호출은 여기서 구현
   };
 
   // 매수 버튼 핸들러
   const handleBuyPress = () => {
-    // TradingBuyScreen에서 요구하는 stock 객체 형태로 생성
     const stock = {
       name: stockData.name,
       price: stockData.price,
       change: stockData.change,
       symbol: stockData.symbol,
-      quantity: 0, // 새로 매수하는 경우이므로 0으로 설정
+      quantity: ownedQuantity,
     };
-
     navigation.navigate("TradingBuy", { stock });
   };
 
   // 매도 버튼 핸들러
   const handleSellPress = () => {
-    // TradingSellScreen에서 요구하는 stock 객체 형태로 생성
     const stock = {
       name: stockData.name,
       price: stockData.price,
       change: stockData.change,
       symbol: stockData.symbol,
-      quantity: 0, // 실제로는 보유 수량을 조회해야 하지만, 일단 0으로 설정
+      quantity: ownedQuantity,
+      average_price: averagePrice,
     };
-
     navigation.navigate("TradingSell", { stock });
   };
 
@@ -398,18 +468,19 @@ const StockDetail = ({ route, navigation }) => {
     );
   };
 
-  if (loading) {
+  if (loading || portfolioLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#F074BA" />
+        <Text style={styles.loadingText}>주식 정보를 불러오는 중...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
-        {/* 🔙 뒤로 가기 버튼 */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
@@ -430,6 +501,7 @@ const StockDetail = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content}>
+        {/* 가격 섹션 */}
         <View style={styles.priceSection}>
           <Text style={styles.symbolText}>{symbol}</Text>
           <Text style={styles.priceText}>{stockData.price}원</Text>
@@ -453,6 +525,7 @@ const StockDetail = ({ route, navigation }) => {
           {renderChart()}
         </View>
 
+        {/* 주요 지표 섹션 */}
         <View style={styles.statsContainer}>
           <Text style={styles.sectionTitle}>주요 지표</Text>
 
@@ -486,15 +559,22 @@ const StockDetail = ({ route, navigation }) => {
             </Text>
           </View>
 
+          {/* 보유 정보 섹션 */}
           <View style={styles.statRow}>
-            <Text style={styles.statLabel}>거래량</Text>
-            <Text style={styles.statValue}>{stockData.volume}</Text>
+            <Text style={styles.statLabel}>보유 수량</Text>
+            <Text style={styles.statValue}>
+              {ownedQuantity.toLocaleString()}주
+            </Text>
           </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>시가총액</Text>
-            <Text style={styles.statValue}>{stockData.marketCap}</Text>
-          </View>
+          {ownedQuantity > 0 && (
+            <View style={styles.statRow}>
+              <Text style={styles.statLabel}>평균 단가</Text>
+              <Text style={styles.statValue}>
+                {averagePrice.toLocaleString()}원
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* 매수/매도 버튼 컨테이너 */}
@@ -503,9 +583,19 @@ const StockDetail = ({ route, navigation }) => {
             <Text style={styles.buyButtonText}>매수</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sellButton} onPress={handleSellPress}>
-            <Text style={styles.sellButtonText}>매도</Text>
-          </TouchableOpacity>
+          {/* 매도 버튼 조건부 렌더링 */}
+          {ownedQuantity > 0 ? (
+            <TouchableOpacity
+              style={styles.sellButton}
+              onPress={handleSellPress}
+            >
+              <Text style={styles.sellButtonText}>매도</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.disabledSellButton} disabled={true}>
+              <Text style={styles.disabledSellButtonText}>매도</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -743,6 +833,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "900",
   },
+  disabledSellButton: {
+    flex: 1,
+    backgroundColor: "#8b8b8bff",
+    padding: 16,
+    borderRadius: 13,
+    alignItems: "center",
+    marginRight: 10,
+    marginLeft: 4,
+  },
+  disabledSellButtonText: {
+    color: "#cbcbcbff",
+    fontSize: 20,
+    fontWeight: "900",
+  },
   // 모달 스타일
   modalOverlay: {
     flex: 1,
@@ -756,8 +860,6 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     minWidth: 200,
-    //borderWidth: 1,
-    //borderColor: "#F074BA",
   },
   modalDate: {
     color: "#EFF1F5",
@@ -781,6 +883,12 @@ const styles = StyleSheet.create({
     color: "#003340",
     fontSize: 14,
     fontWeight: "bold",
+  },
+  loadingText: {
+    color: "#EFF1F5",
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: "center",
   },
 });
 

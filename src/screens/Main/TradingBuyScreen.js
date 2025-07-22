@@ -14,6 +14,7 @@ import {
 import { fetchWithHantuToken } from "../../utils/hantuToken";
 import { fetchUserInfo } from "../../utils/user";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { fetchWithAuth } from "../../utils/token"; // fetchWithAuth 사용
 
 const TradingBuyScreen = ({ route, navigation }) => {
   const stock = route.params?.stock;
@@ -46,7 +47,9 @@ const TradingBuyScreen = ({ route, navigation }) => {
     try {
       setPriceLoading(true);
 
-      const result = await fetchWithHantuToken(`${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`);
+      const result = await fetchWithHantuToken(
+        `${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`
+      );
 
       if (!result.success) {
         throw new Error(result.error);
@@ -119,7 +122,8 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
       console.log("📡 매수 주문 데이터:", orderData);
 
-      const response = await fetchWithHantuToken(
+      // ✅ fetchWithAuth 사용 (일반 백엔드 API이므로)
+      const response = await fetchWithAuth(
         `${API_BASE_URL}trading/trade/`,
         {
           method: "POST",
@@ -128,20 +132,26 @@ const TradingBuyScreen = ({ route, navigation }) => {
         navigation
       );
 
-      const result = await response.json();
-      console.log("�� 매수 주문 응답:", result);
+      console.log("📬 매수 주문 응답 상태:", response.status);
 
-      if (response.ok && result?.status === "success") {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ 매수 주문 실패 응답:", errorText);
+        Alert.alert("매수 실패", `서버 오류: ${response.status}`);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("📬 매수 주문 응답 데이터:", result);
+
+      if (result.status === "success") {
         Alert.alert(
           "매수 완료",
           result.message || `${stock.name} ${qty}주 매수가 완료되었습니다.`,
           [{ text: "확인", onPress: () => navigation.goBack() }]
         );
       } else {
-        Alert.alert(
-          "매수 실패",
-          result?.message || `오류가 발생했습니다. (${response.status})`
-        );
+        Alert.alert("매수 실패", result.message || "매수 주문에 실패했습니다.");
       }
     } catch (error) {
       console.error("❌ 매수 주문 실패:", error);
