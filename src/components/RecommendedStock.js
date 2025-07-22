@@ -1,33 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { API_BASE_URL } from "../utils/apiConfig";
+import { fetchWithHantuToken } from "../utils/hantuToken";
 
 const RecommendedStock = ({ stockCode, navigation }) => {
   const [stockData, setStockData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStockPrice();
+    fetchStockPrice(stockCode);
   }, [stockCode]);
 
-  const fetchStockPrice = async () => {
+  async function fetchStockPrice(stockCode) {
     try {
       setLoading(true);
-
-      // 현재가 조회
-      const priceResponse = await fetch(
+      // 기존 토큰 파괴/발급 코드 완전 제거
+      const priceResult = await fetchWithHantuToken(
         `${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`
       );
-
-      if (!priceResponse.ok) {
-        throw new Error(`Price API error: ${priceResponse.status}`);
+      if (!priceResult.success) {
+        console.error('API 호출 실패:', priceResult.error);
+        throw new Error(priceResult.error);
       }
-
-      const priceData = await priceResponse.json();
-
-      if (priceData.status !== "success") {
-        throw new Error("Price API response status not success");
-      }
+      const priceData = priceResult.data;
 
       // 가격 변동 정보 조회
       const changeResponse = await fetch(
@@ -55,9 +50,8 @@ const RecommendedStock = ({ stockCode, navigation }) => {
         change: changeData ? changeData.price_change_percentage : 0,
         changeStatus: changeData ? changeData.change_status : "same",
       });
-    } catch (error) {
-      console.error(`📉 추천주식 ${stockCode} 데이터 로딩 실패:`, error);
-
+    } catch (err) {
+      console.error('주식 가격 조회 중 예외:', err);
       // 기본값 설정
       const stockNames = {
         "005930": "삼성전자",
@@ -74,7 +68,7 @@ const RecommendedStock = ({ stockCode, navigation }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleBuyPress = () => {
     if (!stockData || !stockData.name || stockData.price <= 0) {

@@ -15,6 +15,7 @@ import { fetchUserInfo } from "../../utils/user";
 import { PieChart } from "react-native-chart-kit"; // 추가된 부분
 import { API_BASE_URL } from "../../utils/apiConfig"; // API 설정 import
 import { getNewAccessToken } from "../../utils/token"; // 토큰 가져오기 import
+import { initializeHantuToken, scheduleTokenRefresh } from "../../utils/hantuToken";
 
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
@@ -59,12 +60,20 @@ const MainScreen = ({ navigation }) => {
   const [assetError, setAssetError] = useState(null);
 
   useEffect(() => {
+    let refreshInterval;
     const load = async () => {
+      // 한국투자 토큰 초기화 및 주기적 갱신
+      await initializeHantuToken();
+      refreshInterval = scheduleTokenRefresh();
+      // 기존 데이터 로딩 로직
       await fetchUserInfo(navigation, setUserInfo);
       await fetchUserBalance(navigation, setBalance);
-      await fetchAssetData(); // 자산 데이터 불러오기
+      await fetchAssetData();
     };
     load();
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
   }, []);
 
   useEffect(() => {

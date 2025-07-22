@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { fetchWithHantuToken } from "../../utils/hantuToken";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -33,38 +34,19 @@ const StockDetail = ({ route, navigation }) => {
 
   // 한국투자 토큰 생성 및 주식 상세 정보 가져오는부분
   useEffect(() => {
-    const fetchStockDetails = async () => {
+    const fetchAll = async () => {
       try {
         setLoading(true);
-
-        // 1. 기존 토큰 삭제
-        await fetch(
-          `${API_BASE_URL}trade_hantu/destroy_access_token/`,
-          {
-            method: "POST",
-          }
-        );
-
-        // 2. 새 토큰 생성
-        await fetch(
-          `${API_BASE_URL}trade_hantu/issue_access_token/`,
-          {
-            method: "POST",
-          }
-        );
-
-        // 3. 현재가 조회
-        const priceResponse = await fetch(
-          `${API_BASE_URL}trading/stock_price/?stock_code=${symbol}`
-        );
-        const priceData = await priceResponse.json();
-
-        // 4. 전일대비 변동 정보 조회
-        const changeResponse = await fetch(
-          `${API_BASE_URL}stocks/price_change/?stock_code=${symbol}`
-        );
-        const changeData = await changeResponse.json();
-
+        // 기존 토큰 파괴/발급 코드 완전 제거
+        const priceResult = await fetchWithHantuToken(`${API_BASE_URL}trading/stock_price/?stock_code=${symbol}`);
+        if (!priceResult.success) throw new Error(priceResult.error);
+        const priceData = priceResult.data;
+        const changeResult = await fetchWithHantuToken(`${API_BASE_URL}stocks/price_change/?stock_code=${symbol}`);
+        if (!changeResult.success) throw new Error(changeResult.error);
+        const changeData = changeResult.data;
+        const dailyResult = await fetchWithHantuToken(`${API_BASE_URL}stocks/daily_stock_price/?stock_code=${symbol}&start_date=${startDateStr}&end_date=${endDateStr}`);
+        if (!dailyResult.success) throw new Error(dailyResult.error);
+        const dailyData = dailyResult.data;
         // 데이터 설정
         if (priceData.status === "success" && changeData.status === "success") {
           // 상승/하락 부호 추가
@@ -111,8 +93,8 @@ const StockDetail = ({ route, navigation }) => {
             previousDate: "",
           });
         }
-      } catch (error) {
-        console.error("주식 상세 정보 불러오기 실패:", error);
+      } catch (err) {
+        console.error('StockDetail 데이터 로딩 실패:', err);
         // 오류 시 임시 데이터
         setStockData({
           symbol: symbol,
@@ -130,7 +112,7 @@ const StockDetail = ({ route, navigation }) => {
       }
     };
 
-    fetchStockDetails();
+    fetchAll();
   }, [symbol]);
 
   // 일봉 데이터 가져오기
@@ -170,11 +152,11 @@ const StockDetail = ({ route, navigation }) => {
         `📊 일봉 데이터 요청: ${symbol}, ${startDateStr} ~ ${endDateStr}`
       );
 
-      const response = await fetch(
+      const response = await fetchWithHantuToken(
         `${API_BASE_URL}stocks/daily_stock_price/?stock_code=${symbol}&start_date=${startDateStr}&end_date=${endDateStr}`
       );
 
-      const data = await response.json();
+      const data = response.data;
       console.log("📊 일봉 응답:", data);
 
       // fetchChartData 함수 내부의 데이터 처리 부분만 변경

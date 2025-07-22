@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from "react-native";
-import { fetchWithAuth } from "../../utils/token";
+import { fetchWithHantuToken } from "../../utils/hantuToken";
 import { fetchUserInfo } from "../../utils/user";
 import { API_BASE_URL } from "../../utils/apiConfig";
 
@@ -31,13 +31,13 @@ const TradingBuyScreen = ({ route, navigation }) => {
       });
 
       // 현재가 가져오기
-      await fetchCurrentPrice();
+      await fetchCurrentPrice(stock?.symbol);
     };
     init();
   }, []);
 
-  const fetchCurrentPrice = async () => {
-    if (!stock?.symbol) {
+  const fetchCurrentPrice = async (stockCode) => {
+    if (!stockCode) {
       console.error("❌ 종목 코드가 없습니다.");
       setPriceLoading(false);
       return;
@@ -46,21 +46,19 @@ const TradingBuyScreen = ({ route, navigation }) => {
     try {
       setPriceLoading(true);
 
-      const response = await fetch(
-        `${API_BASE_URL}trading/stock_price/?stock_code=${stock.symbol}`
-      );
+      const result = await fetchWithHantuToken(`${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`);
 
-      if (!response.ok) {
-        throw new Error(`Price API error: ${response.status}`);
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      const result = await response.json();
+      const data = result.data;
 
-      if (result.status === "success" && result.current_price) {
-        setCurrentPrice(result.current_price);
-        console.log("✅ 현재가 업데이트:", result.current_price);
+      if (data && data.current_price) {
+        setCurrentPrice(data.current_price);
+        console.log("✅ 현재가 업데이트:", data.current_price);
       } else {
-        console.warn("⚠️ 현재가 API 응답 실패:", result);
+        console.warn("⚠️ 현재가 API 응답 실패:", data);
         // 기존 주식 가격을 사용
         setCurrentPrice(
           typeof stock.price === "string"
@@ -121,7 +119,7 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
       console.log("📡 매수 주문 데이터:", orderData);
 
-      const response = await fetchWithAuth(
+      const response = await fetchWithHantuToken(
         `${API_BASE_URL}trading/trade/`,
         {
           method: "POST",
@@ -131,7 +129,7 @@ const TradingBuyScreen = ({ route, navigation }) => {
       );
 
       const result = await response.json();
-      console.log("📬 매수 주문 응답:", result);
+      console.log("�� 매수 주문 응답:", result);
 
       if (response.ok && result?.status === "success") {
         Alert.alert(
