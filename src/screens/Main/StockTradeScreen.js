@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  TextInput,
   ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,71 +14,24 @@ import { getNewAccessToken } from "../../utils/token";
 import { fetchPortfolio } from "../../utils/portfolio";
 import RecommendedStock from "../../components/RecommendedStock";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { fetchWithHantuToken } from "../../utils/hantuToken";
 
 const StockTradeScreen = ({ navigation }) => {
   console.log("📌 StockTradeScreen 렌더링");
   const [userInfo, setUserInfo] = useState(null);
   const [portfolioData, setPortfolioData] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const searchStocks = async () => {
-    const query = searchText.trim();
-    if (!query) return;
-
-    try {
-      const url = `${API_BASE_URL}api/stock/search/?query=${encodeURIComponent(
-        query
-      )}`;
-      console.log("🔍 검색어:", query);
-      console.log("🔄 검색 URL:", url);
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json", // ← 헤더 요구사항 반영
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn("❌ 검색 실패 응답:", errorText);
-        setSearchResults([]);
-        return;
-      }
-
-      const result = await response.json();
-      console.log("🔍 검색 응답:", result);
-
-      if (!Array.isArray(result)) {
-        console.warn("❗️검색 결과가 배열이 아닙니다:", result);
-        setSearchResults([]);
-        return;
-      }
-
-      const parsed = result.map((item, index) => ({
-        id: index + 1,
-        name: item.name,
-        price: "-", // 가격 없음, placeholder로 처리
-        change: "-", // 등락률 없음
-        volume: "-", // 거래량 없음
-        symbol: item.symbol, // ← 종목코드 필요 시
-      }));
-
-      console.log("✅ 파싱된 검색결과:", parsed);
-      setSearchResults(parsed);
-    } catch (error) {
-      console.error("❌ 주식 검색 실패:", error);
-      setSearchResults([]);
-    }
-  };
+  const [showRecommended, setShowRecommended] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       await fetchUserInfo(navigation, setUserInfo);
-      await fetchPortfolio(navigation, setPortfolioData, setLoading);
-      await searchStocks();
+      await fetchEnhancedPortfolio();
+
+      // 보유 주식 로딩 완료 후 2초 뒤에 추천 주식 표시
+      setTimeout(() => {
+        setShowRecommended(true);
+      }, 2000);
     };
     load();
   }, []);
@@ -87,16 +39,169 @@ const StockTradeScreen = ({ navigation }) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       console.log("📥 다시 focus됨: 포트폴리오 재요청");
-      fetchPortfolio(navigation, setPortfolioData, setLoading);
+      fetchEnhancedPortfolio();
+
+      // 화면 재진입 시에도 추천 주식 로딩 지연
+      setShowRecommended(false);
+      setTimeout(() => {
+        setShowRecommended(true);
+      }, 2000);
     });
 
     return unsubscribe;
   }, [navigation]);
 
+  // 포트폴리오 데이터에 전일대비 증감률 정보를 추가하는 함수
+  const fetchEnhancedPortfolio = async () => {
+    console.log("📥 향상된 포트폴리오 요청 시작");
+
+    try {
+      setLoading(true);
+
+      // 1. 기본 포트폴리오 데이터 가져오기
+      const response = await fetch(`${API_BASE_URL}trading/portfolio/`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${await getNewAccessToken(navigation)}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("📦 포트폴리오 응답:", result);
+
+      if (result?.status !== "success" || !Array.isArray(result.portfolio)) {
+        console.warn("⚠️ 응답 구조가 예상과 다릅니다:", result);
+        setPortfolioData([]);
+        return;
+      }
+
+      // 2. 수량이 0인 항목 필터링 및 기본 데이터 파싱
+      const filteredPortfolio = result.portfolio.filter(
+        (item) => item.quantity > 0
+      );
+
+      // 3. 각 종목에 대해 전일대비 증감률 정보 조회 (순차적으로, 간격을 두고)
+      const enhancedPortfolio = [];
+
+      for (let index = 0; index < filteredPortfolio.length; index++) {
+        const item = filteredPortfolio[index];
+
+        try {
+          console.log(
+            `📊 ${item.stock_code} 전일대비 증감률 조회 중... (${index + 1}/${
+              filteredPortfolio.length
+            })`
+          );
+
+          // API 호출 간격을 두어 429 에러 방지 (1초에 2회 제한이므로 500ms 간격)
+          if (index > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+
+          // 전일대비 증감률 API 호출
+          const changeResult = await fetchWithHantuToken(
+            `${API_BASE_URL}stocks/price_change/?stock_code=${item.stock_code}`
+          );
+
+          let currentPrice = item.current_price;
+          let changePercent = 0;
+          let changeStatus = "same";
+
+          if (changeResult.success && changeResult.data?.status === "success") {
+            currentPrice = changeResult.data.current_price;
+            changePercent = changeResult.data.price_change_percentage;
+            changeStatus = changeResult.data.change_status;
+            console.log(`✅ ${item.stock_code} 증감률: ${changePercent}%`);
+          } else {
+            console.warn(`⚠️ ${item.stock_code} 증감률 조회 실패, 기본값 사용`);
+          }
+
+          enhancedPortfolio.push({
+            id: `${item.stock_code}-${index}`,
+            name: item.stock_name,
+            symbol: item.stock_code,
+            price: currentPrice || 0,
+            change: changePercent || 0,
+            changeStatus: changeStatus || "same",
+            quantity: item.quantity || 0,
+            average_price: item.average_price || 0,
+            totalBuyPrice: (item.average_price || 0) * (item.quantity || 0),
+            current_value: (currentPrice || 0) * (item.quantity || 0),
+            profit_amount:
+              ((currentPrice || 0) - (item.average_price || 0)) *
+              (item.quantity || 0),
+          });
+        } catch (error) {
+          console.error(`❌ ${item.stock_code} 데이터 처리 실패:`, error);
+
+          // 오류 발생 시 기본값 사용
+          enhancedPortfolio.push({
+            id: `${item.stock_code}-${index}`,
+            name: item.stock_name,
+            symbol: item.stock_code,
+            price: item.current_price || 0,
+            change: 0,
+            changeStatus: "same",
+            quantity: item.quantity || 0,
+            average_price: item.average_price || 0,
+            totalBuyPrice: (item.average_price || 0) * (item.quantity || 0),
+            current_value: (item.current_price || 0) * (item.quantity || 0),
+            profit_amount:
+              ((item.current_price || 0) - (item.average_price || 0)) *
+              (item.quantity || 0),
+          });
+        }
+      }
+
+      console.log("✅ 향상된 포트폴리오 데이터:", enhancedPortfolio);
+      setPortfolioData(enhancedPortfolio);
+    } catch (error) {
+      console.error("❌ 향상된 포트폴리오 요청 실패:", error);
+      setPortfolioData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatNumber = (number) => {
+    if (typeof number !== "number" || isNaN(number)) {
+      return "0";
+    }
+    return number.toLocaleString();
+  };
+
+  const getChangeColor = (changeStatus) => {
+    switch (changeStatus) {
+      case "up":
+        return "#F074BA"; // 상승 - 핑크
+      case "down":
+        return "#00BFFF"; // 하락 - 파랑
+      default:
+        return "#AAAAAA"; // 보합 - 회색
+    }
+  };
+
+  const getChangeSymbol = (changeStatus) => {
+    switch (changeStatus) {
+      case "up":
+        return "▲";
+      case "down":
+        return "▼";
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: "center" }]}>
         <ActivityIndicator size="large" color="#F074BA" />
+        <Text style={styles.loadingText}>보유 주식 정보를 불러오는 중...</Text>
       </View>
     );
   }
@@ -118,148 +223,123 @@ const StockTradeScreen = ({ navigation }) => {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 내 포트폴리오 */}
+        {/* 현재 보유 주식 */}
         <Text style={styles.sectionTitle}>현재 보유 주식</Text>
         <View style={styles.divider} />
 
-        {portfolioData.map((stock) => (
-          <View key={stock.id}>
-            <View style={styles.stockItem}>
-              <View style={styles.stockInfo}>
-                <Text style={styles.stockName}>{stock.name}</Text>
-                <View style={styles.priceContainer}>
-                  <Text style={styles.stockPrice}>{stock.price}원</Text>
-                  <Text
-                    style={[
-                      styles.stockChange,
-                      parseFloat(stock.change) < 0 && { color: "#00BFFF" },
-                    ]}
-                  >
-                    {parseFloat(stock.change) >= 0 ? "▲" : "▼"}
-                    {Math.abs(parseFloat(stock.change))}%
+        {portfolioData.length > 0 ? (
+          portfolioData.map((stock) => (
+            <View key={stock.id}>
+              <TouchableOpacity
+                style={styles.stockItem}
+                onPress={() => {
+                  console.log("📱 보유 주식 클릭:", stock.name, stock.symbol);
+                  navigation.navigate("StockDetail", {
+                    symbol: stock.symbol,
+                    name: stock.name,
+                  });
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.stockInfo}>
+                  <Text style={styles.stockName}>{stock.name}</Text>
+                  <Text style={styles.stockCode}>({stock.symbol})</Text>
+
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.stockPrice}>
+                      {formatNumber(stock.price)}원
+                    </Text>
+                    <Text
+                      style={[
+                        styles.stockChange,
+                        { color: getChangeColor(stock.changeStatus) },
+                      ]}
+                    >
+                      {getChangeSymbol(stock.changeStatus)}
+                      {Math.abs(stock.change || 0).toFixed(2)}%
+                    </Text>
+                  </View>
+
+                  <Text style={styles.averageLine}>
+                    평균 단가: {formatNumber(stock.average_price)}원
+                  </Text>
+                  <Text style={styles.stockLine}>
+                    총 매수 금액: {formatNumber(stock.totalBuyPrice)}원
+                  </Text>
+                  <Text style={styles.quantity}>
+                    보유 수량: {formatNumber(stock.quantity)}주
                   </Text>
                 </View>
-                <Text style={styles.averageLine}>
-                  평균 단가: {stock.average_price.toLocaleString()}원
-                </Text>
-                <Text style={styles.stockLine}>
-                  총 매수 금액: {stock.totalBuyPrice.toLocaleString()}원
-                </Text>
-                <Text style={styles.quantity}>보유 수량: {stock.quantity}</Text>
-              </View>
 
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.buyButton}
-                  onPress={() => {
-                    // 🔧 디버깅 로그 추가
-                    console.log("매수 버튼 클릭됨");
-                    console.log("전달할 stock 데이터:", {
-                      id: stock.id,
-                      name: stock.name,
-                      price: stock.price,
-                      change: stock.change,
-                      quantity: stock.quantity,
-                      symbol: stock.symbol,
-                    });
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.buyButton}
+                    onPress={(e) => {
+                      e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
+                      console.log("매수 버튼 클릭됨");
+                      console.log("전달할 stock 데이터:", {
+                        id: stock.id,
+                        name: stock.name,
+                        price: stock.price,
+                        change: stock.change,
+                        quantity: stock.quantity,
+                        symbol: stock.symbol,
+                      });
 
-                    if (!stock.name || stock.price === "-" || !stock.price) {
-                      console.error("잘못된 stock 데이터가 전달됨");
-                      Alert.alert("오류", "주식 정보가 완전하지 않습니다.");
-                      return;
-                    }
+                      if (!stock.name || !stock.price) {
+                        Alert.alert("오류", "주식 정보가 완전하지 않습니다.");
+                        return;
+                      }
 
-                    navigation.navigate("TradingBuy", { stock });
-                  }}
-                >
-                  <Text style={styles.buyText}>매수</Text>
-                </TouchableOpacity>
+                      navigation.navigate("TradingBuy", { stock });
+                    }}
+                  >
+                    <Text style={styles.buyText}>매수</Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.sellButton}
-                  onPress={() => navigation.navigate("TradingSell", { stock })}
-                >
-                  <Text style={styles.sellText}>매도</Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={styles.sellButton}
+                    onPress={(e) => {
+                      e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
+                      navigation.navigate("TradingSell", { stock });
+                    }}
+                  >
+                    <Text style={styles.sellText}>매도</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+              <View style={styles.divider} />
             </View>
-            <View style={styles.divider} />
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>보유 중인 주식이 없습니다</Text>
+            <Text style={styles.emptySubText}>
+              아래 추천 주식에서 투자를 시작해보세요!
+            </Text>
           </View>
-        ))}
+        )}
 
+        {/* 추천 주식 섹션 */}
         <Text style={styles.sectionTitle}>추천 주식</Text>
         <View style={styles.divider} />
-        {["005930", "352820", "066570"].map((stockCode) => (
-          <RecommendedStock
-            key={stockCode}
-            stockCode={stockCode}
-            navigation={navigation}
-            styles={styles}
-          />
-        ))}
 
-        {/* <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="주식명 검색"
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={searchStocks}
-          >
-            <SearchIcon width={24} height={24} fill="#003340" />
-          </TouchableOpacity>
-        </View> */}
-        {/* 전체 주식 검색 */}
-        {/* {searchText !== '' && (
-  <>
-    <View style={styles.divider} />
-    {searchResults.length > 0 ? (
-      searchResults.map(stock => (
-        <View key={stock.id}>
-          <View style={styles.stockItem}>
-            <View style={styles.stockInfo}>
-              <Text style={styles.stockName}>{stock.name}</Text>
-              <View style={styles.priceContainer}>
-                <Text style={styles.stockPrice}>{stock.price}원</Text>
-                <Text style={[
-                  styles.stockChange,
-                  parseFloat(stock.change) < 0 && { color: '#00BFFF' }
-                ]}>
-                  {parseFloat(stock.change) >= 0 ? '▲' : '▼'}
-                  {Math.abs(parseFloat(stock.change)).toFixed(2)}%
-                </Text>
-              </View>
-              <Text style={styles.stockVolume}>거래량: {stock.volume}</Text>
-            </View>
-
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.buyButton}
-                onPress={() => navigation.navigate('TradingBuy', { stock })}
-              >
-                <Text style={styles.buyText}>매수</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.sellButton}
-                onPress={() => navigation.navigate('TradingSell', { stock })}
-              >
-                <Text style={styles.sellText}>매도</Text>
-              </TouchableOpacity>
-            </View>
+        {showRecommended ? (
+          ["005930", "352820", "066570"].map((stockCode) => (
+            <RecommendedStock
+              key={stockCode}
+              stockCode={stockCode}
+              navigation={navigation}
+              styles={styles}
+            />
+          ))
+        ) : (
+          <View style={styles.recommendedLoading}>
+            <Text style={styles.recommendedLoadingText}>
+              추천 주식 로딩 중...
+            </Text>
           </View>
-          <View style={styles.divider} />
-        </View>
-      ))
-    ) : (
-      <Text style={{ color: '#EFF1F5', textAlign: 'center', marginTop: 10 }}>
-        검색 결과가 없습니다.
-      </Text>
-    )}
-  </>
-)} */}
+        )}
       </ScrollView>
     </View>
   );
@@ -287,6 +367,9 @@ const styles = StyleSheet.create({
     marginTop: 70,
     marginBottom: 20,
     maxHeight: 1000,
+  },
+  scrollContent: {
+    paddingBottom: 20,
   },
   header: {
     flexDirection: "row",
@@ -328,6 +411,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 4,
   },
+  stockCode: {
+    fontSize: 12,
+    color: "#AFA5CF",
+    marginBottom: 8,
+  },
   priceContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -340,7 +428,6 @@ const styles = StyleSheet.create({
   },
   stockChange: {
     fontSize: 16,
-    color: "#F074BA",
     fontWeight: "bold",
   },
   averageLine: {
@@ -348,7 +435,6 @@ const styles = StyleSheet.create({
     color: "#11A5CF",
     marginTop: 10,
   },
-
   stockLine: {
     fontSize: 16,
     color: "#AFA5CF",
@@ -385,26 +471,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 16,
   },
-  searchContainer: {
-    flexDirection: "row",
+  emptyState: {
     alignItems: "center",
-    backgroundColor: "#EFF1F5",
-    borderRadius: 15,
-    paddingHorizontal: 10,
-    height: 40,
-    marginBottom: 15,
-    marginTop: 10,
+    paddingVertical: 40,
   },
-  searchInput: {
-    flex: 1,
+  emptyText: {
     fontSize: 16,
-    backgroundColor: "#EFF1F5",
-    borderRadius: 13,
-    padding: 10,
-    marginRight: 10,
+    color: "#EFF1F5",
+    textAlign: "center",
+    marginBottom: 8,
   },
-  searchButton: {
-    padding: 5,
+  emptySubText: {
+    fontSize: 14,
+    color: "#AFA5CF",
+    textAlign: "center",
+  },
+  loadingText: {
+    color: "#EFF1F5",
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: "center",
+  },
+  recommendedLoading: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  recommendedLoadingText: {
+    color: "#AFA5CF",
+    fontSize: 14,
   },
 });
 

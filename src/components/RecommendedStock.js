@@ -14,15 +14,22 @@ const RecommendedStock = ({ stockCode, navigation }) => {
   async function fetchStockPrice(stockCode) {
     try {
       setLoading(true);
+
+      // API 호출 제한 고려하여 간격 추가
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       // 기존 토큰 파괴/발급 코드 완전 제거
       const priceResult = await fetchWithHantuToken(
         `${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`
       );
       if (!priceResult.success) {
-        console.error('API 호출 실패:', priceResult.error);
+        console.error("API 호출 실패:", priceResult.error);
         throw new Error(priceResult.error);
       }
       const priceData = priceResult.data;
+
+      // 두 번째 API 호출 전에도 간격 추가
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // 가격 변동 정보 조회
       const changeResponse = await fetch(
@@ -41,21 +48,23 @@ const RecommendedStock = ({ stockCode, navigation }) => {
       const stockNames = {
         "005930": "삼성전자",
         352820: "하이브",
+        "066570": "LG전자",
       };
 
       setStockData({
         code: stockCode,
         name: stockNames[stockCode] || `종목${stockCode}`,
-        price: priceData.current_price,
-        change: changeData ? changeData.price_change_percentage : 0,
-        changeStatus: changeData ? changeData.change_status : "same",
+        price: priceData.current_price || 0,
+        change: changeData ? changeData.price_change_percentage || 0 : 0,
+        changeStatus: changeData ? changeData.change_status || "same" : "same",
       });
     } catch (err) {
-      console.error('주식 가격 조회 중 예외:', err);
+      console.error("주식 가격 조회 중 예외:", err);
       // 기본값 설정
       const stockNames = {
         "005930": "삼성전자",
         352820: "하이브",
+        "066570": "LG전자",
       };
 
       setStockData({
@@ -114,7 +123,16 @@ const RecommendedStock = ({ stockCode, navigation }) => {
     navigation.navigate("TradingSell", { stock });
   };
 
+  // 안전한 숫자 포맷팅 함수
   const formatNumber = (number) => {
+    if (
+      typeof number !== "number" ||
+      isNaN(number) ||
+      number === null ||
+      number === undefined
+    ) {
+      return "0";
+    }
     return number.toLocaleString();
   };
 
@@ -166,7 +184,17 @@ const RecommendedStock = ({ stockCode, navigation }) => {
 
   return (
     <View>
-      <View style={styles.stockItem}>
+      <TouchableOpacity
+        style={styles.stockItem}
+        onPress={() => {
+          console.log("📱 추천 주식 클릭:", stockData.name, stockData.code);
+          navigation.navigate("StockDetail", {
+            symbol: stockData.code,
+            name: stockData.name,
+          });
+        }}
+        activeOpacity={0.7}
+      >
         <View style={styles.stockInfo}>
           <Text style={styles.stockName}>{stockData.name}</Text>
           <Text style={styles.stockCode}>({stockData.code})</Text>
@@ -177,21 +205,33 @@ const RecommendedStock = ({ stockCode, navigation }) => {
             </Text>
             <Text style={[styles.stockChange, { color: getChangeColor() }]}>
               {getChangeSymbol()}
-              {Math.abs(stockData.change).toFixed(2)}%
+              {Math.abs(stockData.change || 0).toFixed(2)}%
             </Text>
           </View>
         </View>
 
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
+          <TouchableOpacity
+            style={styles.buyButton}
+            onPress={(e) => {
+              e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
+              handleBuyPress();
+            }}
+          >
             <Text style={styles.buyText}>매수</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.sellButton} onPress={handleSellPress}>
+          <TouchableOpacity
+            style={styles.sellButton}
+            onPress={(e) => {
+              e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
+              handleSellPress();
+            }}
+          >
             <Text style={styles.sellText}>매도</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
       <View style={styles.divider} />
     </View>
   );
