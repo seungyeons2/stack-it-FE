@@ -1,4 +1,4 @@
-import { getNewAccessToken } from "./token";
+import { fetchWithAuth } from "./token";
 import { API_BASE_URL } from "./apiConfig";
 
 export const fetchPortfolio = async (
@@ -11,23 +11,13 @@ export const fetchPortfolio = async (
   try {
     setLoading(true);
 
-    const accessToken = await getNewAccessToken(navigation);
-    if (!accessToken) {
-      console.error("❌ AccessToken 없음. 요청 중단.");
-      setLoading(false);
-      return;
-    }
-
-    const url = `${API_BASE_URL}trading/portfolio/`;
-    console.log("📡 요청 URL:", url);
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}trading/portfolio/`,
+      {
+        method: "GET",
       },
-    });
+      navigation
+    );
 
     console.log("📬 응답 상태 코드:", response.status);
 

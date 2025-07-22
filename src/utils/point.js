@@ -1,26 +1,25 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getNewAccessToken } from "./token";
+import { fetchWithAuth } from "./token";
 import { API_BASE_URL } from "./apiConfig";
 
 export const increaseBalance = async (navigation, amount) => {
   try {
-    const accessToken = await getNewAccessToken(navigation);
-    if (!accessToken) {
-      console.error("액세스 토큰이 없습니다.");
-      return;
-    }
+    console.log("💰 예수금 추가 요청:", amount);
 
-    const response = await fetch(`${API_BASE_URL}point/increase_balance/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}point/increase_balance/`,
+      {
+        method: "POST",
+        body: JSON.stringify({ amount }),
       },
-      body: JSON.stringify({ amount }),
-    });
+      navigation
+    );
 
     const text = await response.text();
     console.log("예수금 추가 응답 본문:", text);
+
+    if (!response.ok) {
+      throw new Error(`API 호출 실패: ${response.status}`);
+    }
 
     const data = JSON.parse(text);
 

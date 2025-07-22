@@ -11,9 +11,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from "react-native";
-import { getNewAccessToken } from "../../utils/token";
+import { fetchWithHantuToken } from "../../utils/hantuToken";
 import { fetchUserInfo } from "../../utils/user";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { fetchWithAuth } from "../../utils/token"; // fetchWithAuth 사용
 
 const TradingBuyScreen = ({ route, navigation }) => {
   const stock = route.params?.stock;
@@ -31,13 +32,13 @@ const TradingBuyScreen = ({ route, navigation }) => {
       });
 
       // 현재가 가져오기
-      await fetchCurrentPrice();
+      await fetchCurrentPrice(stock?.symbol);
     };
     init();
   }, []);
 
-  const fetchCurrentPrice = async () => {
-    if (!stock?.symbol) {
+  const fetchCurrentPrice = async (stockCode) => {
+    if (!stockCode) {
       console.error("❌ 종목 코드가 없습니다.");
       setPriceLoading(false);
       return;
@@ -46,21 +47,21 @@ const TradingBuyScreen = ({ route, navigation }) => {
     try {
       setPriceLoading(true);
 
-      const response = await fetch(
-        `${API_BASE_URL}trading/stock_price/?stock_code=${stock.symbol}`
+      const result = await fetchWithHantuToken(
+        `${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`
       );
 
-      if (!response.ok) {
-        throw new Error(`Price API error: ${response.status}`);
+      if (!result.success) {
+        throw new Error(result.error);
       }
 
-      const result = await response.json();
+      const data = result.data;
 
-      if (result.status === "success" && result.current_price) {
-        setCurrentPrice(result.current_price);
-        console.log("✅ 현재가 업데이트:", result.current_price);
+      if (data && data.current_price) {
+        setCurrentPrice(data.current_price);
+        console.log("✅ 현재가 업데이트:", data.current_price);
       } else {
-        console.warn("⚠️ 현재가 API 응답 실패:", result);
+        console.warn("⚠️ 현재가 API 응답 실패:", data);
         // 기존 주식 가격을 사용
         setCurrentPrice(
           typeof stock.price === "string"
@@ -108,12 +109,6 @@ const TradingBuyScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      const accessToken = await getNewAccessToken(navigation);
-      if (!accessToken || !userId) {
-        Alert.alert("오류", "사용자 인증에 실패했습니다.");
-        return;
-      }
-
       // 종목 식별자 결정 (종목코드 우선 사용)
       const stockIdentifier = stock.symbol || stock.name;
 
@@ -127,29 +122,36 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
       console.log("📡 매수 주문 데이터:", orderData);
 
-      const response = await fetch(`${API_BASE_URL}trading/trade/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
+      // ✅ fetchWithAuth 사용 (일반 백엔드 API이므로)
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}trading/trade/`,
+        {
+          method: "POST",
+          body: JSON.stringify(orderData),
         },
-        body: JSON.stringify(orderData),
-      });
+        navigation
+      );
+
+      console.log("📬 매수 주문 응답 상태:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ 매수 주문 실패 응답:", errorText);
+        Alert.alert("매수 실패", `서버 오류: ${response.status}`);
+        return;
+      }
 
       const result = await response.json();
-      console.log("📬 매수 주문 응답:", result);
+      console.log("📬 매수 주문 응답 데이터:", result);
 
-      if (response.ok && result?.status === "success") {
+      if (result.status === "success") {
         Alert.alert(
           "매수 완료",
           result.message || `${stock.name} ${qty}주 매수가 완료되었습니다.`,
           [{ text: "확인", onPress: () => navigation.goBack() }]
         );
       } else {
-        Alert.alert(
-          "매수 실패",
-          result?.message || `오류가 발생했습니다. (${response.status})`
-        );
+        Alert.alert("매수 실패", result.message || "매수 주문에 실패했습니다.");
       }
     } catch (error) {
       console.error("❌ 매수 주문 실패:", error);

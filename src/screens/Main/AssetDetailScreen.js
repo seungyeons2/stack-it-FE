@@ -52,7 +52,38 @@ const AssetDetailScreen = ({ navigation }) => {
         const data = JSON.parse(responseText);
 
         if (data.status === "success") {
-          setAssetData(data); // 전체 자산 데이터 사용
+          // ✅ 보유하지 않은 종목 필터링 추가
+          const filteredData = {
+            ...data,
+            breakdown: data.breakdown
+              ? data.breakdown.filter((item) => {
+                  // 예수금은 항상 포함
+                  if (item.label === "예수금") {
+                    return true;
+                  }
+                  // 주식은 value가 0보다 큰 것만 포함
+                  return item.value > 0;
+                })
+              : [],
+          };
+
+          console.log(
+            "✅ 필터링 전 breakdown:",
+            data.breakdown?.length || 0,
+            "개"
+          );
+          console.log(
+            "✅ 필터링 후 breakdown:",
+            filteredData.breakdown?.length || 0,
+            "개"
+          );
+
+          // 필터링된 항목들 로그 출력
+          filteredData.breakdown.forEach((item) => {
+            console.log(`📊 ${item.label}: ${item.value.toLocaleString()}원`);
+          });
+
+          setAssetData(filteredData);
           setError(null);
         } else {
           setError("API 응답 실패: " + (data.message || "알 수 없는 오류"));
@@ -86,13 +117,18 @@ const AssetDetailScreen = ({ navigation }) => {
     return ((value / assetData.total_asset) * 100).toFixed(1) + "%";
   };
 
-  // 차트 데이터
+  // 차트 데이터 - 필터링된 데이터 사용
   const prepareChartData = () => {
-    if (!assetData || !assetData.breakdown) {
+    if (
+      !assetData ||
+      !assetData.breakdown ||
+      assetData.breakdown.length === 0
+    ) {
       return [];
     }
+
     const chartColors = [
-      "#F074BA", // 예수금 : 두둑 핑크 ㅎㅁㅎ
+      "#F074BA", // 예수금 : 두둑 핑크
       "#3B82F6", // 파랑
       "#34D399", // 에메랄드
       "#10B981", // 녹색
@@ -109,6 +145,7 @@ const AssetDetailScreen = ({ navigation }) => {
       "#A78BFA", // 라벤더
       "#F472B6", // 코랄 핑크
     ];
+
     return assetData.breakdown.map((item, index) => ({
       name: item.label,
       value: item.value,
@@ -116,6 +153,15 @@ const AssetDetailScreen = ({ navigation }) => {
       legendFontColor: "#EFF1F5",
       legendFontSize: 12,
     }));
+  };
+
+  // 실제 보유 주식만 필터링하는 함수
+  const getOwnedStocks = () => {
+    if (!assetData?.breakdown) return [];
+
+    return assetData.breakdown.filter(
+      (stock) => stock.label !== "예수금" && stock.value > 0
+    );
   };
 
   // 로딩
@@ -162,6 +208,7 @@ const AssetDetailScreen = ({ navigation }) => {
   }
 
   const chartData = prepareChartData();
+  const ownedStocks = getOwnedStocks();
 
   // 정상 화면
   return (
@@ -175,28 +222,36 @@ const AssetDetailScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.scrollView}>
+        {/* 차트 섹션 */}
         <View style={styles.chartSection}>
-          <PieChart
-            data={prepareChartData()}
-            width={screenWidth - 60}
-            height={screenWidth - 60}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            }}
-            accessor="value"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute={false}
-            hasLegend={false}
-            style={styles.chart}
-            innerRadius="70%"
-            center={[screenWidth * 0.23, 0]}
-          />
+          {chartData.length > 0 ? (
+            <PieChart
+              data={chartData}
+              width={screenWidth - 60}
+              height={screenWidth - 60}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              }}
+              accessor="value"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute={false}
+              hasLegend={false}
+              style={styles.chart}
+              innerRadius="70%"
+              center={[screenWidth * 0.23, 0]}
+            />
+          ) : (
+            <View style={styles.emptyChart}>
+              <Text style={styles.emptyChartText}>차트 데이터가 없습니다</Text>
+            </View>
+          )}
         </View>
 
+        {/* 범례 컨테이너 */}
         <View style={styles.legendContainer}>
-          {prepareChartData().map((item, index) => (
+          {chartData.map((item, index) => (
             <View key={index} style={styles.legendItemVertical}>
               <View
                 style={[styles.legendColor, { backgroundColor: item.color }]}
@@ -208,32 +263,38 @@ const AssetDetailScreen = ({ navigation }) => {
           ))}
         </View>
 
+        {/* 보유 주식 목록 */}
         <View style={styles.stockListContainer}>
-          <Text style={styles.sectionTitle}>보유 주식 목록</Text>
+          <Text style={styles.sectionTitle}>
+            보유 주식 목록{" "}
+            {ownedStocks.length > 0 && `(${ownedStocks.length}개)`}
+          </Text>
 
-          {assetData.breakdown && assetData.breakdown.length > 0 ? (
-            assetData.breakdown
-              .filter((stock) => stock.label !== "예수금")
-              .map((stock, index) => (
-                <View key={index} style={styles.stockItem}>
-                  <View style={styles.stockInfoTop}>
-                    <Text style={styles.stockName}>{stock.label}</Text>
-                    <Text style={styles.stockPercentage}>
-                      {calculatePercentage(stock.value)}
-                    </Text>
-                  </View>
-                  <Text style={styles.stockValue}>
-                    {formatCurrency(stock.value)}원
+          {ownedStocks.length > 0 ? (
+            ownedStocks.map((stock, index) => (
+              <View key={index} style={styles.stockItem}>
+                <View style={styles.stockInfoTop}>
+                  <Text style={styles.stockName}>{stock.label}</Text>
+                  <Text style={styles.stockPercentage}>
+                    {calculatePercentage(stock.value)}
                   </Text>
                 </View>
-              ))
+                <Text style={styles.stockValue}>
+                  {formatCurrency(stock.value)}원
+                </Text>
+              </View>
+            ))
           ) : (
             <View style={styles.emptyListContainer}>
               <Text style={styles.emptyListText}>보유 주식이 없습니다</Text>
+              <Text style={styles.emptyListSubText}>
+                메인화면에서 주식 거래를 시작해보세요!
+              </Text>
             </View>
           )}
         </View>
 
+        {/* 자산 요약 */}
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>평가 금액</Text>
@@ -258,7 +319,6 @@ const AssetDetailScreen = ({ navigation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -464,6 +524,13 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 36,
     color: "#F074BA",
+  },
+
+  emptyListSubText: {
+    color: "rgba(239, 241, 245, 0.5)",
+    textAlign: "center",
+    fontSize: 14,
+    marginTop: 8,
   },
 });
 

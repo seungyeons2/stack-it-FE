@@ -1,28 +1,27 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getNewAccessToken } from "./token";
+import { fetchWithAuth } from "./token";
 import { API_BASE_URL } from "./apiConfig";
 
 // 사용자 정보를 불러와 setUserInfo에 설정해주는 함수
 export const fetchUserInfo = async (navigation, setUserInfo) => {
   try {
-    const accessToken = await getNewAccessToken(navigation);
-    if (!accessToken) {
-      console.error("액세스 토큰이 없습니다.");
-      return;
-    }
+    console.log("👤 사용자 정보 조회 시작");
 
-    console.log("사용 중인 액세스 토큰:", accessToken);
-
-    const response = await fetch(`${API_BASE_URL}users/me/`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}users/me/`,
+      {
+        method: "GET",
       },
-    });
+      navigation
+    );
 
     console.log("응답 상태:", response.status);
     const text = await response.text();
     console.log("응답 본문:", text);
+
+    if (!response.ok) {
+      throw new Error(`API 호출 실패: ${response.status}`);
+    }
 
     try {
       const data = JSON.parse(text);
@@ -49,22 +48,16 @@ export const fetchUserInfo = async (navigation, setUserInfo) => {
 // 사용자 정보 수정 함수
 export const updateUserInfo = async (navigation, updatedFields) => {
   try {
-    const accessToken = await getNewAccessToken(navigation);
-    if (!accessToken) {
-      console.error("액세스 토큰이 없습니다.");
-      return false;
-    }
-
     console.log("🔧 수정 요청 보낼 필드:", updatedFields);
 
-    const response = await fetch(`${API_BASE_URL}users/me/`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}users/me/`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(updatedFields),
       },
-      body: JSON.stringify(updatedFields),
-    });
+      navigation
+    );
 
     console.log("🔧 수정 응답 상태:", response.status);
     const text = await response.text();

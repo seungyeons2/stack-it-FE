@@ -15,6 +15,10 @@ import { fetchUserInfo } from "../../utils/user";
 import { PieChart } from "react-native-chart-kit"; // 추가된 부분
 import { API_BASE_URL } from "../../utils/apiConfig"; // API 설정 import
 import { getNewAccessToken } from "../../utils/token"; // 토큰 가져오기 import
+import {
+  initializeHantuToken,
+  scheduleTokenRefresh,
+} from "../../utils/hantuToken";
 
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
@@ -59,12 +63,20 @@ const MainScreen = ({ navigation }) => {
   const [assetError, setAssetError] = useState(null);
 
   useEffect(() => {
+    let refreshInterval;
     const load = async () => {
+      // 한국투자 토큰 초기화 및 주기적 갱신
+      await initializeHantuToken();
+      refreshInterval = scheduleTokenRefresh();
+      // 기존 데이터 로딩 로직
       await fetchUserInfo(navigation, setUserInfo);
       await fetchUserBalance(navigation, setBalance);
-      await fetchAssetData(); // 자산 데이터 불러오기
+      await fetchAssetData();
     };
     load();
+    return () => {
+      if (refreshInterval) clearInterval(refreshInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -102,7 +114,40 @@ const MainScreen = ({ navigation }) => {
       const data = await response.json();
 
       if (data.status === "success") {
-        setAssetData(data);
+        // ✅ AssetDetailScreen과 동일한 필터링 로직 적용
+        const filteredData = {
+          ...data,
+          breakdown: data.breakdown
+            ? data.breakdown.filter((item) => {
+                // 예수금은 항상 포함
+                if (item.label === "예수금") {
+                  return true;
+                }
+                // 주식은 value가 0보다 큰 것만 포함
+                return item.value > 0;
+              })
+            : [],
+        };
+
+        console.log(
+          "✅ MainScreen 필터링 전 breakdown:",
+          data.breakdown?.length || 0,
+          "개"
+        );
+        console.log(
+          "✅ MainScreen 필터링 후 breakdown:",
+          filteredData.breakdown?.length || 0,
+          "개"
+        );
+
+        // 필터링된 항목들 로그 출력
+        filteredData.breakdown.forEach((item) => {
+          console.log(
+            `📊 MainScreen ${item.label}: ${item.value.toLocaleString()}원`
+          );
+        });
+
+        setAssetData(filteredData);
         setAssetError(null);
       } else {
         setAssetError("데이터를 불러오는 데 실패했습니다");
@@ -140,12 +185,17 @@ const MainScreen = ({ navigation }) => {
 
   // 차트 데이터 준비
   const prepareChartData = () => {
-    if (!assetData || !assetData.breakdown) {
+    if (
+      !assetData ||
+      !assetData.breakdown ||
+      assetData.breakdown.length === 0
+    ) {
+      console.log("⚠️ MainScreen: 차트 데이터가 없음");
       return [];
     }
 
     const chartColors = [
-      "#F074BA", // 예수금 : 두둑 핑크 ㅎㅁㅎ
+      "#F074BA", // 예수금 : 두둑 핑크
       "#3B82F6", // 파랑
       "#34D399", // 에메랄드
       "#10B981", // 녹색
@@ -163,13 +213,75 @@ const MainScreen = ({ navigation }) => {
       "#F472B6", // 코랄 핑크
     ];
 
-    return assetData.breakdown.map((item, index) => ({
+    // 필터링된 데이터로 차트 생성
+    const chartData = assetData.breakdown.map((item, index) => ({
       name: item.label,
       value: item.value,
       color: chartColors[index % chartColors.length],
       legendFontColor: "#EFF1F5",
       legendFontSize: 10,
     }));
+
+    console.log("📊 MainScreen 차트 데이터 생성:", chartData.length, "개 항목");
+    chartData.forEach((item) => {
+      console.log(`  - ${item.name}: ${item.value.toLocaleString()}원`);
+    });
+
+    return chartData;
+  };
+
+  const renderChart = () => {
+    const chartData = prepareChartData();
+
+    if (chartData.length === 0) {
+      return (
+        <View style={styles.emptyChart}>
+          <Text style={styles.emptyChartText}>보유 자산이 없습니다</Text>
+          <Text style={styles.emptyChartSubText}>
+            주식 거래를 시작해보세요!
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.chartWrapper}>
+        <PieChart
+          data={chartData}
+          width={screenWidth}
+          height={screenWidth - 60}
+          chartConfig={{
+            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          }}
+          accessor="value"
+          backgroundColor="transparent"
+          paddingLeft="15"
+          absolute={false}
+          hasLegend={false}
+          center={[screenWidth * 0.13, 0]}
+          avoidFalseZero
+          style={styles.chart}
+          innerRadius="70%"
+        />
+
+        <View style={styles.centerInfo}>
+          <Text style={styles.centerInfoTitle}>총 자산</Text>
+          {assetData && (
+            <Text style={styles.centerInfoAmount}>
+              {formatCurrency(assetData.total_asset)}원
+            </Text>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={styles.detailButton}
+          onPress={navigateToAssetDetail}
+        >
+          <Text style={styles.detailButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
@@ -212,43 +324,7 @@ const MainScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.chartWrapper}>
-              <PieChart
-                data={prepareChartData()}
-                width={screenWidth}
-                height={screenWidth - 60}
-                chartConfig={{
-                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                  labelColor: (opacity = 1) =>
-                    `rgba(255, 255, 255, ${opacity})`,
-                }}
-                accessor="value"
-                backgroundColor="transparent"
-                paddingLeft="15"
-                absolute={false}
-                hasLegend={false}
-                center={[screenWidth * 0.13, 0]} // 이 부분 잘 조절해서 중심 맞춰야댐 근데 Android는 다를 수도
-                avoidFalseZero
-                style={styles.chart}
-                innerRadius="70%"
-              />
-
-              <View style={styles.centerInfo}>
-                <Text style={styles.centerInfoTitle}>총 자산</Text>
-                {assetData && (
-                  <Text style={styles.centerInfoAmount}>
-                    {formatCurrency(assetData.total_asset)}원
-                  </Text>
-                )}
-              </View>
-
-              <TouchableOpacity
-                style={styles.detailButton}
-                onPress={navigateToAssetDetail}
-              >
-                <Text style={styles.detailButtonText}>+</Text>
-              </TouchableOpacity>
-            </View>
+            renderChart()
           )}
         </View>
       </View>
@@ -521,6 +597,25 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+
+  emptyChart: {
+    height: screenWidth - 60,
+    width: screenWidth - 60,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#004455",
+    borderRadius: 16,
+  },
+  emptyChartText: {
+    color: "#EFF1F5",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  emptyChartSubText: {
+    color: "rgba(239, 241, 245, 0.7)",
+    fontSize: 14,
   },
 });
 
