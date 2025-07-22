@@ -32,6 +32,11 @@ export const API_ENDPOINTS = {
   // 자산 관련
   ASSET_SUMMARY: "api/asset/summary/",
 
+  // 관심주식 관련
+  WATCHLIST_LIST: "watchlist/list/",
+  WATCHLIST_ADD: "watchlist/add/", // ?stock_code={code}
+  WATCHLIST_REMOVE: "watchlist/remove/", // ?stock_code={code}
+
   // MBTI 관련
   MBTI_QUESTIONS: "mbti/questions/",
   MBTI_RESULT: "mbti/result/",
@@ -40,6 +45,12 @@ export const API_ENDPOINTS = {
 
   // 학습 가이드 관련
   GUIDES: "api/guides/", // {id}/
+  ADVANCED_GUIDES: "api/advanced-guides/", // {id}/
+
+  // 진행도 관련
+  PROGRESS_LEVEL: "progress/level/", // {level}/
+  PROGRESS_LEVEL_CONTENT: "progress/level/{level}/content/",
+  PROGRESS_COMPLETE: "progress/complete/", // {level}/{content_index}/
 
   // 챗봇 관련
   CHATBOT: "api/v1/ai-chatbot/chat/",
