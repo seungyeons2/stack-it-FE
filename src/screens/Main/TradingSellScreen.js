@@ -117,12 +117,6 @@ const TradingSellScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      const accessToken = await getNewAccessToken(navigation);
-      if (!accessToken || !userId) {
-        Alert.alert("오류", "사용자 인증에 실패했습니다.");
-        return;
-      }
-
       // 종목 식별자 결정 (종목코드 우선 사용)
       const stockIdentifier = stock.symbol || stock.name;
 
@@ -136,14 +130,14 @@ const TradingSellScreen = ({ route, navigation }) => {
 
       console.log("📡 매도 주문 데이터:", orderData);
 
-      const response = await fetch(`${API_BASE_URL}trading/trade/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}trading/trade/`,
+        {
+          method: "POST",
+          body: JSON.stringify(orderData),
         },
-        body: JSON.stringify(orderData),
-      });
+        navigation
+      );
 
       const result = await response.json();
       console.log("📬 매도 주문 응답:", result);

@@ -9,46 +9,30 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/Feather";
 import { API_BASE_URL } from "../../utils/apiConfig";
 
-import { getNewAccessToken } from "../../utils/token";
+import { getNewAccessToken, clearTokens } from "../../utils/token";
 import { fetchUserInfo } from "../../utils/user";
 import { fetchUserMbtiType, getMbtiImage } from "../../utils/mbtiType";
 import { increaseBalance } from "../../utils/point";
-
 
 const MyPageScreen = ({ navigation }) => {
   console.log("📌 MyPageScreen 렌더링");
 
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [badgeList, setBadgeList] = useState([]); // 전체 뱃지
-
   const [equippedBadges, setEquippedBadges] = useState(["🔥", "🌟", "💯"]);
   const [introText, setIntroText] = useState("티끌 모아 태산이긴해!");
   const [isEditingIntro, setIsEditingIntro] = useState(false);
-
-  //const profileImage = require("../../assets/profile.png");
   const [mbtiType, setMbtiType] = useState(null);
 
   const DEPOSIT_AMOUNT = 100000;
 
-
-useEffect(() => {
-  fetchUserMbtiType(navigation, setMbtiType);
-}, []);
-
-
-  const saveIntroText = async (text) => {
-    try {
-      // 서버로 PATCH 요청
-      // await updateIntroAPI(text);
-      console.log("✔ 한줄소개 저장됨:", text);
-    } catch (err) {
-      Alert.alert("저장 실패", "한줄소개 저장에 실패했습니다.");
-    }
-  };
+  useEffect(() => {
+    fetchUserMbtiType(navigation, setMbtiType);
+  }, []);
 
   const MenuButton = ({ label, onPress }) => (
     <TouchableOpacity style={styles.menuButton} onPress={onPress}>
@@ -59,45 +43,79 @@ useEffect(() => {
     </TouchableOpacity>
   );
 
-  // const handleLogout = () => {
-  //   Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
-  //   navigation.navigate("Login");
-  // };
-
   const handleLogout = async () => {
-  try {
-    const accessToken = await getNewAccessToken(navigation);
-    if (!accessToken) {
-      Alert.alert(
-        "인증 오류",
-        "토큰이 만료되었습니다. 다시 로그인해주세요."
-      );
-      navigation.navigate("Login");
-      return;
+    try {
+      // 서버에 로그아웃 요청 시도 (실패해도 로컬 정리는 진행)
+      try {
+        const accessToken = await getNewAccessToken(navigation);
+        if (accessToken) {
+          const response = await fetch(`${API_BASE_URL}logout/`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (response.ok) {
+            console.log("✅ 서버 로그아웃 성공");
+          } else {
+            console.warn("⚠️ 서버 로그아웃 실패:", response.status);
+          }
+        }
+      } catch (serverError) {
+        console.warn("⚠️ 서버 로그아웃 요청 중 오류:", serverError);
+        // 서버 요청이 실패해도 로컬 정리는 계속 진행
+      }
+
+      // 로컬 저장소의 모든 관련 데이터 정리
+      await Promise.all([
+        clearTokens(), // 토큰 정리
+        AsyncStorage.removeItem("userEmail"),
+        AsyncStorage.removeItem("userPassword"),
+      ]);
+
+      console.log("✅ 로컬 데이터 정리 완료");
+
+      Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.", [
+        {
+          text: "확인",
+          onPress: () => {
+            // navigation.reset을 사용하여 이전 화면 스택 정리
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          },
+        },
+      ]);
+    } catch (err) {
+      console.error("❌ 로그아웃 중 오류:", err);
+
+      // 오류가 발생해도 최소한 토큰은 정리하고 로그인 화면으로 이동
+      try {
+        await Promise.all([
+          clearTokens(),
+          AsyncStorage.removeItem("userEmail"),
+          AsyncStorage.removeItem("userPassword"),
+        ]);
+      } catch (cleanupError) {
+        console.error("❌ 로컬 데이터 정리 중 오류:", cleanupError);
+      }
+
+      Alert.alert("로그아웃", "로그아웃되었습니다.", [
+        {
+          text: "확인",
+          onPress: () => {
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
+          },
+        },
+      ]);
     }
-
-    const response = await fetch(`${API_BASE_URL}logout/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (response.ok) {
-      Alert.alert("로그아웃", "정상적으로 로그아웃되었습니다.");
-      navigation.navigate("Login");
-    } else {
-      const text = await response.text();
-      console.error("로그아웃 실패 응답:", text);
-      Alert.alert("오류", "로그아웃에 실패했습니다.");
-    }
-  } catch (err) {
-    console.error("로그아웃 중 오류:", err);
-    Alert.alert("오류", "네트워크 오류로 로그아웃에 실패했습니다.");
-  }
-};
-
+  };
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -120,16 +138,13 @@ useEffect(() => {
                 return;
               }
 
-              const response = await fetch(
-                `${API_BASE_URL}users/delete/`,
-                {
-                  method: "DELETE",
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              );
+              const response = await fetch(`${API_BASE_URL}users/delete/`, {
+                method: "DELETE",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+              });
 
               if (response.ok) {
                 Alert.alert("탈퇴 완료", "계정이 삭제되었습니다.");
@@ -184,29 +199,16 @@ useEffect(() => {
     <View style={styles.container}>
       <View style={styles.profileSection}>
         {/* 왼쪽: 이미지 + 닉네임 */}
-        {/* <View style={styles.profileLeft}>
+        <View style={styles.profileLeft}>
           <Image
             source={
-              userInfo?.profileImage
-                ? { uri: userInfo.profileImage }
+              mbtiType && getMbtiImage(mbtiType)
+                ? getMbtiImage(mbtiType)
                 : require("../../assets/profile.png")
             }
             style={styles.profileImage}
           />
-        </View> */}
-        <View style={styles.profileLeft}>
-  <Image
-    source={
-      mbtiType && getMbtiImage(mbtiType)
-        ? getMbtiImage(mbtiType)
-        : require("../../assets/profile.png")
-    }
-    style={styles.profileImage}
-  />
-</View>
-
-
-
+        </View>
 
         {/* 오른쪽: 뱃지 + 한줄소개 */}
         <View style={styles.profileRight}>
@@ -249,26 +251,19 @@ useEffect(() => {
       <View style={styles.divider} />
       <Text style={styles.moneyTitle}>🐹 티끌 모아 태산 🐹</Text>
       <View style={styles.moneyButtonContainer}>
-        {/* <TouchableOpacity
+        <TouchableOpacity
           style={styles.tiggleButton}
-          onPress={() => navigation.navigate("Tiggle")}
+          onPress={async () => {
+            try {
+              const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
+              Alert.alert("출석 보상 받기", message);
+            } catch (error) {
+              Alert.alert("에러", error.message || "보상 받기에 실패했습니다.");
+            }
+          }}
         >
-          <Text style={styles.moneyButtonText}>티끌 모으기</Text>
-        </TouchableOpacity> */}
-
-            <TouchableOpacity
-      style={styles.tiggleButton}
-      onPress={async () => {
-        try {
-          const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
-          Alert.alert("출석 보상 받기", message);
-        } catch (error) {
-          Alert.alert("에러", error.message || "보상 받기에 실패했습니다.");
-        }
-      }}
-    >
-      <Text style={styles.moneyButtonText}>출석 보상 받기</Text>
-    </TouchableOpacity>
+          <Text style={styles.moneyButtonText}>출석 보상 받기</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.taesanButton}
@@ -288,17 +283,13 @@ useEffect(() => {
           label="회원정보 수정"
           onPress={() => navigation.navigate("EditUserInfo")}
         />
-        {/* <MenuButton
-          label="테마 설정"
-          onPress={() => console.log("EditTheme")}
-        /> */}
         <MenuButton
           label="공지사항"
           onPress={() => navigation.navigate("Notice")}
         />
         <MenuButton
           label="자주 묻는 질문(FAQ)"
-          onPress={() =>  navigation.navigate("FAQ")}
+          onPress={() => navigation.navigate("FAQ")}
         />
         <MenuButton
           label="비밀번호 변경"
@@ -311,41 +302,24 @@ useEffect(() => {
   );
 };
 
-const InfoItem = ({ label, value }) => (
-  <View style={styles.infoBox}>
-    <Text style={styles.infoLabel}>{label}:</Text>
-    <Text style={styles.infoValue}>{value}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  // container: {
-  //   flex: 1,
-  //   backgroundColor: '#003340',
-  //   alignItems: 'center',
-  //   padding: 20,
-  // },
-
   container: {
     flex: 1,
     backgroundColor: "#003340",
     paddingHorizontal: 30,
     paddingTop: 60,
   },
-
   profileSection: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 30,
     marginBottom: 0,
   },
-
   profileLeft: {
     alignItems: "center",
     marginLeft: 10,
     marginRight: 30,
   },
-
   profileRight: {
     flex: 1,
     justifyContent: "center",
@@ -356,8 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     borderWidth: 3,
     borderColor: "#FFFFFFB0",
-    backgroundColor: "#D4DDEF60", // ✅ 원하는 배경색
-
+    backgroundColor: "#D4DDEF60",
   },
   badgeRow: {
     flexDirection: "row",
@@ -383,7 +356,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 5,
   },
-
   introRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -401,13 +373,11 @@ const styles = StyleSheet.create({
     borderBottomColor: "#888",
     flex: 1,
   },
-
   divider: {
     height: 1,
     backgroundColor: "#4A5A60",
     marginVertical: 20,
   },
-
   moneyTitle: {
     color: "#EEEEEE",
     fontSize: 18,
@@ -416,13 +386,11 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontWeight: "600",
   },
-
   moneyButtonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
   },
-
   tiggleButton: {
     flex: 1,
     backgroundColor: "#5DB996E0",
@@ -431,7 +399,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     alignItems: "center",
   },
-
   taesanButton: {
     flex: 1,
     backgroundColor: "#F074BAE0",
@@ -440,19 +407,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     alignItems: "center",
   },
-
   moneyButtonText: {
     fontFamily: "Times New Roman",
     color: "#EFF1F5",
     fontSize: 18,
     fontWeight: "500",
-    // textShadowColor: '#CCC',
-    // textShadowOffset: { width: 1, height: 1 },
-    // textShadowRadius: 3,
-  },
-
-  scrollContainer: {
-    width: "100%",
   },
   menuContainer: {
     paddingVertical: 0,
