@@ -1,128 +1,143 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
+  TextInput,
+  StyleSheet,
   TouchableOpacity,
   Alert,
-  StyleSheet,
-  ScrollView,
 } from "react-native";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const SignUp3Screen = ({ navigation, route }) => {
+const SignUp3Screen = ({ route, navigation }) => {
   const { email, id } = route.params;
 
-  const handleComplete = () => {
-    Alert.alert("가입을 축하합니다!", "회원님의 두둑한 지갑을 응원합니다 👏", [
-      {
-        text: "돈 모으러 가기",
-        onPress: () => navigation.replace("Login"),
-      },
-    ]);
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const inputs = useRef([]);
+
+  const handleChange = (text, index) => {
+    if (/^\d$/.test(text)) {
+      const newCode = [...code];
+      newCode[index] = text;
+      setCode(newCode);
+
+      if (index < 5) {
+        inputs.current[index + 1].focus();
+      } else {
+        // 6자리 입력 완료 → API 호출
+        verifyCode(newCode.join(""));
+      }
+    } else if (text === "") {
+      const newCode = [...code];
+      newCode[index] = "";
+      setCode(newCode);
+    }
+  };
+
+  const verifyCode = async (enteredCode) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}users/activation/code/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          code: enteredCode,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("🔐 인증 응답:", data);
+
+      if (response.status === 200 || data.status === "success") {
+        Alert.alert("성공", "회원가입이 완료되었습니다!", [
+          { text: "확인", onPress: () => navigation.navigate("SignUp4") },
+        ]);
+      } else {
+        Alert.alert("오류", data.message || "인증에 실패했습니다.");
+        setCode(["", "", "", "", "", ""]);
+        inputs.current[0].focus();
+      }
+    } catch (error) {
+      console.error("🚨 인증 오류:", error);
+      Alert.alert("네트워크 오류", "잠시 후 다시 시도해주세요.");
+    }
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
+      <Text style={styles.title}>인증번호 입력</Text>
+      <Text style={styles.subtitle}>
+        {email} 주소로 전송된 인증번호 6자리를 입력해주세요.
+      </Text>
+
+      <View style={styles.codeContainer}>
+        {code.map((digit, index) => (
+          <TextInput
+            key={index}
+            ref={(ref) => (inputs.current[index] = ref)}
+            style={styles.codeInput}
+            value={digit}
+            onChangeText={(text) => handleChange(text, index)}
+            keyboardType="number-pad"
+            maxLength={1}
+            textAlign="center"
+          />
+        ))}
+      </View>
+
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
+        style={styles.resendButton}
+        onPress={() => Alert.alert("미구현", "재전송 기능은 추후 구현 예정입니다.")}
       >
-        <Text style={styles.backText}>{"<"}</Text>
+        <Text style={styles.resendText}>인증번호 다시 보내기</Text>
       </TouchableOpacity>
-
-      <Text style={styles.title}>이메일 인증 완료</Text>
-      <Text style={styles.emoji}>🎉</Text>
-      <Text style={styles.label}>
-        가입을 축하합니다!
-              </Text>
-            {/* <Text style={styles.label2}>
-      회원님의 두둑한 모의투자를 응원합니다 👏
-      </Text> */}
-
-      <TouchableOpacity style={styles.button} onPress={handleComplete}>
-        <Text style={styles.buttonText}>로그인하러 가기</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     backgroundColor: "#003340",
-    alignItems: "center",
-    justifyContent: "center",
     paddingHorizontal: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
-
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  backText: {
-    fontSize: 36,
+  title: {
     color: "#F074BA",
-  },
-
-  // title: {
-  //   fontSize: 24,
-  //   fontWeight: "bold",
-  //   color: "#F074BA",
-  //   marginBottom: 20,
-  //   textAlign: "center",
-  // },
-
-    title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#F074BA",
-    position: "absolute",
-    top: 150,
-    left: 30,
+    marginBottom: 10,
   },
-  label: {
-    fontSize: 28,
-    color: "#FFFFFF",
-    alignSelf: "center",
-    marginTop: 10,
+  subtitle: {
+    color: "#fff",
+    fontSize: 16,
     textAlign: "center",
-  },
-
-    label2: {
-    fontSize: 20,
-    color: "#E5E5E5",
-    alignSelf: "center",
-    marginTop: 10,
-    textAlign: "center",
-  },
-
-    emoji: {
-    fontSize: 180,
     marginBottom: 30,
   },
-  button: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#F074BA",
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "absolute",
-    bottom: 80,
-  },
-  buttonDisabled: {
-    backgroundColor: "#d3d3d3",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  buttonContainer: {
+  codeContainer: {
     flexDirection: "row",
-    marginTop: 10,
-    paddingHorizontal: 10,
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  codeInput: {
+    width: 45,
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#F074BA",
+    borderRadius: 8,
+    fontSize: 24,
+    color: "#fff",
+    backgroundColor: "#002830",
+    marginHorizontal: 4,
+  },
+  resendButton: {
+    marginTop: 30,
+  },
+  resendText: {
+    color: "#F074BA",
+    fontSize: 16,
+    textDecorationLine: "underline",
   },
 });
 

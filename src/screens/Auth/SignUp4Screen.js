@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Image,
 } from "react-native";
 
 const SignUp4Screen = ({ navigation }) => {
@@ -14,8 +15,17 @@ const SignUp4Screen = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.emoji}>🎉</Text>
-      <Text style={styles.title}>가입을 축하합니다!</Text>
+      {/* 🎊 일러스트 이미지로 교체 */}
+      <Image
+        source={require("../../assets/celebration.png")} // ✅ PNG/SVG 일러스트 추가 필요
+        style={styles.image}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.title}>가입이 완료되었어요!</Text>
+      <Text style={styles.subtitle}>
+        두둑에 오신 걸 환영합니다!{`\n`}지금 바로 로그인해볼까요?
+      </Text>
 
       <TouchableOpacity style={styles.button} onPress={handleGoToLogin}>
         <Text style={styles.buttonText}>로그인하러 가기</Text>
@@ -31,40 +41,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
+    paddingBottom: 60,
   },
-  emoji: {
-    fontSize: 80,
-    marginBottom: 30,
+  image: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "bold",
     color: "#F074BA",
-    marginBottom: 40,
+    marginTop: 18,
+    marginBottom: 12,
     textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#fff",
+    textAlign: "center",
+    marginBottom: 40,
+    lineHeight: 24,
   },
   button: {
     width: "100%",
-    height: 50,
+    height: 52,
     backgroundColor: "#F074BA",
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    position: "absolute",
-    bottom: 80,
-  },
-  buttonDisabled: {
-    backgroundColor: "#d3d3d3",
+    elevation: 4, // Android 그림자
+    shadowColor: "#000", // iOS 그림자
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   buttonText: {
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    marginTop: 10,
-    paddingHorizontal: 10,
   },
 });
 
