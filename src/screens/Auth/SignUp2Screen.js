@@ -165,7 +165,9 @@ const handleSignUp = async () => {
           {seePassword ? <EyeClosed /> : <EyeOpen />}
         </TouchableOpacity>
       </View>
-
+<Text style={styles.passwordGuide}>
+  영문 대,소문자/숫자/특수문자 중 2가지 이상 조합, 8자~32자
+</Text>
 
         {/* ✅ 비밀번호 확인 */}
         <Text style={styles.label}>비밀번호 확인</Text>
@@ -177,6 +179,16 @@ const handleSignUp = async () => {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
         />
+
+{confirmPassword.length > 0 && password === confirmPassword ? (
+  <Text style={styles.passwordMatch}>비밀번호가 일치합니다.</Text>
+) : (
+  confirmPassword.length > 0 && (
+    <Text style={{ color: "tomato", fontSize: 12, marginLeft: 4, marginBottom: 10, }}>
+      비밀번호가 일치하지 않습니다.
+    </Text>
+  )
+)}
 
         {/* ✅ 성별 선택 */}
         <Text style={styles.label}>성별</Text>
@@ -334,6 +346,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     color: "black",
   },
+
+  passwordGuide: {
+  fontSize: 12,
+  color: "#ccc",
+  marginBottom: 10,
+  marginLeft: 4,
+},
+
+passwordMatch: {
+  fontSize: 12,
+  color: "#00e676", // 밝은 녹색
+  marginBottom: 10,
+  marginLeft: 4,
+},
 
 
 

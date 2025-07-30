@@ -249,9 +249,9 @@ const MyPageScreen = ({ navigation }) => {
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.moneyTitle}>🐹 티끌 모아 태산 🐹</Text>
+      <Text style={styles.moneyTitle}>🐹 돌려돌려 돌림판 🐹</Text>
       <View style={styles.moneyButtonContainer}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.tiggleButton}
           onPress={async () => {
             try {
@@ -263,13 +263,13 @@ const MyPageScreen = ({ navigation }) => {
           }}
         >
           <Text style={styles.moneyButtonText}>출석 보상 받기</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <TouchableOpacity
           style={styles.taesanButton}
           onPress={() => navigation.navigate("Roulette")}
         >
-          <Text style={styles.moneyButtonText}>룰렛 돌리기</Text>
+          <Text style={styles.moneyButtonText}>출석 보상 받으러 가기</Text>
         </TouchableOpacity>
       </View>
 
