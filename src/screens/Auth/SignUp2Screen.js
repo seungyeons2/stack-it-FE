@@ -9,20 +9,29 @@ import {
   Pressable,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import EyeOpen from "../../components/EyeOpen";
+import EyeClosed from "../../components/EyeClosed";
 
 // ✅ 현재 기기의 높이 가져오기
 const { height } = Dimensions.get("window");
 
 const SignUp2Screen = ({ navigation }) => {
+  const [seePassword, setSeePassword] = useState(true);
+  const [seeConfirmPassword, setSeeConfirmPassword] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
+  // const [confirmPassword, setConfirmPassword] = useState("");
   const [gender, setGender] = useState("");
   const [nickname, setNickname] = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [address, setAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -34,76 +43,71 @@ const SignUp2Screen = ({ navigation }) => {
     return dateRegex.test(date);
   };
 
-  const handleSignUp = async () => {
-    if (!validateEmail(email)) {
-      Alert.alert("오류", "올바른 이메일 형식을 입력해주세요.");
-      return;
+const handleSignUp = async () => {
+  if (isLoading) return; // 혹시나 중복 방지
+
+  setIsLoading(true); // 🔐 시작할 때 로딩 ON
+
+  if (!validateEmail(email)) {
+    Alert.alert("오류", "올바른 이메일 형식을 입력해주세요.");
+    setIsLoading(false); return;
+  }
+
+  if (password.length < 6) {
+    Alert.alert("오류", "비밀번호는 최소 6자 이상이어야 합니다.");
+    setIsLoading(false); return;
+  }
+
+  if (password !== confirmPassword) {
+    Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
+    setIsLoading(false); return;
+  }
+
+  if (!gender || !nickname || !birthdate || !address) {
+    Alert.alert("오류", "모든 필드를 입력해주세요.");
+    setIsLoading(false); return;
+  }
+
+  if (!isValidDate(birthdate)) {
+    Alert.alert("오류", "생년월일은 YYYY-MM-DD 형식으로 입력해야 합니다.");
+    setIsLoading(false); return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}users/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, gender, nickname, birthdate, address }),
+    });
+
+    const data = await response.json();
+    console.log("✅ 회원가입 응답 데이터:", data);
+
+    if (response.status === 201 && data.status === "success") {
+      const { id } = data.data;
+      Alert.alert(
+        "이메일로 링크 전송",
+        "이메일에서 인증 링크를 클릭하여,\n회원가입을 진행해주세요.",
+        [
+          {
+            text: "확인",
+            onPress: () => navigation.navigate("SignUp3", { email, id }),
+          },
+        ]
+      );
+    } else if (response.status === 400 && data.errors?.email) {
+      Alert.alert("오류", "이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요.");
+    } else {
+      Alert.alert("오류", data.message || "회원가입 실패");
     }
+  } catch (error) {
+    console.error("🚨 Network Error:", error);
+    Alert.alert("오류", "네트워크 오류가 발생했습니다.");
+  } finally {
+    setIsLoading(false); // ✅ 요청 끝나면 로딩 OFF
+  }
+};
 
-    if (password.length < 6) {
-      Alert.alert("오류", "비밀번호는 최소 6자 이상이어야 합니다.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
-      return;
-    }
-
-    if (!gender || !nickname || !birthdate || !address) {
-      Alert.alert("오류", "모든 필드를 입력해주세요.");
-      return;
-    }
-
-    if (!isValidDate(birthdate)) {
-      Alert.alert("오류", "생년월일은 YYYY-MM-DD 형식으로 입력해야 합니다.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}users/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-          gender,
-          nickname,
-          birthdate,
-          address,
-        }),
-      });
-
-      const data = await response.json();
-      console.log("✅ 회원가입 응답 데이터:", data);
-
-      if (response.status === 201 && data.status === "success") {
-        const { id } = data.data;
-        console.log("✅ 회원가입 성공, id:", id);
-
-        Alert.alert(
-          "이메일로 링크 전송",
-          "이메일에서 인증 링크를 클릭하여,\n회원가입을 진행해주세요.",
-          [
-            {
-              text: "확인",
-              onPress: () => navigation.navigate("SignUp3", { email, id }),
-            },
-          ]
-        );
-      } else if (response.status === 400 && data.errors?.email) {
-        Alert.alert(
-          "오류",
-          "이미 존재하는 이메일입니다. 다른 이메일을 사용해주세요."
-        );
-      } else {
-        Alert.alert("오류", data.message || "회원가입 실패");
-      }
-    } catch (error) {
-      console.error("🚨 Network Error:", error);
-      Alert.alert("오류", "네트워크 오류가 발생했습니다.");
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -133,7 +137,7 @@ const SignUp2Screen = ({ navigation }) => {
         />
 
         {/* ✅ 비밀번호 입력 */}
-        <Text style={styles.label}>비밀번호</Text>
+        {/* <Text style={styles.label}>비밀번호</Text>
         <TextInput
           style={styles.input}
           placeholder="비밀번호 입력"
@@ -141,7 +145,27 @@ const SignUp2Screen = ({ navigation }) => {
           secureTextEntry
           value={password}
           onChangeText={setPassword}
+          textContentType="none"
+          autoComplete="off"
+        /> */}
+          <Text style={styles.label}>비밀번호</Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.inputField}
+          placeholder="비밀번호 입력"
+          placeholderTextColor="#ccc"
+          secureTextEntry={seePassword}
+          value={password}
+          onChangeText={setPassword}
         />
+        <TouchableOpacity
+          onPress={() => setSeePassword(!seePassword)}
+          style={styles.icon}
+        >
+          {seePassword ? <EyeClosed /> : <EyeOpen />}
+        </TouchableOpacity>
+      </View>
+
 
         {/* ✅ 비밀번호 확인 */}
         <Text style={styles.label}>비밀번호 확인</Text>
@@ -203,9 +227,21 @@ const SignUp2Screen = ({ navigation }) => {
       </ScrollView>
 
       {/* ✅ 다음 버튼 */}
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+      {/* <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>인증하기</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
+      <TouchableOpacity
+  style={[styles.button, isLoading && { opacity: 0.6 }]}
+  onPress={handleSignUp}
+  disabled={isLoading}
+>
+  {isLoading ? (
+    <ActivityIndicator color="#fff" />
+  ) : (
+    <Text style={styles.buttonText}>인증하기</Text>
+  )}
+</TouchableOpacity>
+
     </View>
   );
 };
@@ -298,6 +334,43 @@ const styles = StyleSheet.create({
     backgroundColor: "#f9f9f9",
     color: "black",
   },
+
+
+
+  inputContainer: {
+  flexDirection: "row",
+  alignItems: "center",
+  width: "100%",
+  borderWidth: 1,
+  borderColor: "#ddd",
+  borderRadius: 8,
+  backgroundColor: "#f9f9f9",
+  marginBottom: 15,
+  paddingHorizontal: 10,
+},
+inputField: {
+  flex: 1,
+  height: 50,
+  fontSize: 16,
+  color: "black",
+},
+icon: {
+  padding: 10,
+},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   genderContainer: {
     flexDirection: "row",

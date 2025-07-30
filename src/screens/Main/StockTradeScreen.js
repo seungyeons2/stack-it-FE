@@ -321,7 +321,7 @@ const StockTradeScreen = ({ navigation }) => {
         )}
 
         {/* 추천 주식 섹션 */}
-        <Text style={styles.sectionTitle}>추천 주식</Text>
+        {/* <Text style={styles.sectionTitle}>추천 주식</Text>
         <View style={styles.divider} />
 
         {showRecommended ? (
@@ -339,7 +339,7 @@ const StockTradeScreen = ({ navigation }) => {
               추천 주식 로딩 중...
             </Text>
           </View>
-        )}
+        )} */}
       </ScrollView>
     </View>
   );
