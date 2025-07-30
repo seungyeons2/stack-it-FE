@@ -25,27 +25,49 @@ const RADIUS = WHEEL_SIZE / 2;
 const SEGMENTS = 8;
 const SEGMENT_ANGLE = 360 / SEGMENTS;
 
+// const prizes = [
+//   '₩100,000',
+//   '₩50,000',
+//   '₩30,000',
+//   '₩200,000',
+//   '₩75,000',
+//   '₩30,000',
+//   '₩150,000',
+//   '₩80,000',
+// ];
+
 const prizes = [
-  '₩100,000',
-  '₩50,000',
-  '₩30,000',
-  '₩200,000',
-  '₩75,000',
-  '₩30,000',
-  '₩150,000',
-  '₩80,000',
+  '10 만원',
+  '5 만원',
+  '3 만원',
+  '20 만원',
+  '30 만원',
+  '3 만원',
+  '15 만원',
+  '8 만원',
 ];
 
+
 // 무지개 8색 팔레트
+// const segmentColors = [
+//   '#FF3B30', // 빨강
+//   '#FF9500', // 주황
+//   '#FFCC00', // 노랑
+//   '#34C759', // 초록
+//   '#5AC8FA', // 청록
+//   '#007AFF', // 파랑
+//   '#5856D6', // 보라
+//   '#FF2D95', // 분홍
+// ];
 const segmentColors = [
-  '#FF3B30', // 빨강
-  '#FF9500', // 주황
-  '#FFCC00', // 노랑
-  '#34C759', // 초록
-  '#5AC8FA', // 청록
-  '#007AFF', // 파랑
-  '#5856D6', // 보라
-  '#FF2D95', // 분홍
+  '#335696D0', // 빨강
+  '#003340D0', // 주황
+  '#335696D0', // 노랑
+  '#003340D0', // 초록
+  '#335696D0', // 청록
+  '#003340D0', // 파랑
+  '#335696D0', // 보라
+  '#003340D0', // 분홍
 ];
 
 // SVG 헬퍼 함수
@@ -83,11 +105,12 @@ export default function RouletteScreen({ navigation }) {
       const final = deg % 360;
       const selected = SEGMENTS - Math.floor(final / SEGMENT_ANGLE) - 1;
       const prize = prizes[selected];
-      const amount = parseInt(prize.replace(/[₩,]/g, ''), 10);
+      const amount = parseInt(prize.replace(/[₩,]/g, ''), 10) * 10000;
 
       increaseBalance(navigation, amount)
-        .then(msg => Alert.alert('🎉 축하합니다!', `${prize} 당첨!\n${msg}`))
-        .catch(() => Alert.alert('오류', '포인트 적립에 실패했습니다.'))
+        .then(msg => Alert.alert('축하합니다! 🎉', `${prize} 당첨!\n${msg}`))
+        .catch(() => Alert.alert('오류', '룰렛은 하루에 한 번!\n내일 다시 시도해보세요.'))
+        //.catch(() => Alert.alert('오류', '포인트 적립에 실패했습니다.'))
         .finally(() => {
           setSpinning(false);
           spinAnim.setValue(final);
@@ -120,7 +143,7 @@ export default function RouletteScreen({ navigation }) {
           >
             <Text style={styles.backText}>{'<'}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>룰렛</Text>
+          <Text style={styles.title}>돌려돌려 돌림판</Text>
         </View>
 
         {/* 룰렛 */}
@@ -128,7 +151,7 @@ export default function RouletteScreen({ navigation }) {
           <View style={styles.pinTop}>
             <Icon name="map-pin" size={56} color="#FFDC4F" />
           </View>
-          {[0, 90, 180, 270].map((angle, i) => (
+          {/* {[0, 90, 180, 270].map((angle, i) => (
             <View
               key={i}
               style={[
@@ -136,7 +159,7 @@ export default function RouletteScreen({ navigation }) {
                 { transform: [{ rotate: `${angle}deg` }] },
               ]}
             />
-          ))}
+          ))} */}
           <View style={styles.wheelBorder} />
           <AnimatedSvg
             width={WHEEL_SIZE}
@@ -220,6 +243,7 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     textAlign: 'center',
+        top: 5,
     color: '#FFF',
     fontSize: 24,
     fontWeight: '600',
@@ -231,7 +255,7 @@ const styles = StyleSheet.create({
   },
   pinTop: {
     position: 'absolute',
-    top: -(56 / 2) - BORDER_WIDTH + 180,
+    top: -(56 / 2) - BORDER_WIDTH + 160,
     zIndex: 5,
   },
   accentLine: {
