@@ -16,6 +16,11 @@ import { LineChart } from "react-native-chart-kit";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { fetchWithHantuToken } from "../../utils/hantuToken";
 import { fetchWithAuth } from "../../utils/token";
+import { 
+  addToWatchlist, 
+  removeFromWatchlist, 
+  isInWatchlist 
+} from "../../utils/watchList";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -150,12 +155,16 @@ const StockDetail = ({ route, navigation }) => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-
+  
         // 병렬로 데이터 조회
-        await Promise.all([fetchStockData(), fetchOwnedQuantity()]);
+        await Promise.all([
+          fetchStockData(), 
+          fetchOwnedQuantity(),
+          checkWatchlistStatus() // 관심주식 상태 확인 추가
+        ]);
       } catch (err) {
         console.error("StockDetail 데이터 로딩 실패:", err);
-
+  
         // 오류 시 기본값 설정
         setStockData({
           symbol: symbol,
@@ -168,7 +177,7 @@ const StockDetail = ({ route, navigation }) => {
           currentDate: new Date().toISOString().split("T")[0],
           previousDate: new Date().toISOString().split("T")[0],
         });
-
+  
         Alert.alert(
           "데이터 로딩 오류",
           "주식 정보를 불러오는 중 문제가 발생했습니다. 기본 정보만 표시됩니다.",
@@ -178,9 +187,23 @@ const StockDetail = ({ route, navigation }) => {
         setLoading(false);
       }
     };
-
+  
     fetchAll();
   }, [symbol]);
+
+  // 관심주식 상태 확인'
+  const checkWatchlistStatus = async () => {
+    try {
+      console.log("⭐ 관심주식 상태 확인:", symbol);
+      const isWatchlisted = await isInWatchlist(navigation, symbol);
+      setIsFavorite(isWatchlisted);
+      console.log(`${symbol} 관심주식 상태:`, isWatchlisted);
+    } catch (error) {
+      console.error("❌ 관심주식 상태 확인 실패:", error);
+      setIsFavorite(false);
+    }
+  };
+  
 
   // 차트 데이터 가져오기
   const fetchChartData = async (period) => {
@@ -313,9 +336,41 @@ const StockDetail = ({ route, navigation }) => {
   }, [selectedPeriod, stockData]);
 
   // 즐겨찾기 토글
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // 즐겨찾기 관련 API 호출은 여기서 구현
+  const toggleFavorite = async () => {
+    try {
+      console.log("⭐ 관심주식 토글 시작:", symbol, "현재 상태:", isFavorite);
+      
+      // 낙관적 업데이트 (UI 먼저 변경)
+      const newFavoriteState = !isFavorite;
+      setIsFavorite(newFavoriteState);
+      
+      let result;
+      if (newFavoriteState) {
+        // 관심주식에 추가
+        console.log("⭐ 관심주식 추가 요청:", symbol);
+        result = await addToWatchlist(navigation, symbol);
+      } else {
+        // 관심주식에서 제거
+        console.log("🗑️ 관심주식 제거 요청:", symbol);
+        result = await removeFromWatchlist(navigation, symbol);
+      }
+      
+      if (result.success) {
+        console.log("✅ 관심주식 처리 성공:", result.message);
+        // 성공 시 추가 피드백 (선택사항)
+        // Alert.alert("성공", result.message);
+      } else {
+        console.error("❌ 관심주식 처리 실패:", result.message);
+        // 실패 시 원래 상태로 되돌리기
+        setIsFavorite(isFavorite);
+        Alert.alert("오류", result.message || "관심주식 처리에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("❌ 관심주식 토글 오류:", error);
+      // 오류 시 원래 상태로 되돌리기
+      setIsFavorite(isFavorite);
+      Alert.alert("오류", "관심주식 처리 중 문제가 발생했습니다.");
+    }
   };
 
   // 매수 버튼 핸들러
