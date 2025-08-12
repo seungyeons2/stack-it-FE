@@ -8,13 +8,17 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchUserBalance } from "../../utils/account";
 import { fetchUserInfo } from "../../utils/user";
-import { PieChart } from "react-native-chart-kit"; // 추가된 부분
-import { API_BASE_URL } from "../../utils/apiConfig"; // API 설정 import
-import { getNewAccessToken } from "../../utils/token"; // 토큰 가져오기 import
+import { fetchWatchlist, removeFromWatchlist, addToWatchlist } from "../../utils/watchList";
+
+import { PieChart } from "react-native-chart-kit";
+import { API_BASE_URL } from "../../utils/apiConfig";
+import { getNewAccessToken } from "../../utils/token";
+import { fetchWithHantuToken } from "../../utils/hantuToken";
 import {
   initializeHantuToken,
   scheduleTokenRefresh,
@@ -23,44 +27,23 @@ import {
 import BellIcon from "../../assets/icons/bell.svg";
 import SearchIcon from "../../assets/icons/search.svg";
 
-const screenWidth = Dimensions.get("window").width; // 화면 너비
-
-const mockStocks = [
-  {
-    id: 1,
-    name: "뱅가드 토탈 미국 주식 ETF",
-    price: "429,710",
-    change: "+0.03",
-    isFavorite: true,
-  },
-  {
-    id: 2,
-    name: "스포티파이 테크놀로지",
-    price: "692,438",
-    change: "+0.75",
-    isFavorite: true,
-  },
-  {
-    id: 3,
-    name: "Kingdom of Banana",
-    price: "4,000",
-    change: "+9.13",
-    isFavorite: false,
-  },
-];
+const screenWidth = Dimensions.get("window").width;
 
 const MainScreen = ({ navigation }) => {
   console.log("📌 MainScreen 렌더링");
   const [userInfo, setUserInfo] = useState(null);
-
   const [searchText, setSearchText] = useState("");
-  const [watchlist, setWatchlist] = useState(mockStocks);
+  const [watchlist, setWatchlist] = useState([]); // 빈 배열로 초기화
   const [balance, setBalance] = useState("0원");
+  const [refreshing, setRefreshing] = useState(false); // 새로고침 상태
 
-  // 자산 데이터 상태 추가
+  // 자산 데이터 상태
   const [assetData, setAssetData] = useState(null);
   const [assetLoading, setAssetLoading] = useState(true);
   const [assetError, setAssetError] = useState(null);
+
+  // 관심주식 로딩 상태
+  const [watchlistLoading, setWatchlistLoading] = useState(true);
 
   useEffect(() => {
     let refreshInterval;
@@ -68,10 +51,12 @@ const MainScreen = ({ navigation }) => {
       // 한국투자 토큰 초기화 및 주기적 갱신
       await initializeHantuToken();
       refreshInterval = scheduleTokenRefresh();
+      
       // 기존 데이터 로딩 로직
       await fetchUserInfo(navigation, setUserInfo);
       await fetchUserBalance(navigation, setBalance);
       await fetchAssetData();
+      await loadWatchlistData(); // 관심주식 데이터 로딩 추가
     };
     load();
     return () => {
@@ -81,20 +66,101 @@ const MainScreen = ({ navigation }) => {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
-      console.log("📥 MainScreen 다시 focus됨 → 잔고 재요청");
+      console.log("📥 MainScreen 다시 focus됨 → 데이터 재요청");
       fetchUserBalance(navigation, setBalance);
-      fetchAssetData(); // 화면에 돌아올 때마다 자산 데이터 갱신
+      fetchAssetData();
+      loadWatchlistData(); // 관심주식 데이터도 새로고침
     });
 
     return unsubscribe;
   }, [navigation]);
 
-  // 자산 데이터를 가져오는 함수
+  // 관심주식 데이터 로딩 함수
+  const loadWatchlistData = async () => {
+    try {
+      setWatchlistLoading(true);
+      console.log("⭐ 관심주식 데이터 로딩 시작");
+
+      const result = await fetchWatchlist(navigation);
+      
+      if (result.success && result.watchlist) {
+        // 관심주식 목록에 가격 정보 추가
+        const enrichedWatchlist = await Promise.all(
+          result.watchlist.map(async (stock, index) => {
+            try {
+              // API 호출 간격 (너무 많은 요청 방지)
+              if (index > 0) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+
+              // 현재가 조회
+              const priceResult = await fetchWithHantuToken(
+                `${API_BASE_URL}trading/stock_price/?stock_code=${stock.symbol}`
+              );
+
+              let currentPrice = 0;
+              if (priceResult.success && priceResult.data?.current_price) {
+                currentPrice = priceResult.data.current_price;
+              }
+
+              // 가격 변동 정보 조회
+              const changeResponse = await fetch(
+                `${API_BASE_URL}stocks/price_change/?stock_code=${stock.symbol}`
+              );
+
+              let changeData = { price_change_percentage: 0, change_status: 'same' };
+              if (changeResponse.ok) {
+                const changeResult = await changeResponse.json();
+                if (changeResult.status === 'success') {
+                  changeData = changeResult;
+                }
+              }
+
+              return {
+                id: stock.id || `watchlist-${stock.symbol}`,
+                name: stock.name,
+                symbol: stock.symbol,
+                price: currentPrice.toLocaleString(),
+                change: changeData.price_change_percentage >= 0 
+                  ? `+${changeData.price_change_percentage.toFixed(2)}`
+                  : `${changeData.price_change_percentage.toFixed(2)}`,
+                changeStatus: changeData.change_status,
+                isFavorite: true, // 관심주식이므로 항상 true
+              };
+            } catch (error) {
+              console.error(`❌ ${stock.symbol} 가격 정보 조회 실패:`, error);
+              return {
+                id: stock.id || `watchlist-${stock.symbol}`,
+                name: stock.name,
+                symbol: stock.symbol,
+                price: "0",
+                change: "0.00",
+                changeStatus: 'same',
+                isFavorite: true,
+              };
+            }
+          })
+        );
+
+        console.log("✅ 관심주식 데이터 로딩 완료:", enrichedWatchlist);
+        setWatchlist(enrichedWatchlist);
+      } else {
+        console.log("📋 관심주식이 없음");
+        setWatchlist([]);
+      }
+    } catch (error) {
+      console.error("❌ 관심주식 데이터 로딩 실패:", error);
+      setWatchlist([]);
+    } finally {
+      setWatchlistLoading(false);
+    }
+  };
+
+  // 자산 데이터 가져오는 함수
   const fetchAssetData = async () => {
     try {
       setAssetLoading(true);
 
-      // 액세스 토큰 가져오기
       const accessToken = await getNewAccessToken(navigation);
 
       if (!accessToken) {
@@ -103,7 +169,6 @@ const MainScreen = ({ navigation }) => {
         return;
       }
 
-      // 자산 요약 API 호출
       const response = await fetch(`${API_BASE_URL}/api/asset/summary/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -114,16 +179,13 @@ const MainScreen = ({ navigation }) => {
       const data = await response.json();
 
       if (data.status === "success") {
-        // ✅ AssetDetailScreen과 동일한 필터링 로직 적용
         const filteredData = {
           ...data,
           breakdown: data.breakdown
             ? data.breakdown.filter((item) => {
-                // 예수금은 항상 포함
                 if (item.label === "예수금") {
                   return true;
                 }
-                // 주식은 value가 0보다 큰 것만 포함
                 return item.value > 0;
               })
             : [],
@@ -140,13 +202,6 @@ const MainScreen = ({ navigation }) => {
           "개"
         );
 
-        // 필터링된 항목들 로그 출력
-        filteredData.breakdown.forEach((item) => {
-          console.log(
-            `📊 MainScreen ${item.label}: ${item.value.toLocaleString()}원`
-          );
-        });
-
         setAssetData(filteredData);
         setAssetError(null);
       } else {
@@ -160,12 +215,80 @@ const MainScreen = ({ navigation }) => {
     }
   };
 
-  const toggleFavorite = (id) => {
-    setWatchlist(
-      watchlist.map((stock) =>
-        stock.id === id ? { ...stock, isFavorite: !stock.isFavorite } : stock
-      )
-    );
+  // 새로고침
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchUserBalance(navigation, setBalance),
+      fetchAssetData(),
+      loadWatchlistData(),
+    ]);
+    setRefreshing(false);
+  };
+
+  // 관심주식 토글 함수
+  const toggleFavorite = async (stockSymbol) => {
+    try {
+      console.log("⭐ 관심주식 토글:", stockSymbol);
+      
+      // 현재 상태 확인
+      const currentStock = watchlist.find(stock => stock.symbol === stockSymbol);
+      
+      if (currentStock?.isFavorite) {
+        // 1. 먼저 UI에서 별을 빈 별로 변경 (즉시 반영)
+        setWatchlist(prev => 
+          prev.map(stock => 
+            stock.symbol === stockSymbol 
+              ? { ...stock, isFavorite: false } // 빈 별로 변경
+              : stock
+          )
+        );
+        
+        // 2. 백그라운드에서 서버에 제거 요청 (UI에서는 제거하지 않음)
+        console.log("🗑️ 관심주식 해제 요청:", stockSymbol);
+        const result = await removeFromWatchlist(navigation, stockSymbol);
+        
+        if (result.success) {
+          console.log("✅ 관심주식 해제 완료 (새로고침 시 사라짐)");
+        } else {
+          // 서버 요청 실패 시 다시 채운 별로 되돌리기
+          console.error("❌ 관심주식 해제 실패:", result.message);
+          setWatchlist(prev => 
+            prev.map(stock => 
+              stock.symbol === stockSymbol 
+                ? { ...stock, isFavorite: true } // 다시 채운 별로 복구
+                : stock
+            )
+          );
+        }
+      } else {
+        // 빈 별을 채운 별로 변경하고 관심주식에 추가
+        setWatchlist(prev => 
+          prev.map(stock => 
+            stock.symbol === stockSymbol 
+              ? { ...stock, isFavorite: true }
+              : stock
+          )
+        );
+        
+        console.log("⭐ 관심주식 추가 요청:", stockSymbol);
+        const result = await addToWatchlist(navigation, stockSymbol);
+        
+        if (!result.success) {
+          // 서버 요청 실패 시 다시 빈 별로 되돌리기
+          console.error("❌ 관심주식 추가 실패:", result.message);
+          setWatchlist(prev => 
+            prev.map(stock => 
+              stock.symbol === stockSymbol 
+                ? { ...stock, isFavorite: false }
+                : stock
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error("❌ 관심주식 토글 오류:", error);
+    }
   };
 
   // 검색창 클릭 시 SearchScreen으로 이동
@@ -178,7 +301,15 @@ const MainScreen = ({ navigation }) => {
     navigation.navigate("AssetDetail");
   };
 
-  // 금액 포맷팅 함수
+  // 주식 상세 페이지로 이동
+  const handleStockPress = (stock) => {
+    navigation.navigate("StockDetail", {
+      symbol: stock.symbol,
+      name: stock.name,
+    });
+  };
+
+  // 금액 포맷팅
   const formatCurrency = (amount) => {
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
@@ -213,7 +344,6 @@ const MainScreen = ({ navigation }) => {
       "#F472B6", // 코랄 핑크
     ];
 
-    // 필터링된 데이터로 차트 생성
     const chartData = assetData.breakdown.map((item, index) => ({
       name: item.label,
       value: item.value,
@@ -223,10 +353,6 @@ const MainScreen = ({ navigation }) => {
     }));
 
     console.log("📊 MainScreen 차트 데이터 생성:", chartData.length, "개 항목");
-    chartData.forEach((item) => {
-      console.log(`  - ${item.name}: ${item.value.toLocaleString()}원`);
-    });
-
     return chartData;
   };
 
@@ -284,10 +410,27 @@ const MainScreen = ({ navigation }) => {
     );
   };
 
+  // 변동률 색상 반환
+  const getChangeColor = (changeStatus) => {
+    switch (changeStatus) {
+      case 'up':
+        return "#F074BA";
+      case 'down':
+        return "#00BFFF";
+      default:
+        return "#AAAAAA";
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <View style={styles.searchContainer}>
-        {/* 검색창 클릭 시 SearchScreen으로 이동 */}
         <TouchableOpacity
           style={styles.searchInputContainer}
           onPress={handleSearchPress}
@@ -304,8 +447,6 @@ const MainScreen = ({ navigation }) => {
       <View style={styles.assetContainer}>
         <Text style={styles.assetLabel}>예수금</Text>
         <Text style={styles.assetValue}>{balance}</Text>
-
-        {/* 그래프 부분 교체 */}
 
         <View style={styles.graphContainer}>
           {assetLoading ? (
@@ -337,30 +478,63 @@ const MainScreen = ({ navigation }) => {
       </TouchableOpacity>
 
       <View style={styles.watchlistContainer}>
-        <Text style={styles.watchlistTitle}>나의 관심 주식</Text>
-        <ScrollView>
-          {watchlist.map((stock) => (
-            <View key={stock.id} style={styles.stockItem}>
-              <TouchableOpacity onPress={() => toggleFavorite(stock.id)}>
-                <Image
-                  source={
-                    stock.isFavorite
-                      ? require("../../assets/icons/star-filled.png")
-                      : require("../../assets/icons/star-empty.png")
-                  }
-                  style={styles.starIcon}
-                />
-              </TouchableOpacity>
-              <Text style={styles.stockName}>{stock.name}</Text>
-              <View style={styles.stockPriceContainer}>
-                <Text style={styles.stockPrice}>{stock.price}원</Text>
-                <Text style={styles.stockChange}>{stock.change}%</Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+  <Text style={styles.watchlistTitle}>나의 관심 주식</Text>
+  
+  {watchlistLoading ? (
+    <View style={styles.watchlistLoadingContainer}>
+      <ActivityIndicator size="large" color="#F074BA" />
+      <Text style={styles.watchlistLoadingText}>관심주식 로딩 중...</Text>
     </View>
+  ) : watchlist.length > 0 ? (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {watchlist.map((stock) => (
+        <TouchableOpacity
+          key={stock.id}
+          style={styles.stockItem}
+          onPress={() => handleStockPress(stock)}
+          activeOpacity={0.7}
+        >
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation(); // 부모 터치 이벤트 방지
+              toggleFavorite(stock.symbol);
+            }}
+            style={styles.starTouchArea}
+          >
+            <Image
+              source={
+                stock.isFavorite
+                  ? require("../../assets/icons/star-filled.png")
+                  : require("../../assets/icons/star-empty.png")
+              }
+              style={styles.starIcon}
+            />
+          </TouchableOpacity>
+          <Text style={styles.stockName}>{stock.name}</Text>
+          <View style={styles.stockPriceContainer}>
+            <Text style={styles.stockPrice}>{stock.price}원</Text>
+            <Text 
+              style={[
+                styles.stockChange,
+                { color: getChangeColor(stock.changeStatus) }
+              ]}
+            >
+              {stock.change}%
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+  ) : (
+    <View style={styles.emptyWatchlist}>
+      <Text style={styles.emptyWatchlistText}>관심주식이 없습니다</Text>
+      <Text style={styles.emptyWatchlistSubText}>
+        검색창에서 주식을 찾아 관심주식으로 등록해보세요!
+      </Text>
+    </View>
+  )}
+      </View>
+    </ScrollView>
   );
 };
 
@@ -368,8 +542,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#003340",
-    padding: 30,
-    paddingBottom: 90,
+  },
+  scrollContent: {
+    paddingHorizontal: 30,
+    paddingTop: 40,
+    paddingBottom: 120, // 탭 바 공간 확보
   },
   searchContainer: {
     marginTop: 40,
@@ -397,24 +574,10 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 14,
   },
-  SearchIcon: {
-    width: 24,
-    height: 24,
-    fill: "#EFF1F5",
-    right: 10,
-    marginLeft: 10,
-  },
   BellIcon: {
     width: 24,
     height: 24,
     fill: "#EFF1F5",
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: "#EFF1F5",
-    borderRadius: 13,
-    padding: 10,
-    marginRight: 10,
   },
   assetContainer: {
     marginBottom: 20,
@@ -428,10 +591,8 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: "bold",
   },
-  // MainScreen.js의 스타일 부분 수정
   graphContainer: {
     height: screenWidth - 60,
-    //backgroundColor: "#004455",
     borderRadius: 8,
     marginTop: 10,
     alignItems: "center",
@@ -529,11 +690,6 @@ const styles = StyleSheet.create({
     color: "#EFF1F5",
     fontWeight: "bold",
   },
-  percentageContainer: {
-    position: "absolute",
-    right: 10,
-    top: 10,
-  },
   tradeButton: {
     backgroundColor: "#EFF1F5",
     padding: 13,
@@ -548,14 +704,36 @@ const styles = StyleSheet.create({
   },
   watchlistContainer: {
     flex: 1,
+    minHeight: 200, // 최소 높이 설정
   },
   watchlistTitle: {
     color: "#F074BA",
     fontSize: 18,
-    marginBottom: 5,
+    marginBottom: 10,
     marginLeft: 5,
     marginTop: 5,
     fontWeight: "600",
+  },
+  watchlistLoadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  watchlistLoadingText: {
+    color: "#EFF1F5",
+    fontSize: 16,
+    marginTop: 10,
+    textAlign: "center",
+  },
+  
+  starTouchArea: {
+    padding: 8, // 터치 영역 확장
+    marginRight: 2,
+  },
+  
+  starIcon: {
+    width: 20,
+    height: 20,
   },
   stockItem: {
     flexDirection: "row",
@@ -576,29 +754,12 @@ const styles = StyleSheet.create({
     color: "#EFF1F5",
   },
   stockChange: {
-    color: "#F074BA",
     fontWeight: "bold",
   },
   starIcon: {
     width: 20,
     height: 20,
   },
-  percentageText: {
-    color: "#EFF1F5",
-  },
-  percentageBar: {
-    marginBottom: 5,
-  },
-  shadow: {
-    shadowColor: "rgb(255, 210, 229)",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-
   emptyChart: {
     height: screenWidth - 60,
     width: screenWidth - 60,
@@ -616,6 +777,24 @@ const styles = StyleSheet.create({
   emptyChartSubText: {
     color: "rgba(239, 241, 245, 0.7)",
     fontSize: 14,
+  },
+  emptyWatchlist: {
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  emptyWatchlistText: {
+    color: "#EFF1F5",
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyWatchlistSubText: {
+    color: "rgba(239, 241, 245, 0.7)",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
 
