@@ -23,7 +23,8 @@ const refreshAccessToken = async () => {
 
     console.log("🔄 Refresh Token으로 새 Access Token 요청");
 
-    const response = await fetch(`${API_BASE_URL}api/token/refresh/`, {
+    //  /api/token/refresh/ -> /sessions
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LOGIN}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh: refreshToken }),
@@ -34,15 +35,28 @@ const refreshAccessToken = async () => {
       return null;
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
 
-    await AsyncStorage.setItem("accessToken", data.access);
-    if (data.refresh) {
-      await AsyncStorage.setItem("refreshToken", data.refresh);
+    if (responseData.status === "success" && responseData.data) {
+      const { access, refresh, has_completed_tutorial } = responseData.data;
+
+      await AsyncStorage.setItem("accessToken", access);
+      if (refresh) {
+        await AsyncStorage.setItem("refreshToken", refresh);
+      }
+
+      // + 튜토리얼 완료 여부
+      await AsyncStorage.setItem(
+        "hasCompletedTutorial",
+        has_completed_tutorial.toString()
+      );
+
+      console.log("✅ Access Token 갱신 완료");
+      return access;
+    } else {
+      console.log("❌ 응답 형식 오류:", responseData);
+      return null;
     }
-
-    console.log("✅ Access Token 갱신 완료");
-    return data.access;
   } catch (error) {
     console.error("❌ Refresh Token 갱신 실패:", error);
     return null;
@@ -64,7 +78,8 @@ const loginForNewToken = async (navigation) => {
 
     console.log("🔄 새로운 로그인으로 토큰 요청");
 
-    const response = await fetch(`${API_BASE_URL}api/token/`, {
+    // /api/token/ -> /sessions
+    const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LOGIN}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -78,14 +93,26 @@ const loginForNewToken = async (navigation) => {
       return null;
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
 
-    // 새로운 토큰들 저장
-    await AsyncStorage.setItem("accessToken", data.access);
-    await AsyncStorage.setItem("refreshToken", data.refresh);
+    if (responseData.status === "success" && responseData.data) {
+      const { access, refresh, has_completed_tutorial } = responseData.data;
 
-    console.log("✅ 새 토큰 발급 및 저장 완료");
-    return data.access;
+      await AsyncStorage.setItem("accessToken", access);
+      await AsyncStorage.setItem("refreshToken", refresh);
+
+      // 튜토리얼 완료 여부
+      await AsyncStorage.setItem(
+        "hasCompletedTutorial",
+        has_completed_tutorial.toString()
+      );
+
+      console.log("✅ 새 토큰 발급 및 저장 완료");
+      return access;
+    } else {
+      console.log("❌ 응답 형식 오류:", responseData);
+      return null;
+    }
   } catch (error) {
     console.error("❌ 새 토큰 발급 실패:", error);
     if (navigation) {
@@ -130,6 +157,7 @@ export const clearTokens = async () => {
   try {
     await AsyncStorage.removeItem("accessToken");
     await AsyncStorage.removeItem("refreshToken");
+    await AsyncStorage.removeItem("hasCompletedTutorial"); // 튜토리얼 여부도 정맇
     console.log("✅ 토큰 정리 완료");
   } catch (error) {
     console.error("❌ 토큰 정리 실패:", error);
@@ -187,5 +215,26 @@ export const fetchWithAuth = async (url, options = {}, navigation = null) => {
   } catch (error) {
     console.error("❌ 인증 API 호출 실패:", error);
     throw error;
+  }
+};
+
+// + 튜토리얼 완료 여부 확인
+export const getHasCompletedTutorial = async () => {
+  try {
+    const hasCompleted = await AsyncStorage.getItem("hasCompletedTutorial");
+    return hasCompleted === "true";
+  } catch (error) {
+    console.error("❌ 튜토리얼 완료 여부 확인 실패:", error);
+    return false;
+  }
+};
+
+// + 튜토리얼 완료 상태 업데이트
+export const setHasCompletedTutorial = async (completed) => {
+  try {
+    await AsyncStorage.setItem("hasCompletedTutorial", completed.toString());
+    console.log(`✅ 튜토리얼 완료 상태 업데이트: ${completed}`);
+  } catch (error) {
+    console.error("❌ 튜토리얼 완료 상태 업데이트 실패:", error);
   }
 };
