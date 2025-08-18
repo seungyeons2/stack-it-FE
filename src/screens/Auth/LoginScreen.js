@@ -11,7 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import EyeOpen from "../../components/EyeOpen";
 import EyeClosed from "../../components/EyeClosed";
-import { API_BASE_URL } from "../../utils/apiConfig";
+import { API_BASE_URL, API_ENDPOINTS } from "../../utils/apiConfig";
 
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);
@@ -30,7 +30,7 @@ const LoginScreen = ({ navigation }) => {
     try {
       console.log("로그인 시도:", { email, password: "***" });
 
-      const response = await fetch(`${API_BASE_URL}api/token/`, {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.LOGIN}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,13 +56,21 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
 
-      if (response.ok && data.access) {
+      if (response.ok && data.status === "success") {
+        const { access, refresh, has_completed_tutorial } = data.data;
         console.log("✅ 토큰 발급 성공");
+        console.log("튜토리얼 완료 여부:", has_completed_tutorial);
 
-        await AsyncStorage.setItem("accessToken", data.access);
-        await AsyncStorage.setItem("refreshToken", data.refresh);
+        await AsyncStorage.setItem("accessToken", access);
+        await AsyncStorage.setItem("refreshToken", refresh);
         await AsyncStorage.setItem("userEmail", email);
         await AsyncStorage.setItem("userPassword", password); // ❗ 자동 로그인을 위해 password도 저장
+
+        // 튜토리얼 완료 여부 저장
+        await AsyncStorage.setItem(
+          "hasCompletedTutorial",
+          has_completed_tutorial.toString()
+        );
 
         console.log("🔹 로그인 성공, MainTab으로 이동 시도");
         navigation.navigate("MainTab");

@@ -7,8 +7,8 @@ export const API_BASE_URL =
 // API 엔드포인트 정의
 export const API_ENDPOINTS = {
   // 인증 관련
-  TOKEN: "api/token/",
-  TOKEN_REFRESH: "api/token/refresh/",
+  LOGIN: "sessions/", // api/token/ -> sessions/
+  //TOKEN_REFRESH: "api/token/refresh/",
   LOGOUT: "logout/",
 
   // 사용자 관련
