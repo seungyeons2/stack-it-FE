@@ -17,7 +17,7 @@ const SignUp4Screen = ({ navigation }) => {
     <ScrollView contentContainerStyle={styles.container}>
       {/* 🎊 일러스트 이미지로 교체 */}
       <Image
-        source={require("../../assets/celebration.png")} // ✅ PNG/SVG 일러스트 추가 필요
+        source={require("../../assets/hamham.png")} // ✅ PNG/SVG 일러스트 추가 필요
         style={styles.image}
         resizeMode="contain"
       />

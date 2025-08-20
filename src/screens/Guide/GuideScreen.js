@@ -8,6 +8,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Feather";
@@ -15,6 +16,7 @@ import LearningProgressBar from "../../components/LearningProgressBar";
 import InspectIcon from "../../assets/icons/stock-inspect.svg";
 import ResultIcon from "../../assets/icons/stock-result.svg";
 import LockIcon from "../../assets/icons/lock.svg";
+// import QuestionIcon from "../../assets/icons/question.png";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { getNewAccessToken } from "../../utils/token";
 
@@ -95,7 +97,7 @@ const GuideScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧠 주식유형 검사하기</Text>
+      <Text style={styles.title}>🧠 투자 유형 검사하기</Text>
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.examButton}
@@ -162,6 +164,21 @@ const GuideScreen = () => {
           );
         })}
       </ScrollView>
+<View style={styles.fabContainer}>
+  <TouchableOpacity
+    onPress={() => navigation.navigate("TutorialScreen")}
+    activeOpacity={0.7}
+    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    style={styles.fabImageWrapper} // (옵션) 그림자만 주는 래퍼
+  >
+    <Image
+      source={require("../../assets/icons/question.png")}
+      style={styles.fabImage}
+      resizeMode="contain"
+    />
+  </TouchableOpacity>
+  <Text style={styles.fabLabel}>튜토리얼</Text>
+</View>
     </View>
   );
 };
@@ -256,6 +273,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
     fontWeight: "bold",
+  },
+  fabContainer: {
+    position: "absolute",
+    right: 30,
+    bottom: 100,
+    alignItems: "center",
+  },
+  // (선택) 이미지에 살짝 그림자 주고 싶으면 사용, 아니면 삭제해도 됨
+  // fabImageWrapper: {
+  //   shadowColor: "#000",
+  //   shadowOffset: { width: 0, height: 2 },
+  //   shadowOpacity: 0.2,
+  //   shadowRadius: 3,
+  //   elevation: 3,
+  // },
+  // PNG 자체가 버튼이므로 배경/테두리 없음
+  fabImage: {
+    width: 56,   // 원본 크기를 쓰고 싶으면 이 두 줄 지워도 됩니다
+    height: 56,
+  },
+  fabLabel: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#EEEEEE",
   },
 });
 
