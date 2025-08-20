@@ -27,6 +27,12 @@ const IMAGES = [
   require("../../assets/tutorial/tutorial-14.png"),
   require("../../assets/tutorial/tutorial-15.png"),
   require("../../assets/tutorial/tutorial-16.png"),
+  require("../../assets/tutorial/tutorial-17.png"),
+  require("../../assets/tutorial/tutorial-18.png"),
+  require("../../assets/tutorial/tutorial-19.png"),
+  require("../../assets/tutorial/tutorial-20.png"),
+  require("../../assets/tutorial/tutorial-21.png"),
+  require("../../assets/tutorial/tutorial-22.png"),
 ];
 
 export default function TutorialScreen({ navigation }) {
