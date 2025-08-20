@@ -4,7 +4,7 @@
     "slug": "RNCourse",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "src/assets/images/logo-bg-removed-d.png",
+    "icon": "src/assets/images/logo-d-app-icon-1500.png",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
