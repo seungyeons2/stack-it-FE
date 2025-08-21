@@ -10,6 +10,7 @@ import {
   Alert,
   Share,
   Linking,
+  ImageBackground
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 import { API_BASE_URL } from "../../utils/apiConfig";
@@ -289,6 +290,16 @@ const TypeResultScreen = ({ navigation }) => {
             </View>
           )}
 
+
+          <View style={styles.typeGraphContainer}>
+            <ImageBackground
+              source={require("../../assets/mbti/type-graph-bg.png")}
+              style={styles.typeGraphImage}
+              imageStyle={{ borderRadius: 20 }} // 이미지 자체에 둥근 모서리
+              resizeMode="contain"
+            />
+          </View>
+
           {recommendations.psychology_guide && (
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>당신을 위한 조언</Text>
@@ -413,7 +424,7 @@ const styles = StyleSheet.create({
   imageContainer: {
     width: "100%",
     height: 200,
-    marginVertical: 20,
+    marginTop: 10,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -517,6 +528,22 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
+
+  typeGraphContainer: {
+    width: "100%",
+    height: 250,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: 'transparent', 
+  },
+  typeGraphImage: {
+    width: "100%", 
+    height: "100%",
+    borderRadius: 20, 
+  },
+
 });
 
 export default TypeResultScreen;
