@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   ImageBackground
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
+import ViewShot from "react-native-view-shot";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { getNewAccessToken } from "../../utils/token";
 
@@ -20,6 +21,7 @@ const TypeResultScreen = ({ navigation }) => {
   const [result, setResult] = useState(null);
   const [recommendations, setRecommendations] = useState(null);
   const [loading, setLoading] = useState(true);
+  const viewShotRef = useRef();
 
   useEffect(() => {
     // 결과 데이터 가져오기
@@ -123,11 +125,12 @@ const TypeResultScreen = ({ navigation }) => {
     }
   };
 
-  // 결과 공유 기능
   const handleShare = async () => {
     if (!recommendations) return;
 
     try {
+      const uri = await viewShotRef.current.capture();
+      
       const message = `나의 투자 유형은 "${recommendations.alias}"(${recommendations.mbti})입니다!\n`;
       const guide = recommendations.psychology_guide
         ? `\n투자 조언: ${recommendations.psychology_guide}`
@@ -135,15 +138,15 @@ const TypeResultScreen = ({ navigation }) => {
 
       await Share.share({
         message: message + guide + "\n두둑 앱에서 확인해보세요!",
+        url: uri,
       });
     } catch (error) {
       console.error("Error sharing:", error);
+      Alert.alert("공유 오류", "공유 중 문제가 발생했습니다.");
     }
   };
 
-  // 웹사이트 열기
   const openLink = (url) => {
-    // 공백 제거 (일부 URL에 앞에 공백이 있을 수 있음)
     const trimmedUrl = url.trim();
 
     Linking.canOpenURL(trimmedUrl)
@@ -261,8 +264,62 @@ const TypeResultScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* ViewShot 숨김처리*/}
+      <ViewShot 
+        ref={viewShotRef} 
+        options={{ 
+          fileName: "investment-type-result", 
+          format: "png", 
+          quality: 0.9,
+          result: "tmpfile",
+        }}
+        style={styles.hiddenViewShot}
+      >
+        <View style={styles.shareableContent}>
+          {/* 브랜딩 요소 추가 */}
+          <Text style={styles.appBranding}>두둑 투자 유형 테스트</Text>
+          
+          <View style={styles.shareableMbtiContainer}>
+            <Text style={styles.shareableMbtiType}>
+              {recommendations?.mbti || result?.type}
+            </Text>
+          </View>
+
+          <Text style={styles.shareableLabel}>당신의 투자 유형은</Text>
+          <Text style={styles.shareableNickname}>
+            {recommendations?.alias || "투자자"}
+          </Text>
+
+          {mbtiImage ? (
+            <View style={styles.shareableImageContainer}>
+              <Image
+                source={mbtiImage}
+                style={styles.shareableMbtiImage}
+                resizeMode="contain"
+              />
+            </View>
+          ) : (
+            <View style={styles.shareableNoImageContainer}>
+              <Text style={styles.shareableNoImageText}>
+                유형 이미지를 준비 중입니다
+              </Text>
+            </View>
+          )}
+
+          {recommendations?.psychology_guide && (
+            <View style={styles.shareableGuideContainer}>
+              <Text style={styles.shareableGuideText}>
+                {recommendations.psychology_guide}
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.bottomBranding}>두둑 앱에서 자세히 확인하세요!</Text>
+        </View>
+      </ViewShot>
+
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.resultCard}>
+          <View style={styles.resultCard}>
           <View style={styles.mbtiTypeContainer}>
             <Text style={styles.mbtiType}>
               {recommendations.mbti || result.type}
@@ -285,11 +342,10 @@ const TypeResultScreen = ({ navigation }) => {
           ) : (
             <View style={styles.noImageContainer}>
               <Text style={styles.noImageText}>
-                유형 이미지를 준비 중입니다
+                유형 이미지를 준비 중입니다.
               </Text>
             </View>
           )}
-
 
           <View style={styles.typeGraphContainer}>
             <ImageBackground
@@ -391,6 +447,121 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
+
+  // ViewShot 숨김 스타일
+  hiddenViewShot: {
+    position: 'absolute',
+    left: -9999, // 화면 밖으로 이동
+    top: -9999,
+    width: 350,   // 적절한 공유 이미지 크기
+    height: 600,  // 적절한 공유 이미지 높이
+  },
+  
+  shareableContent: {
+    width: 350,
+    height: 600,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  
+  shareableMbtiContainer: {
+    backgroundColor: "#6EE69E",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginBottom: 10,
+  },
+  
+  shareableMbtiType: {
+    color: "#003340",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  
+  shareableLabel: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 5,
+  },
+  
+  shareableNickname: {
+    color: "#003340",
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  
+  shareableImageContainer: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  
+  shareableMbtiImage: {
+    width: "100%",
+    height: "100%",
+  },
+  
+  shareableNoImageContainer: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F0F0F0",
+    borderRadius: 10,
+  },
+  
+  shareableNoImageText: {
+    color: "#666",
+    fontSize: 14,
+    fontStyle: "italic",
+  },
+  
+  shareableGuideContainer: {
+    marginBottom: 20,
+    paddingHorizontal: 15,
+  },
+  
+  shareableGuideText: {
+    fontSize: 14,
+    color: "#333",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  shareableContainer: {
+    backgroundColor: 'transparent', 
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  appBranding: {
+    fontSize: 14,
+    color: '#666', // 공유용은 회색으로
+    marginBottom: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  bottomBranding: {
+    fontSize: 12,
+    color: '#999', // 공유용은 회색으로
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  additionalInfo: {
+    backgroundColor: "#D4DDEF20",
+    borderRadius: 20,
+    padding: 20,
+    alignItems: "center",
+  },
+
+  // 기존 스타일
   resultCard: {
     backgroundColor: "#D4DDEF20",
     borderRadius: 20,
@@ -528,7 +699,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
   },
-
   typeGraphContainer: {
     width: "100%",
     height: 250,
@@ -543,7 +713,6 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 20, 
   },
-
 });
 
 export default TypeResultScreen;
