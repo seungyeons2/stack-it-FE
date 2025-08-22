@@ -11,10 +11,11 @@ import {
   ActivityIndicator,
   SafeAreaView,
 } from "react-native";
-import { getNewAccessToken } from "../../utils/token";
 import { fetchUserInfo } from "../../utils/user";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { fetchWithHantuToken } from "../../utils/hantuToken";
+// ⬇️ 변경: getNewAccessToken 제거, fetchWithAuth 추가
+import { fetchWithAuth } from "../../utils/token";
 
 const TradingSellScreen = ({ route, navigation }) => {
   const stock = route.params?.stock;
@@ -26,12 +27,9 @@ const TradingSellScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const init = async () => {
-      // 사용자 정보 가져오기
       await fetchUserInfo(navigation, (info) => {
         if (info?.id) setUserId(info.id);
       });
-
-      // 현재가 가져오기
       await fetchCurrentPrice(stock?.symbol);
     };
     init();
@@ -43,35 +41,24 @@ const TradingSellScreen = ({ route, navigation }) => {
       setPriceLoading(false);
       return;
     }
-
     try {
       setPriceLoading(true);
-
       const result = await fetchWithHantuToken(
         `${API_BASE_URL}trading/stock_price/?stock_code=${stockCode}`
       );
-
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-
+      if (!result.success) throw new Error(result.error);
       const data = result.data;
-
       if (data.current_price) {
         setCurrentPrice(data.current_price);
-        console.log("✅ 현재가 업데이트:", data.current_price);
       } else {
-        console.warn("⚠️ 현재가 API 응답 실패:", data);
-        // 기존 주식 가격을 사용
         setCurrentPrice(
           typeof stock.price === "string"
             ? parseInt(stock.price.replace(/,/g, ""))
             : stock.price
         );
       }
-    } catch (error) {
-      console.error("❌ 현재가 조회 실패:", error);
-      // 기존 주식 가격을 사용
+    } catch (e) {
+      console.error("❌ 현재가 조회 실패:", e);
       setCurrentPrice(
         typeof stock.price === "string"
           ? parseInt(stock.price.replace(/,/g, ""))
@@ -89,6 +76,12 @@ const TradingSellScreen = ({ route, navigation }) => {
 
   const handleSell = async () => {
     console.log("💸 매도 주문 시작");
+
+    // ⬇️ 추가: userId 없으면 차단
+    if (!userId) {
+      Alert.alert("오류", "사용자 정보를 불러오는 중입니다. 잠시 후 다시 시도해주세요.");
+      return;
+    }
 
     if (!stock || !stock.name) {
       Alert.alert("오류", "주식 정보가 올바르지 않습니다.");
@@ -118,8 +111,8 @@ const TradingSellScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      // 종목 식별자 결정 (종목코드 우선 사용)
-      const stockIdentifier = stock.symbol || stock.name;
+      // ⬇️ 변경: 서버가 코드만 받으므로 symbol 고정
+      const stockIdentifier = stock.symbol;
 
       const orderData = {
         user_id: userId,
@@ -131,11 +124,12 @@ const TradingSellScreen = ({ route, navigation }) => {
 
       console.log("📡 매도 주문 데이터:", orderData);
 
-      // ✅ fetchWithAuth 사용 (일반 백엔드 API이므로)
+      // ⬇️ 변경: Content-Type 명시
       const response = await fetchWithAuth(
         `${API_BASE_URL}trading/trade/`,
         {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(orderData),
         },
         navigation
@@ -143,15 +137,16 @@ const TradingSellScreen = ({ route, navigation }) => {
 
       console.log("📬 매도 주문 응답 상태:", response.status);
 
+      const text = await response.text();
+      let result;
+      try { result = JSON.parse(text); } catch { result = { message: text }; }
+      console.log("📬 매도 주문 응답 데이터:", result);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ 매도 주문 실패 응답:", errorText);
-        Alert.alert("매도 실패", `서버 오류: ${response.status}`);
+        console.error("❌ 매도 주문 실패 응답:", result);
+        Alert.alert("매도 실패", result?.detail || result?.message || `서버 오류: ${response.status}`);
         return;
       }
-
-      const result = await response.json();
-      console.log("📬 매도 주문 응답 데이터:", result);
 
       if (result.status === "success") {
         Alert.alert(
@@ -170,21 +165,9 @@ const TradingSellScreen = ({ route, navigation }) => {
     }
   };
 
-  const formatNumber = (number) => {
-    return number.toLocaleString();
-  };
-
-  const getChangeColor = (change) => {
-    if (change > 0) return "#F074BA";
-    if (change < 0) return "#00BFFF";
-    return "#AAAAAA";
-  };
-
-  const getChangeSymbol = (change) => {
-    if (change > 0) return "▲";
-    if (change < 0) return "▼";
-    return "";
-  };
+  const formatNumber = (number) => number.toLocaleString();
+  const getChangeColor = (change) => (change > 0 ? "#F074BA" : change < 0 ? "#00BFFF" : "#AAAAAA");
+  const getChangeSymbol = (change) => (change > 0 ? "▲" : change < 0 ? "▼" : "");
 
   const maxSellQuantity = parseInt(stock?.quantity) || 0;
 
@@ -207,9 +190,7 @@ const TradingSellScreen = ({ route, navigation }) => {
         <View style={styles.stockRow}>
           <View style={styles.stockInfo}>
             <Text style={styles.stockName}>{stock?.name || "종목명 없음"}</Text>
-            <Text style={styles.stockCode}>
-              ({stock?.symbol || "종목코드 없음"})
-            </Text>
+            <Text style={styles.stockCode}>({stock?.symbol || "종목코드 없음"})</Text>
           </View>
 
           <View style={styles.priceBlock}>
@@ -217,16 +198,9 @@ const TradingSellScreen = ({ route, navigation }) => {
               <ActivityIndicator size="small" color="#F074BA" />
             ) : (
               <>
-                <Text style={styles.priceText}>
-                  {formatNumber(currentPrice)}원
-                </Text>
+                <Text style={styles.priceText}>{formatNumber(currentPrice)}원</Text>
                 {stock?.change !== undefined && (
-                  <Text
-                    style={[
-                      styles.changeText,
-                      { color: getChangeColor(stock.change) },
-                    ]}
-                  >
+                  <Text style={[styles.changeText, { color: getChangeColor(stock.change) }]}>
                     {getChangeSymbol(stock.change)}
                     {Math.abs(stock.change).toFixed(2)}%
                   </Text>
@@ -248,9 +222,7 @@ const TradingSellScreen = ({ route, navigation }) => {
         {stock?.average_price && (
           <View style={styles.infoSection}>
             <Text style={styles.label}>평균 단가</Text>
-            <Text style={styles.value}>
-              {formatNumber(stock.average_price)}원
-            </Text>
+            <Text style={styles.value}>{formatNumber(stock.average_price)}원</Text>
           </View>
         )}
 
@@ -275,18 +247,14 @@ const TradingSellScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
           {maxSellQuantity > 0 && (
-            <Text style={styles.maxInfo}>
-              최대 {formatNumber(maxSellQuantity)}주까지 매도 가능
-            </Text>
+            <Text style={styles.maxInfo}>최대 {formatNumber(maxSellQuantity)}주까지 매도 가능</Text>
           )}
         </View>
 
         {/* 총 금액 */}
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>총 매도 금액</Text>
-          <Text style={styles.totalAmount}>
-            {formatNumber(calculateTotal())}원
-          </Text>
+          <Text style={styles.totalAmount}>{formatNumber(calculateTotal())}원</Text>
         </View>
 
         {/* 예상 손익 */}
@@ -296,19 +264,11 @@ const TradingSellScreen = ({ route, navigation }) => {
             <Text
               style={[
                 styles.profitAmount,
-                {
-                  color:
-                    currentPrice - stock.average_price >= 0
-                      ? "#6EE69E"
-                      : "#F074BA",
-                },
+                { color: currentPrice - stock.average_price >= 0 ? "#6EE69E" : "#F074BA" },
               ]}
             >
               {currentPrice - stock.average_price >= 0 ? "+" : ""}
-              {formatNumber(
-                (currentPrice - stock.average_price) * (parseInt(quantity) || 0)
-              )}
-              원
+              {formatNumber((currentPrice - stock.average_price) * (parseInt(quantity) || 0))}원
             </Text>
           </View>
         )}
@@ -317,11 +277,10 @@ const TradingSellScreen = ({ route, navigation }) => {
         <TouchableOpacity
           style={[
             styles.sellButton,
-            (loading || priceLoading || maxSellQuantity === 0) &&
-              styles.disabledButton,
+            (loading || priceLoading || maxSellQuantity === 0 || !userId) && styles.disabledButton,
           ]}
           onPress={handleSell}
-          disabled={loading || priceLoading || maxSellQuantity === 0}
+          disabled={loading || priceLoading || maxSellQuantity === 0 || !userId}
         >
           {loading ? (
             <ActivityIndicator color="#003340" />
@@ -339,175 +298,37 @@ const TradingSellScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#003340",
-    paddingHorizontal: 30,
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: 30,
-    paddingTop: 20,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 30,
-    marginTop: 40,
-  },
-  backText: {
-    fontSize: 28,
-    color: "#F074BA",
-    marginRight: 15,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#F074BA",
-    flex: 1,
-    textAlign: "center",
-    marginRight: 43, // 뒤로가기 버튼 공간만큼 보정
-  },
-  stockRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  stockInfo: {
-    flex: 1,
-  },
-  stockName: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  stockCode: {
-    color: "#AFA5CF",
-    fontSize: 14,
-  },
-  priceBlock: {
-    alignItems: "flex-end",
-  },
-  priceText: {
-    fontSize: 20,
-    color: "white",
-    fontWeight: "bold",
-    marginBottom: 4,
-  },
-  changeText: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#4A5A60",
-    marginVertical: 20,
-  },
-  infoSection: {
-    marginBottom: 25,
-  },
-  label: {
-    fontSize: 16,
-    color: "#FFD1EB",
-    marginBottom: 8,
-  },
-  value: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    fontWeight: "bold",
-  },
-  inputRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  input: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 18,
-    color: "#000000",
-    minWidth: 100,
-    textAlign: "center",
-    marginRight: 10,
-  },
-  unit: {
-    fontSize: 18,
-    color: "#FFFFFF",
-    marginRight: 10,
-  },
-  maxButton: {
-    backgroundColor: "#4A5A60",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  maxButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  maxInfo: {
-    fontSize: 12,
-    color: "#AFA5CF",
-    marginTop: 5,
-  },
-  totalRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 15,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    backgroundColor: "#004455",
-    borderRadius: 10,
-  },
-  totalLabel: {
-    fontSize: 16,
-    color: "#FFFFFF",
-  },
-  totalAmount: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#F074BA",
-  },
-  profitRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: "#002A35",
-    borderRadius: 10,
-  },
-  profitLabel: {
-    fontSize: 14,
-    color: "#FFFFFF",
-  },
-  profitAmount: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  sellButton: {
-    marginTop: "auto",
-    backgroundColor: "#F074BA",
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginBottom: 30,
-  },
-  disabledButton: {
-    backgroundColor: "#A0A0A0",
-  },
-  sellButtonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#003340",
-  },
+  container: { flex: 1, backgroundColor: "#003340", paddingHorizontal: 30 },
+  safeArea: { flex: 1, paddingHorizontal: 30, paddingTop: 20 },
+  header: { flexDirection: "row", alignItems: "center", marginBottom: 30, marginTop: 40 },
+  backText: { fontSize: 28, color: "#F074BA", marginRight: 15 },
+  title: { fontSize: 20, fontWeight: "bold", color: "#F074BA", flex: 1, textAlign: "center", marginRight: 43 },
+  stockRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
+  stockInfo: { flex: 1 },
+  stockName: { color: "white", fontSize: 18, fontWeight: "bold", marginBottom: 4 },
+  stockCode: { color: "#AFA5CF", fontSize: 14 },
+  priceBlock: { alignItems: "flex-end" },
+  priceText: { fontSize: 20, color: "white", fontWeight: "bold", marginBottom: 4 },
+  changeText: { fontSize: 14, fontWeight: "bold" },
+  divider: { height: 1, backgroundColor: "#4A5A60", marginVertical: 20 },
+  infoSection: { marginBottom: 25 },
+  label: { fontSize: 16, color: "#FFD1EB", marginBottom: 8 },
+  value: { fontSize: 18, color: "#FFFFFF", fontWeight: "bold" },
+  inputRow: { flexDirection: "row", alignItems: "center" },
+  input: { backgroundColor: "#FFFFFF", borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, fontSize: 18, color: "#000000", minWidth: 100, textAlign: "center", marginRight: 10 },
+  unit: { fontSize: 18, color: "#FFFFFF", marginRight: 10 },
+  maxButton: { backgroundColor: "#4A5A60", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
+  maxButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "bold" },
+  maxInfo: { fontSize: 12, color: "#AFA5CF", marginTop: 5 },
+  totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 20, marginBottom: 15, paddingVertical: 15, paddingHorizontal: 20, backgroundColor: "#004455", borderRadius: 10 },
+  totalLabel: { fontSize: 16, color: "#FFFFFF" },
+  totalAmount: { fontSize: 20, fontWeight: "bold", color: "#F074BA" },
+  profitRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 30, paddingVertical: 12, paddingHorizontal: 20, backgroundColor: "#002A35", borderRadius: 10 },
+  profitLabel: { fontSize: 14, color: "#FFFFFF" },
+  profitAmount: { fontSize: 16, fontWeight: "bold" },
+  sellButton: { marginTop: "auto", backgroundColor: "#F074BA", borderRadius: 12, paddingVertical: 16, alignItems: "center", marginBottom: 30 },
+  disabledButton: { backgroundColor: "#A0A0A0" },
+  sellButtonText: { fontSize: 18, fontWeight: "bold", color: "#003340" },
 });
 
 export default TradingSellScreen;
