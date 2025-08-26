@@ -17,7 +17,15 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.lipeuoo.doodook",
+      "buildNumber": "4",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,9 +42,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "d831fa11-69a9-40eb-a916-ae0d22291e92"
+        "projectId": "57b0a621-af5d-4605-b6e0-cc46a6c474ec"
       }
     },
-    "owner": "r8ol7z"
+    "owner": "yehyeon"
   }
 }
