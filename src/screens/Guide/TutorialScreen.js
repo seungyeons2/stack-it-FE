@@ -17,6 +17,7 @@ const IMAGES = [
   require("../../assets/tutorial/tutorial-4.png"),
   require("../../assets/tutorial/tutorial-5.png"),
   require("../../assets/tutorial/tutorial-6.png"),
+  require("../../assets/tutorial/tutorial-6(2).png"),
   require("../../assets/tutorial/tutorial-7.png"),
   require("../../assets/tutorial/tutorial-8.png"),
   require("../../assets/tutorial/tutorial-9.png"),
