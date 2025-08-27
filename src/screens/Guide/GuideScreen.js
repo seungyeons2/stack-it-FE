@@ -166,7 +166,7 @@ const GuideScreen = () => {
       </ScrollView>
 <View style={styles.fabContainer}>
   <TouchableOpacity
-    onPress={() => navigation.navigate("TutorialScreen")}
+    onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
     activeOpacity={0.7}
     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
     style={styles.fabImageWrapper} // (옵션) 그림자만 주는 래퍼

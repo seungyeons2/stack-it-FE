@@ -72,8 +72,16 @@ const LoginScreen = ({ navigation }) => {
           has_completed_tutorial.toString()
         );
 
-        console.log("🔹 로그인 성공, MainTab으로 이동 시도");
-        navigation.navigate("MainTab");
+        if (has_completed_tutorial) {
+          console.log("🔹 튜토리얼 완료 → MainTab 이동");
+          navigation.navigate("MainTab");
+        } else {
+          console.log("🔹 튜토리얼 미완료 → TutorialScreen 이동");
+          navigation.navigate("TutorialScreen", { fromLogin: true });
+        }
+
+        // console.log("🔹 로그인 성공, MainTab으로 이동 시도");
+        // navigation.navigate("MainTab");
       } else {
         console.log("❌ 로그인 실패:", data);
 

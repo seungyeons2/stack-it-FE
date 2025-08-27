@@ -1,5 +1,5 @@
 // screens/TutorialScreen.js
-import React, { useState } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import {
   View,
   Image,
@@ -7,10 +7,18 @@ import {
   StyleSheet,
   useWindowDimensions,
   StatusBar,
+  FlatList,
+  SafeAreaView,
+  Platform,
+  TouchableOpacity,
+  Text,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL } from "../../utils/apiConfig";
+import { getNewAccessToken } from "../../utils/token";
 
-// 10장 예시: 실제 경로/파일명에 맞춰 바꿔주세요
 const IMAGES = [
+  require("../../assets/tutorial/tutorial-0.png"),
   require("../../assets/tutorial/tutorial-1.png"),
   require("../../assets/tutorial/tutorial-2.png"),
   require("../../assets/tutorial/tutorial-3.png"),
@@ -24,7 +32,7 @@ const IMAGES = [
   require("../../assets/tutorial/tutorial-10.png"),
   require("../../assets/tutorial/tutorial-11.png"),
   require("../../assets/tutorial/tutorial-12.png"),
-  require("../../assets/tutorial/tutorial-13.png"), 
+  require("../../assets/tutorial/tutorial-13.png"),
   require("../../assets/tutorial/tutorial-14.png"),
   require("../../assets/tutorial/tutorial-15.png"),
   require("../../assets/tutorial/tutorial-16.png"),
@@ -36,49 +44,178 @@ const IMAGES = [
   require("../../assets/tutorial/tutorial-22.png"),
 ];
 
-export default function TutorialScreen({ navigation }) {
-  const [idx, setIdx] = useState(0);
+export default function TutorialScreen({ navigation, route }) {
+  const listRef = useRef(null);
   const { width, height } = useWindowDimensions();
+  const [index, setIndex] = useState(0);
+  const [completing, setCompleting] = useState(false);
 
-  const src = IMAGES[idx];
-  const asset = Image.resolveAssetSource(src); // 원본 크기
-  const aspect = asset?.width && asset?.height ? asset.width / asset.height : 1;
+  // GuideScreen에서 재시청 시 { allowSkip: true }
+  const allowSkip = !!route?.params?.allowSkip;
 
-  // 가로는 기기 폭에 맞춤, 세로는 비율 유지
-  const imgWidth = width;
-  const imgHeight = imgWidth / aspect;
+  const postTutorialComplete = useCallback(async () => {
+    try {
+      const accessToken = await getNewAccessToken(navigation);
+      if (!accessToken) {
+        console.warn("No access token; skip /users/tutorial/complete/ call.");
+        return false;
+      }
+      const res = await fetch(`${API_BASE_URL}users/tutorial/complete/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) {
+        console.warn("Tutorial complete API failed:", res.status);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.warn("Tutorial complete API error:", e);
+      return false;
+    }
+  }, [navigation]);
 
-  // 위아래 여백을 조금 두고(상하 48px), 화면을 넘기지 않도록 제한
-  const maxHeight = Math.max(0, height - 0);
-  const finalHeight = Math.min(imgHeight, maxHeight);
+  const handleComplete = useCallback(async () => {
+    if (completing) return;
+    setCompleting(true);
 
-  const onNext = () => {
-    if (idx < IMAGES.length - 1) setIdx(idx + 1);
-    else navigation.goBack();
-  };
+    await postTutorialComplete();
+    await AsyncStorage.multiSet([
+      ["hasCompletedTutorial", "true"],
+      ["has_completed_tutorial", "true"],
+    ]);
+    navigation.reset({ index: 0, routes: [{ name: "MainTab" }] });
+  }, [postTutorialComplete, navigation, completing]);
+
+  const handleNext = useCallback(() => {
+    if (index < IMAGES.length - 1) {
+      listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+    } else {
+      handleComplete();
+    }
+  }, [index, handleComplete]);
+
+  const renderItem = useCallback(
+    ({ item }) => {
+      const asset = Image.resolveAssetSource(item);
+      const aspect = asset?.width && asset?.height ? asset.width / asset.height : 1;
+      const imgWidth = width;
+      const imgHeight = imgWidth / aspect;
+
+      return (
+        <Pressable
+          style={[styles.slide, { width, height }]}
+          onPress={handleNext}
+          disabled={completing}
+        >
+          <Image
+            source={item}
+            style={{ width: imgWidth, height: imgHeight, alignSelf: "center" }}
+          />
+        </Pressable>
+      );
+    },
+    [width, height, handleNext, completing]
+  );
+
+  const onViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (viewableItems && viewableItems.length > 0) {
+      setIndex(viewableItems[0].index ?? 0);
+    }
+  }).current;
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+
+  const progress = (index + 1) / IMAGES.length;
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#003340" />
-      <Pressable style={styles.full} onPress={onNext}>
-        <Image
-          source={src}
-          resizeMode="contain"
-          style={{ width: imgWidth, height: finalHeight, alignSelf: "center" }}
-        />
-      </Pressable>
+
+      {/* 상단 진행 바 + (바 바로 우측 하단) Skip */}
+      <SafeAreaView style={styles.topBar}>
+        <View style={styles.progressBar}>
+          <View style={[styles.progressFill, { flex: progress }]} />
+          <View style={{ flex: Math.max(0, 1 - progress) }} />
+        </View>
+
+        {allowSkip && (
+          <View style={styles.skipInlineWrap}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={styles.skipInlineText}>건너뛰기</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </SafeAreaView>
+
+      <FlatList
+        ref={listRef}
+        data={IMAGES}
+        keyExtractor={(_, i) => String(i)}
+        renderItem={renderItem}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
+        initialScrollIndex={0}
+        extraData={width}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#003340",
+  container: { flex: 1, backgroundColor: "#003340" },
+
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight || 0) : 0,
+    paddingHorizontal: 16,
   },
-  full: {
-    flex: 1,
-    justifyContent: "center", // 세로 중앙
-    alignItems: "center",      // 가로 중앙
+
+  // 진행 바 (좌우 살짝 공백)
+  progressBar: {
+    flexDirection: "row",
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.25)",
+    marginTop: 8,
+    marginBottom: 4,
+    marginHorizontal: 30,
+  },
+  progressFill: { backgroundColor: "#F074BA" },
+
+  // ⬇️ bar '바로 우측 하단' Skip (bar와 같은 우측 여백으로 정렬)
+  skipInlineWrap: {
+    alignItems: "flex-end",
+    marginRight: 30,
+    marginTop: 6, // bar 바로 아래 느낌
+  },
+  skipInlineText: {
+    backgroundColor: "#CBD5D700",
+    borderRadius: 99,
+    color: "#EFF1F5D0",
+    fontSize: 16,
+    //opacity: 0.9,
+    //paddingHorizontal: 18,
+    paddingVertical: 8,
+  },
+
+  // 위만 잘리도록: 하단 정렬 + 넘침 숨김
+  slide: {
+    overflow: "hidden",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    backgroundColor: "#003340",
   },
 });
