@@ -1,6 +1,3 @@
-// apiConfig.js - API 호출을 위한 기본 설정 파일
-
-// 클라우드 서버 주소 사용
 export const API_BASE_URL =
   "https://port-0-doodook-backend-lyycvlpm0d9022e4.sel4.cloudtype.app/";
 

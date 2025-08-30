@@ -38,7 +38,14 @@
       "favicon": "./src/assets/images/logo-d-app-icon-1500.png"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icons/star-filled.png",
+          "color": "#F074BA"
+        }
+      ]
     ]
 
   }
