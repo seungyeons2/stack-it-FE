@@ -17,7 +17,15 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.lipeuoo.doodook",
+      "buildNumber": "7",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -31,12 +39,7 @@
     },
     "plugins": [
       "expo-asset"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "d831fa11-69a9-40eb-a916-ae0d22291e92"
-      }
-    },
-    "owner": "r8ol7z"
+    ]
+
   }
 }

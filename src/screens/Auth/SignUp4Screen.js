@@ -16,8 +16,7 @@ const SignUp4Screen = ({ navigation }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {/* 🎊 일러스트 이미지로 교체 */}
-      <Image source={require("../../assets/icons/lock.svg")} style={styles.image} />
-      {/* 임시로 자물쇠로 변경함 ->> 추후 변경해야됨 */}
+      <Image source={require("../../assets/tutorial_ham.png")} style={styles.image} />
 
       <Text style={styles.title}>가입이 완료되었어요!</Text>
       <Text style={styles.subtitle}>
@@ -41,9 +40,9 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   image: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
+    width: 300,
+    height: 300,
+    marginBottom: 0,
   },
   title: {
     fontSize: 26,
