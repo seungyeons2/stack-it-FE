@@ -39,12 +39,7 @@
     },
     "plugins": [
       "expo-asset"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "57b0a621-af5d-4605-b6e0-cc46a6c474ec"
-      }
-    },
-    "owner": "yehyeon"
+    ]
+
   }
 }
