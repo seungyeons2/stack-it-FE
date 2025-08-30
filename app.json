@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "RNCourse",
-    "slug": "RNCourse",
+    "name": "Doodook",
+    "slug": "doodook",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./src/assets/images/logo-d-app-icon-1500.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./src/assets/images/logo-d-app-icon-1500.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,12 +21,22 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./src/assets/images/logo-d-app-icon-1500.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.r8ol7z.doodook"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./src/assets/images/logo-d-app-icon-1500.png"
+    },
+    "plugins": [
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d831fa11-69a9-40eb-a916-ae0d22291e92"
+      }
+    },
+    "owner": "r8ol7z"
   }
 }
