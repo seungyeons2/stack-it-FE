@@ -12,6 +12,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import EyeOpen from "../../components/EyeOpen";
 import EyeClosed from "../../components/EyeClosed";
 import { API_BASE_URL, API_ENDPOINTS } from "../../utils/apiConfig";
+import { registerPushToken } from "../../services/PushNotificationService";
+
+
 
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);
@@ -66,11 +69,24 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem("userEmail", email);
         await AsyncStorage.setItem("userPassword", password); // ❗ 자동 로그인을 위해 password도 저장
 
-        // 튜토리얼 완료 여부 저장
+        
         await AsyncStorage.setItem(
           "hasCompletedTutorial",
           has_completed_tutorial.toString()
         );
+        try {
+          const pushTokenSuccess = await registerPushToken(navigation);
+          if (pushTokenSuccess) {
+            console.log("✅ Push Token 등록 성공");
+          } else {
+            console.warn("Push Token 등록 실패");
+          }
+        } catch (pushError) {
+          console.error(" Push Token 등록 중 오류:", pushError);
+          // Push Token 등록 실패해도 로그인은 계속 진행
+        }
+
+        // 튜토리얼 완료 여부 저장
 
         if (has_completed_tutorial) {
           console.log("🔹 튜토리얼 완료 → MainTab 이동");
