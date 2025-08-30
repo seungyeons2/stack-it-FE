@@ -33,7 +33,7 @@ const AssetDetailScreen = ({ navigation }) => {
       }
 
       // 자산 API 호출
-      const response = await fetch(`${API_BASE_URL}/api/asset/summary/`, {
+      const response = await fetch(`${API_BASE_URL}api/asset/summary/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
