@@ -39,7 +39,7 @@ const TypeExamScreen = ({ navigation }) => {
       }
 
       console.log("질문을 불러오는 중...");
-      const response = await fetch(`${API_BASE_URL}/mbti/questions/`, {
+      const response = await fetch(`${API_BASE_URL}mbti/questions/`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
@@ -97,7 +97,7 @@ const TypeExamScreen = ({ navigation }) => {
       }
 
       // API 엔드포인트에 답변 제출
-      const response = await fetch(`${API_BASE_URL}/mbti/result/`, {
+      const response = await fetch(`${API_BASE_URL}mbti/result/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
