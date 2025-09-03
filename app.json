@@ -32,7 +32,8 @@
         "foregroundImage": "./src/assets/images/logo-d-app-icon-1500.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.r8ol7z.doodook"
+      "package": "com.holdingham.doodook",
+      "googleServicesFile": "./android/app/google-services.json"
     },
     "web": {
       "favicon": "./src/assets/images/logo-d-app-icon-1500.png"

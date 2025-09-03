@@ -41,11 +41,11 @@ export const registerPushToken = async (navigation) => {
 
     // Expo Push Token
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: Constants.expoConfig?.extra?.eas?.projectId || Constants.expoConfig?.slug,
+        projectId: 'd831fa11-69a9-40eb-a916-ae0d22291e92',  // 하드코딩 일단.
     });
 
     const pushToken = tokenData.data;
-    console.log('💕Push Token 획득💕:', pushToken); 
+    console.log('💕Push Token 획득💕:'); 
 
     let deviceId = await AsyncStorage.getItem('deviceId');
     if (!deviceId) {
@@ -69,7 +69,7 @@ export const registerPushToken = async (navigation) => {
     
   } catch (error) {
     console.error('푸시알림 토큰 등록 실패:', error);
-    // ⭐ 추가: 에러가 발생해도 계속 진행 (임시)
+
     return true;
   }
 };
@@ -132,7 +132,7 @@ const sendTokenToServer = async (token, deviceId, navigation) => {
       return false;
     }
 
-    console.log('📡 파싱된 서버 응답:', responseData); 
+    console.log('서버 응답:', responseData); 
 
     if (response.ok && responseData && responseData.ok) {
       console.log('토큰 서버 등록 성공:', responseData.created ? '신규' : '기존');
@@ -148,47 +148,58 @@ const sendTokenToServer = async (token, deviceId, navigation) => {
 };
 
 // Push 토큰 해제
-export const unregisterPushToken = async () => {
-  try {
-    const storedToken = await AsyncStorage.getItem('pushToken');
-    
-    if (!storedToken) {
-      console.log('📱 등록된 푸시 토큰이 없습니다');
-      return true;
-    }
-
-    const response = await fetch(`${API_BASE_URL}api/push-tokens`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token: storedToken,
-      }),
-    });
-
-    // DELETE는 response body가 없을 수 있음
-    if (response.ok) {
-      await AsyncStorage.removeItem('pushToken');
-      console.log('푸시알림 토큰 해제 완료');
-      return true;
-    } else {
-      console.error('푸시알림 토큰 해제 실패:', response.status);
-      await AsyncStorage.removeItem('pushToken');
-      console.warn('⚠️ 서버 해제 실패했지만 로컬에서 제거 ');
-      return true;
-    }
-  } catch (error) {
-    console.error('푸시알림 토큰 해제 오류:', error);
+export const unregisterPushToken = async (navigation) => { // ⭐ 수정: navigation 파라미터 추가
     try {
-      await AsyncStorage.removeItem('pushToken');
-      console.warn('⚠️ 에러 발생했지만 로컬에서 제거 ');
-    } catch (storageError) {
-      console.error('❌ AsyncStorage 제거 실패:', storageError);
+      const storedToken = await AsyncStorage.getItem('pushToken');
+      
+      if (!storedToken) {
+        console.log('📱 등록된 푸시 토큰이 없습니다');
+        return true;
+      }
+  
+      const accessToken = await getNewAccessToken(navigation);
+      
+      if (!accessToken) {
+        console.warn('⚠️ 액세스 토큰이 없어 서버 해제 생략, 로컬만 정리');
+        await AsyncStorage.removeItem('pushToken');
+        return true;
+      }
+  
+      const response = await fetch(`${API_BASE_URL}api/push-tokens`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          token: storedToken,
+        }),
+      });
+  
+      // DELETE는 response body가 없을 수 있음
+      if (response.ok) {
+        await AsyncStorage.removeItem('pushToken');
+        console.log('푸시알림 토큰 해제 완료');
+        return true;
+      } else {
+        console.error('푸시알림 토큰 해제 실패:', response.status);
+        // ⭐ 추가: 서버 해제 실패해도 로컬에서는 제거 (임시)
+        await AsyncStorage.removeItem('pushToken');
+        console.warn('⚠️ 서버 해제 실패했지만 로컬에서 제거 (임시 해결책)');
+        return true;
+      }
+    } catch (error) {
+      console.error('푸시알림 토큰 해제 오류:', error);
+      // ⭐ 추가: 에러 발생해도 로컬에서는 제거 (임시)
+      try {
+        await AsyncStorage.removeItem('pushToken');
+        console.warn('⚠️ 에러 발생했지만 로컬에서 제거 (임시 해결책)');
+      } catch (storageError) {
+        console.error('❌ AsyncStorage 제거 실패:', storageError);
+      }
+      return true;
     }
-    return true;
-  }
-};
+  };
 
 export const setupNotificationListeners = (navigation) => {
     // 포그라운드 알림 수신 시 처리
