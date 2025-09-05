@@ -1,4 +1,4 @@
-package com.holdingham.doodook
+package com.r8ol7z.doodook
 
 import android.os.Build
 import android.os.Bundle

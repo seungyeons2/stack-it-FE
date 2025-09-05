@@ -1,4 +1,4 @@
-package com.holdingham.doodook
+package com.r8ol7z.doodook
 
 import android.app.Application
 import android.content.res.Configuration
