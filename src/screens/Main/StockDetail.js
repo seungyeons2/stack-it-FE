@@ -113,11 +113,11 @@ const StockDetail = ({ route, navigation }) => {
       // 3. 데이터 설정
       if (priceData.status === "success" && changeData.status === "success") {
         const changeSign =
-          changeData.change_status === "up"
-            ? " ⏶ "
-            : changeData.change_status === "down"
-            ? " ⏷ "
-            : "";
+        changeData.change_status === "up"
+          ? " \u25B2 "  
+          : changeData.change_status === "down"
+          ? " \u25BC "  
+          : "";
 
         const priceChangeSign =
           changeData.change_status === "up"
