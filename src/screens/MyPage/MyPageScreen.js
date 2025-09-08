@@ -20,14 +20,15 @@ import { increaseBalance } from "../../utils/point";
 import { unregisterPushToken } from "../../services/PushNotificationService";
 
 const MyPageScreen = ({ navigation }) => {
-  console.log("📌 MyPageScreen 렌더링");
+  console.log("🔌 MyPageScreen 렌더링");
 
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [equippedBadges, setEquippedBadges] = useState(["🔥", "🌟", "💯"]);
-  const [introText, setIntroText] = useState("티끌 모아 태산이긴해!");
   const [isEditingIntro, setIsEditingIntro] = useState(false);
   const [mbtiType, setMbtiType] = useState(null);
+  const [mbtiAlias, setMbtiAlias] = useState(null);
+  const [aliasLoading, setAliasLoading] = useState(false);
 
   const DEPOSIT_AMOUNT = 100000;
 
@@ -35,21 +36,115 @@ const MyPageScreen = ({ navigation }) => {
     fetchUserMbtiType(navigation, setMbtiType);
   }, []);
 
-  const MenuButton = ({ label, onPress }) => (
+  // MBTI 추천 정보 가져오기 (별명 가져올라구)
+  const fetchMbtiRecommendations = async () => {
+    try {
+      setAliasLoading(true);
+      console.log("🎯 MBTI 추천 정보 요청 시작");
+
+      const accessToken = await getNewAccessToken(navigation);
+      if (!accessToken) {
+        console.warn("⚠️ 액세스 토큰이 없음");
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}mbti/result/recommendations/`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("📡 MBTI 추천 API 응답 상태:", response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ MBTI 추천 데이터:", data);
+
+        if (data.alias) {
+          setMbtiAlias(data.alias);
+          console.log("🎭 별명 설정 완료:", data.alias);
+        } else {
+          console.warn("⚠️ 응답에 alias가 없음");
+        }
+      } else {
+        const errorText = await response.text();
+        console.warn(
+          "❌ MBTI 추천 정보 가져오기 실패:",
+          response.status,
+          errorText
+        );
+      }
+    } catch (error) {
+      console.error("❌ MBTI 추천 정보 가져오기 중 오류:", error);
+    } finally {
+      setAliasLoading(false);
+    }
+  };
+
+  // 생년월일 포맷팅 (원래는 YYYY-MM-DD인데 일단 바꿀 수도 있음)
+  const formatBirthdate = (birthdate) => {
+    if (!birthdate) return "";
+    const date = new Date(birthdate);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}.${month}.${day}`;
+  };
+
+  // 이메일 마스킹
+  const maskEmail = (email) => {
+    if (!email) return "";
+    const [localPart, domain] = email.split("@");
+    if (localPart.length <= 2) return email;
+    const maskedLocal =
+      localPart.substring(0, 2) + "*".repeat(localPart.length - 2);
+    return `${maskedLocal}@${domain}`;
+  };
+
+  // 생일까지 D-day 계산
+  const calculateBirthdayDday = (birthdate) => {
+    if (!birthdate) return "";
+
+    const today = new Date();
+    const birth = new Date(birthdate);
+
+    const thisYearBirthday = new Date(
+      today.getFullYear(),
+      birth.getMonth(),
+      birth.getDate()
+    );
+
+    // 올해 생일이 지났으면 내년 생일로
+    if (thisYearBirthday < today) {
+      thisYearBirthday.setFullYear(today.getFullYear() + 1);
+    }
+    const diffTime = thisYearBirthday - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "🎉 생일 축하드려요!";
+    if (diffDays === 1) return "🎂 D-1";
+    return `🎂 D-${diffDays}`;
+  };
+
+  const MenuButton = ({ label, onPress, iconColor = "#ffffff" }) => (
     <TouchableOpacity style={styles.menuButton} onPress={onPress}>
       <View style={styles.menuRow}>
         <Text style={styles.menuText}>{label}</Text>
-        <Icon name="chevron-right" size={20} color="#ffffff" />
+        <Icon name="chevron-right" size={20} color={iconColor} />
       </View>
     </TouchableOpacity>
   );
 
   const handleLogout = async () => {
     try {
-
       console.log("📱 Push Token 해제 시작");
       try {
-        const pushUnregisterSuccess = await unregisterPushToken(navigation); // ⭐ 수정: navigation 파라미터 추가
+        const pushUnregisterSuccess = await unregisterPushToken(navigation);
         if (pushUnregisterSuccess) {
           console.log("✅ Push Token 해제 성공");
         } else {
@@ -57,9 +152,7 @@ const MyPageScreen = ({ navigation }) => {
         }
       } catch (pushError) {
         console.error("❌ Push Token 해제 중 오류:", pushError);
-  
       }
-
 
       try {
         const accessToken = await getNewAccessToken(navigation);
@@ -82,12 +175,11 @@ const MyPageScreen = ({ navigation }) => {
         console.warn("⚠️ 서버 로그아웃 요청 중 오류:", serverError);
       }
 
-
       await Promise.all([
-        clearTokens(), // 토큰 정리
+        clearTokens(),
         AsyncStorage.removeItem("userEmail"),
         AsyncStorage.removeItem("userPassword"),
-        AsyncStorage.removeItem("deviceId"), 
+        AsyncStorage.removeItem("deviceId"),
         AsyncStorage.removeItem("pushToken"),
       ]);
 
@@ -97,7 +189,6 @@ const MyPageScreen = ({ navigation }) => {
         {
           text: "확인",
           onPress: () => {
-
             navigation.reset({
               index: 0,
               routes: [{ name: "Login" }],
@@ -113,8 +204,8 @@ const MyPageScreen = ({ navigation }) => {
           clearTokens(),
           AsyncStorage.removeItem("userEmail"),
           AsyncStorage.removeItem("userPassword"),
-          AsyncStorage.removeItem("deviceId"), 
-          AsyncStorage.removeItem("pushToken"), 
+          AsyncStorage.removeItem("deviceId"),
+          AsyncStorage.removeItem("pushToken"),
         ]);
       } catch (cleanupError) {
         console.error("❌ 로컬 데이터 정리 중 오류:", cleanupError);
@@ -145,15 +236,13 @@ const MyPageScreen = ({ navigation }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              // ⭐ 추가: Push Token 해제 (회원 탈퇴 시)
               console.log("📱 회원 탈퇴 - Push Token 해제 시작");
               try {
-                await unregisterPushToken(navigation); // ⭐ 수정: navigation 파라미터 추가
+                await unregisterPushToken(navigation);
                 console.log("✅ 탈퇴 시 Push Token 해제 성공");
               } catch (pushError) {
                 console.error("❌ 탈퇴 시 Push Token 해제 오류:", pushError);
               }
-              // ⭐ 추가 끝
 
               const accessToken = await getNewAccessToken(navigation);
               if (!accessToken) {
@@ -174,15 +263,13 @@ const MyPageScreen = ({ navigation }) => {
               });
 
               if (response.ok) {
-                // ⭐ 추가: 로컬 데이터도 정리 (Push 관련 포함)
                 await Promise.all([
                   clearTokens(),
                   AsyncStorage.removeItem("userEmail"),
                   AsyncStorage.removeItem("userPassword"),
-                  AsyncStorage.removeItem("deviceId"), 
-                  AsyncStorage.removeItem("pushToken"), 
+                  AsyncStorage.removeItem("deviceId"),
+                  AsyncStorage.removeItem("pushToken"),
                 ]);
-                // ⭐ 추가 끝
 
                 Alert.alert("탈퇴 완료", "계정이 삭제되었습니다.");
                 navigation.navigate("Login");
@@ -212,7 +299,11 @@ const MyPageScreen = ({ navigation }) => {
           return;
         }
 
-        await fetchUserInfo(navigation, setUserInfo);
+        // 사용자 정보와 MBTI 추천 정보를 병렬로 로드
+        await Promise.all([
+          fetchUserInfo(navigation, setUserInfo),
+          fetchMbtiRecommendations(),
+        ]);
       } catch (err) {
         console.error("❌ 사용자 정보 불러오기 실패:", err);
         Alert.alert("오류", "사용자 정보를 불러오지 못했습니다.");
@@ -224,6 +315,14 @@ const MyPageScreen = ({ navigation }) => {
     loadUserData();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      fetchMbtiRecommendations();
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: "center" }]}>
@@ -234,107 +333,129 @@ const MyPageScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* 프로필 섹션 */}
       <View style={styles.profileSection}>
-        {/* 왼쪽: 이미지 + 닉네임 */}
-        <View style={styles.profileLeft}>
-          <Image
-            source={
-              mbtiType && getMbtiImage(mbtiType)
-                ? getMbtiImage(mbtiType)
-                : require("../../assets/profile.png")
-            }
-            style={styles.profileImage}
-          />
-        </View>
-
-        {/* 오른쪽: 뱃지 + 한줄소개 */}
-        <View style={styles.profileRight}>
-          <View style={styles.badgeRow}>
-            {equippedBadges.map((badge, index) => (
-              <View key={index} style={styles.badgeBox}>
-                <Text style={styles.badgeText}>{badge}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.userName}>
-            {userInfo?.nickname || "잔고가 두둑한 햄스터"}
-          </Text>
-
-          <View style={styles.introRow}>
-            <Icon
-              name="edit-3"
-              size={16}
-              color="#ccc"
-              style={{ marginRight: 6 }}
-              onPress={() => setIsEditingIntro(true)}
+        <View style={styles.profileCard}>
+          {/* 프로필 이미지 */}
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={
+                mbtiType && getMbtiImage(mbtiType)
+                  ? getMbtiImage(mbtiType)
+                  : require("../../assets/profile.png")
+              }
+              style={styles.profileImage}
             />
-            {isEditingIntro ? (
-              <TextInput
-                value={introText}
-                onChangeText={setIntroText}
-                onSubmitEditing={() => setIsEditingIntro(false)}
-                style={styles.introInput}
-                autoFocus
-              />
+            <View style={styles.profileImageShadow} />
+          </View>
+
+          {/* 유저 정보 */}
+          <View style={styles.userInfoContainer}>
+            <Text style={styles.userName}>
+              {userInfo?.nickname || "잔고가 두둑한 햄스터"}
+            </Text>
+
+            {/* MBTI 별명 */}
+            {aliasLoading ? (
+              <View style={styles.aliasLoadingContainer}>
+                <ActivityIndicator size="small" color="#A8E6CF" />
+                <Text style={styles.aliasLoadingText}></Text>
+              </View>
+            ) : mbtiAlias ? (
+              <Text style={styles.mbtiAlias}>"{mbtiAlias}"</Text>
             ) : (
-              <TouchableOpacity onPress={() => setIsEditingIntro(true)}>
-                <Text style={styles.introText}>: {introText}</Text>
-              </TouchableOpacity>
+              <Text style={styles.mbtiAliasEmpty}>별명을 불러오는 중...</Text>
             )}
+
+            <View style={styles.userDetailsContainer}>
+              {userInfo?.email && (
+                <View style={styles.userDetailRow}>
+                  <Icon
+                    name="mail"
+                    size={14}
+                    color="#B8C5D1"
+                    style={styles.detailIcon}
+                  />
+                  <Text style={styles.userDetailText}>
+                    {/* {maskEmail(userInfo.email)} 일단 마스킹 안함.*/}
+                    {userInfo.email}
+                  </Text>
+                </View>
+              )}
+
+              {userInfo?.birthdate && (
+                <View style={styles.userDetailRow}>
+                  <Icon
+                    name="calendar"
+                    size={14}
+                    color="#B8C5D1"
+                    style={styles.detailIcon}
+                  />
+                  <Text style={styles.userDetailText}>
+                    {formatBirthdate(userInfo.birthdate)}
+                  </Text>
+                  <Text style={styles.birthdayDday}>
+                    {calculateBirthdayDday(userInfo.birthdate)}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </View>
 
       <View style={styles.divider} />
-      <Text style={styles.moneyTitle}>🐹 돌려돌려 돌림판 🐹</Text>
-      <View style={styles.moneyButtonContainer}>
-        {/* <TouchableOpacity
-          style={styles.tiggleButton}
-          onPress={async () => {
-            try {
-              const message = await increaseBalance(navigation, DEPOSIT_AMOUNT);
-              Alert.alert("출석 보상 받기", message);
-            } catch (error) {
-              Alert.alert("에러", error.message || "보상 받기에 실패했습니다.");
-            }
-          }}
-        >
-          <Text style={styles.moneyButtonText}>출석 보상 받기</Text>
-        </TouchableOpacity> */}
 
+      {/* 돌림판 섹션 */}
+      <View style={styles.rouletteSection}>
+        <Text style={styles.moneyTitle}>📢 진행 중인 이벤트</Text>
         <TouchableOpacity
-          style={styles.taesanButton}
+          style={styles.rouletteButton}
           onPress={() => navigation.navigate("Roulette")}
         >
-          <Text style={styles.moneyButtonText}>출석 보상 받으러 가기</Text>
+          <View style={styles.rouletteButtonContent}>
+            <Text style={styles.rouletteButtonText}>일일 룰렛 돌리기</Text>
+            <Icon name="arrow-right" size={20} color="#FFFFFF" />
+          </View>
         </TouchableOpacity>
       </View>
 
       <View style={styles.divider} />
 
-      <ScrollView
-        contentContainerStyle={styles.menuContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <MenuButton
-          label="회원정보 수정"
-          onPress={() => navigation.navigate("EditUserInfo")}
-        />
-        <MenuButton
-          label="공지사항"
-          onPress={() => navigation.navigate("Notice")}
-        />
-        <MenuButton
-          label="자주 묻는 질문(FAQ)"
-          onPress={() => navigation.navigate("FAQ")}
-        />
-        <MenuButton
-          label="비밀번호 변경"
-          onPress={() => navigation.navigate("ChangePassword")}
-        />
-        <MenuButton label="로그아웃" onPress={handleLogout} />
-        <MenuButton label="회원 탈퇴" onPress={handleDeleteAccount} />
-      </ScrollView>
+      {/* 메뉴 섹션 */}
+      <View style={styles.menuSectionContainer}>
+        <ScrollView
+          contentContainerStyle={styles.menuContainer}
+          showsVerticalScrollIndicator={false}
+          style={styles.menuScrollView}
+        >
+          <MenuButton
+            label="공지사항"
+            onPress={() => navigation.navigate("Notice")}
+            iconColor="#6EE69E"
+          />
+          <MenuButton
+            label="자주 묻는 질문(FAQ)"
+            onPress={() => navigation.navigate("FAQ")}
+            iconColor="#6EE69E"
+          />
+          <MenuButton
+            label="비밀번호 변경"
+            onPress={() => navigation.navigate("ChangePassword")}
+            iconColor="#6EE69E"
+          />
+          <MenuButton
+            label="로그아웃"
+            onPress={handleLogout}
+            iconColor="#6EE69E"
+          />
+          <MenuButton
+            label="회원 탈퇴"
+            onPress={handleDeleteAccount}
+            iconColor="#9aa19dff"
+          />
+        </ScrollView>
+      </View>
     </View>
   );
 };
@@ -343,133 +464,195 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#003340",
-    paddingHorizontal: 30,
-    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingTop: 50,
   },
+
+  // 프로필 섹션
   profileSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 30,
-    marginBottom: 0,
-  },
-  profileLeft: {
-    alignItems: "center",
-    marginLeft: 10,
-    marginRight: 30,
-  },
-  profileRight: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: "#FFFFFFB0",
-    backgroundColor: "#D4DDEF60",
-  },
-  badgeRow: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    marginBottom: 0,
-  },
-  badgeBox: {
-    backgroundColor: "#FFFFFF80",
-    borderRadius: 50,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
-    marginRight: 8,
-  },
-  badgeText: {
-    fontSize: 15,
-    color: "white",
-    fontWeight: "bold",
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#F8C7CC",
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  introRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 0,
-    marginLeft: 0,
-  },
-  introText: {
-    fontSize: 15,
-    color: "#EEEEEE",
-  },
-  introInput: {
-    fontSize: 14,
-    color: "white",
-    borderBottomWidth: 1,
-    borderBottomColor: "#888",
-    flex: 1,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#4A5A60",
-    marginVertical: 20,
-  },
-  moneyTitle: {
-    color: "#EEEEEE",
-    fontSize: 18,
-    marginBottom: 20,
-    marginLeft: 15,
-    marginTop: 5,
-    fontWeight: "600",
-  },
-  moneyButtonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    marginTop: 20,
     marginBottom: 10,
   },
-  tiggleButton: {
-    flex: 1,
-    backgroundColor: "#5DB996E0",
-    paddingVertical: 20,
+  profileCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.09)",
     borderRadius: 20,
-    marginHorizontal: 10,
+    padding: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  profileImageContainer: {
+    position: "relative",
+    marginRight: 20,
+  },
+  profileImage: {
+    width: 95,
+    height: 95,
+    borderRadius: 50,
+    backgroundColor: "rgba(212, 221, 239, 0.2)",
+  },
+  profileImageShadow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 95,
+    height: 95,
+    borderRadius: 50,
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "rgba(247, 206, 229, 0.3)",
+  },
+  userInfoContainer: {
+    flex: 1,
+    justifyContent: "center",
+    backgroundColor: "transparent",
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#FFD1EB",
+    marginBottom: 4,
+    marginTop: 5,
+    letterSpacing: 0.5,
+  },
+  mbtiAlias: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#dadadaff",
+    marginBottom: 13,
+    //fontStyle: "italic",
+    letterSpacing: 0.3,
+  },
+  mbtiAliasEmpty: {
+    fontSize: 12,
+    fontWeight: "400",
+    color: "rgba(168, 230, 207, 0.5)",
+    marginBottom: 13,
+    //fontStyle: "italic",
+  },
+  aliasLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  aliasLoadingText: {
+    fontSize: 12,
+    color: "#dadadaff",
+    marginLeft: 6,
+    fontStyle: "italic",
+  },
+  userDetailsContainer: {
+    gap: 6,
+  },
+  userDetailRow: {
+    flexDirection: "row",
     alignItems: "center",
   },
-  taesanButton: {
-    flex: 1,
-    backgroundColor: "#F074BAE0",
-    paddingVertical: 20,
-    borderRadius: 20,
-    marginHorizontal: 10,
-    alignItems: "center",
+  detailIcon: {
+    marginRight: 8,
+    width: 16,
   },
-  moneyButtonText: {
-    fontFamily: "Times New Roman",
-    color: "#EFF1F5",
-    fontSize: 18,
-    fontWeight: "500",
+  userDetailText: {
+    fontSize: 14,
+    color: "#B8C5D1",
+    fontWeight: "400",
+    letterSpacing: 0.2,
+  },
+  birthdayDday: {
+    fontSize: 12,
+    color: "#fb9dd2ff",
+    fontWeight: "600",
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: "rgba(254, 212, 236, 0.1)",
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
+  // 구분선
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginVertical: 25,
+  },
+
+  // 돌림판 섹션
+  rouletteSection: {
+    marginBottom: 10,
+  },
+  moneyTitle: {
+    color: "#B8C5D1",
+    fontSize: 16,
+    marginBottom: 15,
+    fontWeight: "400",
+    textAlign: "left",
+    marginLeft: 4,
+  },
+  rouletteButton: {
+    backgroundColor: "#F074BA",
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    shadowColor: "#F074BA",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  rouletteButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rouletteButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginRight: 10,
+    letterSpacing: 0.3,
+  },
+
+  // 메뉴 섹션
+  menuSectionContainer: {
+    flex: 1,
+    marginTop: 0,
+  },
+  menuScrollView: {
+    flex: 1,
   },
   menuContainer: {
-    paddingVertical: 0,
-    paddingHorizontal: 0,
+    paddingBottom: 30,
+    flexGrow: 1,
+  },
+  menuButton: {
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
   menuRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  menuButton: {
-    backgroundColor: "#D4DDEF30",
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 13,
-    marginHorizontal: 5,
-  },
   menuText: {
     fontSize: 16,
-    color: "white",
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
 });
 
