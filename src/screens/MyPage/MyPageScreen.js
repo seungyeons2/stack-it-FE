@@ -588,10 +588,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   moneyTitle: {
-    color: "#B8C5D1",
-    fontSize: 16,
+    color: "#c6d4e1ff",
+    fontSize: 17,
     marginBottom: 15,
-    fontWeight: "400",
+    fontWeight: "500",
     textAlign: "left",
     marginLeft: 4,
   },
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   },
   rouletteButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "600",
     marginRight: 10,
     letterSpacing: 0.3,
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   menuText: {
-    fontSize: 16,
+    fontSize: 17,
     color: "#FFFFFF",
     fontWeight: "500",
     letterSpacing: 0.2,
