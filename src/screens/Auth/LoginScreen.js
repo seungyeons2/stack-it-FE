@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   Text,
@@ -6,7 +6,11 @@ import {
   View,
   TouchableOpacity,
   Alert,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  ScrollView,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import EyeOpen from "../../components/EyeOpen";
@@ -14,13 +18,63 @@ import EyeClosed from "../../components/EyeClosed";
 import { API_BASE_URL, API_ENDPOINTS } from "../../utils/apiConfig";
 import { registerPushToken } from "../../services/PushNotificationService";
 
-
-
 const LoginScreen = ({ navigation }) => {
   const [seePassword, setSeePassword] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  const titleOpacity = useState(new Animated.Value(1))[0];
+  const titleTranslateY = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      "keyboardDidShow",
+      handleKeyboardShow
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      "keyboardDidHide",
+      handleKeyboardHide
+    );
+
+    return () => {
+      keyboardDidShowListener?.remove();
+      keyboardDidHideListener?.remove();
+    };
+  }, []);
+
+  const handleKeyboardShow = () => {
+    setKeyboardVisible(true);
+    Animated.parallel([
+      Animated.timing(titleOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(titleTranslateY, {
+        toValue: -30,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleKeyboardHide = () => {
+    setKeyboardVisible(false);
+    Animated.parallel([
+      Animated.timing(titleOpacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(titleTranslateY, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -67,13 +121,13 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem("accessToken", access);
         await AsyncStorage.setItem("refreshToken", refresh);
         await AsyncStorage.setItem("userEmail", email);
-        await AsyncStorage.setItem("userPassword", password); // ❗ 자동 로그인을 위해 password도 저장
+        await AsyncStorage.setItem("userPassword", password);
 
-        
         await AsyncStorage.setItem(
           "hasCompletedTutorial",
           has_completed_tutorial.toString()
         );
+
         try {
           const pushTokenSuccess = await registerPushToken(navigation);
           if (pushTokenSuccess) {
@@ -83,10 +137,7 @@ const LoginScreen = ({ navigation }) => {
           }
         } catch (pushError) {
           console.error(" Push Token 등록 중 오류:", pushError);
-          // Push Token 등록 실패해도 로그인은 계속 진행
         }
-
-        // 튜토리얼 완료 여부 저장
 
         if (has_completed_tutorial) {
           console.log("🔹 튜토리얼 완료 → MainTab 이동");
@@ -95,12 +146,8 @@ const LoginScreen = ({ navigation }) => {
           console.log("🔹 튜토리얼 미완료 → TutorialScreen 이동");
           navigation.navigate("TutorialScreen", { fromLogin: true });
         }
-
-        // console.log("🔹 로그인 성공, MainTab으로 이동 시도");
-        // navigation.navigate("MainTab");
       } else {
         console.log("❌ 로그인 실패:", data);
-
         Alert.alert(
           "오류",
           "로그인 정보가 일치하지 않습니다.\n다시 확인해 주세요."
@@ -115,71 +162,110 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>로그인</Text>
-
-      <Text style={styles.label}>이메일</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="이메일(아이디)를 입력해주세요"
-        placeholderTextColor="#CCCDD0"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-
-      <Text style={styles.label}>비밀번호</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.inputField}
-          placeholder="비밀번호를 입력해주세요"
-          placeholderTextColor="#CCCDD0"
-          secureTextEntry={seePassword}
-          value={password}
-          onChangeText={setPassword}
-        />
-        <TouchableOpacity
-          onPress={() => setSeePassword(!seePassword)}
-          style={styles.icon}
-        >
-          {seePassword ? <EyeClosed /> : <EyeOpen />}
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={isLoading}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.buttonText}>
-          {isLoading ? "로그인 중..." : "로그인"}
-        </Text>
-      </TouchableOpacity>
-
-      <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity
-          onPress={() => navigation.navigate("FindId")}
-          style={styles.findIdButton}
+        <Animated.View
+          style={[
+            styles.titleContainer,
+            {
+              opacity: titleOpacity,
+              transform: [{ translateY: titleTranslateY }],
+            },
+          ]}
         >
-          <Text style={styles.findIdText}>이메일 찾기</Text>
-        </TouchableOpacity> */}
+          <Text style={styles.title}>로그인</Text>
+        </Animated.View>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate("FindPassword")}
-          style={styles.findPasswordButton}
+        <View
+          style={[
+            styles.inputSection,
+            keyboardVisible && styles.inputSectionKeyboard,
+          ]}
         >
-          <Text style={styles.findPasswordText}>비밀번호 찾기</Text>
-        </TouchableOpacity>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>이메일</Text>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={styles.input}
+                placeholder="이메일(아이디)를 입력해주세요"
+                placeholderTextColor="#CCCDD0"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate("SignUp1")}
-          style={styles.signUpButton}
-        >
-          <Text style={styles.findPasswordText}>회원가입</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>비밀번호</Text>
+            <View style={styles.inputWrapper}>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="비밀번호를 입력해주세요"
+                  placeholderTextColor="#CCCDD0"
+                  secureTextEntry={seePassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  onPress={() => setSeePassword(!seePassword)}
+                  style={styles.eyeIcon}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  {seePassword ? <EyeClosed /> : <EyeOpen />}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              isLoading && styles.loginButtonDisabled,
+            ]}
+            onPress={handleLogin}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginButtonText}>
+              {isLoading ? "로그인 중..." : "로그인"}
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.linkContainer}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("FindPassword")}
+              style={styles.linkButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.linkText}>비밀번호 찾기</Text>
+            </TouchableOpacity>
+
+            <View style={styles.linkSeparator} />
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate("SignUp1")}
+              style={styles.linkButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.linkText}>회원가입</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -187,102 +273,122 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#003340",
-    alignItems: "center",
-    justifyContent: "center",
+  },
+  scrollContainer: {
+    flexGrow: 1,
     paddingHorizontal: 30,
   },
+  titleContainer: {
+    paddingTop: 130,
+    paddingBottom: 50,
+    alignItems: "flex-start",
+  },
   title: {
-    fontSize: 24,
+    fontSize: 25,
     fontWeight: "bold",
     color: "#F074BA",
-    position: "absolute",
-    top: 150,
-    left: 30,
+    letterSpacing: 0.5,
+  },
+  inputSection: {
+    flex: 1,
+    justifyContent: "center",
+    paddingBottom: 60,
+  },
+  inputSectionKeyboard: {
+    justifyContent: "flex-start",
+    paddingTop: 20,
+  },
+  inputGroup: {
+    marginBottom: 24,
   },
   label: {
     fontSize: 16,
     color: "#F074BA",
-    alignSelf: "flex-start",
-    marginTop: 10,
-    marginBottom: 10,
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+  inputWrapper: {
+    borderRadius: 12,
+    backgroundColor: "#f9f9f9",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   input: {
-    width: "100%",
-    height: 50,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 5,
+    height: 52,
+    paddingHorizontal: 16,
     fontSize: 16,
-    backgroundColor: "#f9f9f9",
-    color: "black",
+    color: "#333",
+    backgroundColor: "transparent",
   },
-  inputContainer: {
+  passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
-    marginBottom: 15,
-    paddingHorizontal: 10,
+    height: 52,
   },
-  inputField: {
+  passwordInput: {
     flex: 1,
-    height: 50,
+    paddingHorizontal: 16,
     fontSize: 16,
-    color: "black",
+    color: "#333",
   },
-  icon: {
-    padding: 10,
+  eyeIcon: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  button: {
-    width: "100%",
-    height: 50,
+  loginButton: {
+    height: 52,
     backgroundColor: "#F074BA",
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    position: "absolute",
-    bottom: 80,
+    marginTop: 16,
+    shadowColor: "#F074BA",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  buttonDisabled: {
+  loginButtonDisabled: {
     backgroundColor: "#d3d3d3",
+    shadowOpacity: 0.1,
   },
-  buttonText: {
+  loginButtonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
-  buttonContainer: {
+  linkContainer: {
     flexDirection: "row",
-    marginTop: 10,
-    paddingHorizontal: 10,
-  },
-  findIdButton: {
+    justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
+    marginTop: 24,
+    paddingBottom: 20,
   },
-  findIdText: {
+  linkButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  linkText: {
     color: "#EFF1F5",
     fontSize: 16,
+    textDecorationLine: "underline",
   },
-  findPasswordButton: {
-    alignItems: "flex-start",
-    marginRight: 180,
-  },
-  findPasswordText: {
-    color: "#EFF1F5",
-    fontSize: 16,
-  },
-  signUpButton: {
-    alignItems: "center",
-  },
-  signUpText: {
-    color: "#EFF1F5",
-    fontSize: 16,
+  linkSeparator: {
+    width: 1,
+    height: 16,
+    backgroundColor: "#EFF1F5",
+    marginHorizontal: 16,
+    opacity: 0.5,
   },
 });
 
