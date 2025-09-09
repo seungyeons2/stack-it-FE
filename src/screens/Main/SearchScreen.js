@@ -27,7 +27,7 @@ const SearchScreen = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/stock/autocomplete/?query=${query}`
+        `${API_BASE_URL}api/stock/autocomplete/?query=${query}`
       );
       const data = await response.json();
 
@@ -54,7 +54,7 @@ const SearchScreen = ({ navigation }) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${API_BASE_URL}/api/stock/search/?query=${query}`
+        `${API_BASE_URL}api/stock/search/?query=${query}`
       );
       const data = await response.json();
 

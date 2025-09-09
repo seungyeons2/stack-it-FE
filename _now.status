@@ -1,0 +1,11 @@
+ M .expo/devices.json
+ M App.js
+ M package-lock.json
+ M package.json
+ M src/services/PushNotificationService.ios.js
+?? .expo/prebuild/
+?? .expo/web/
+?? .expo/xcodebuild-error.log
+?? .expo/xcodebuild.log
+?? _now.status
+?? ios/

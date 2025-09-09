@@ -45,7 +45,7 @@ const TypeResultScreen = ({ navigation }) => {
 
       // 1. 먼저 기본 결과 정보 가져오기
       const resultResponse = await fetch(
-        `${API_BASE_URL}/mbti/result/detail/`,
+        `${API_BASE_URL}mbti/result/detail/`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -87,7 +87,7 @@ const TypeResultScreen = ({ navigation }) => {
 
         // 2. 추천 정보 가져오기
         const recResponse = await fetch(
-          `${API_BASE_URL}/mbti/result/recommendations/`,
+          `${API_BASE_URL}mbti/result/recommendations/`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
