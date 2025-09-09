@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Doodook",
+    "name": "두둑",
     "slug": "doodook",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,17 +13,13 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "bundleIdentifier": "com.lipeuoo.doodook",
       "buildNumber": "7",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
+        "UIBackgroundModes": ["remote-notification"],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -33,7 +29,8 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.r8ol7z.doodook",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": ["WAKE_LOCK", "RECEIVE_BOOT_COMPLETED"]
     },
     "web": {
       "favicon": "./src/assets/images/logo-d-app-icon-1500.png"
@@ -48,7 +45,5 @@
         }
       ]
     ]
-
   }
 }
-
