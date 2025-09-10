@@ -11,12 +11,15 @@ import {
   Image,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/Feather";
+
 import LearningProgressBar from "../../components/LearningProgressBar";
 import InspectIcon from "../../assets/icons/stock-inspect.svg";
 import ResultIcon from "../../assets/icons/stock-result.svg";
 import LockIcon from "../../assets/icons/lock.svg";
-// import QuestionIcon from "../../assets/icons/question.png";
+
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { getNewAccessToken } from "../../utils/token";
 
@@ -24,6 +27,9 @@ const LEVELS = [1, 2, 3];
 
 const GuideScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+
   const [progressMap, setProgressMap] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -41,25 +47,17 @@ const GuideScreen = () => {
         try {
           const map = {};
           for (const levelId of LEVELS) {
-            const res = await fetch(
-              `${API_BASE_URL}progress/level/${levelId}/`,
-              {
-                method: "GET",
-                headers: { Authorization: `Bearer ${accessToken}` },
-              }
-            );
-            if (!res.ok) {
-              throw new Error(`Level ${levelId} fetch failed: ${res.status}`);
-            }
+            const res = await fetch(`${API_BASE_URL}progress/level/${levelId}/`, {
+              method: "GET",
+              headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!res.ok) throw new Error(`Level ${levelId} fetch failed: ${res.status}`);
             map[levelId] = await res.json();
           }
           setProgressMap(map);
         } catch (err) {
           console.error(err);
-          Alert.alert(
-            "데이터 오류",
-            "진행도 정보를 불러오는 중 오류가 발생했습니다."
-          );
+          Alert.alert("데이터 오류", "진행도 정보를 불러오는 중 오류가 발생했습니다.");
         } finally {
           setLoading(false);
         }
@@ -78,7 +76,7 @@ const GuideScreen = () => {
   }
 
   const ClearButton = ({ label, onPress }) => (
-    <TouchableOpacity style={styles.clearButton} onPress={onPress}>
+    <TouchableOpacity style={styles.clearButton} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.menuRow}>
         <Text style={styles.menuText}>{label}</Text>
         <Icon name="chevron-right" size={20} color="#ffffff" />
@@ -87,7 +85,7 @@ const GuideScreen = () => {
   );
 
   const UnClearButton = ({ onPress, children }) => (
-    <TouchableOpacity style={styles.unclearButton} onPress={onPress}>
+    <TouchableOpacity style={styles.unclearButton} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.menuRow}>
         {children}
         <Icon name="chevron-right" size={20} color="#ffffff" />
@@ -97,206 +95,243 @@ const GuideScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🧠 투자 유형 검사하기</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.examButton}
-          onPress={() => navigation.navigate("TypeExam")}
-        >
-          <InspectIcon width={90} height={90} />
-          <Text style={styles.buttonText}>유형 검사하기</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.resultButton}
-          onPress={() => navigation.navigate("TypeResult")}
-        >
-          <ResultIcon width={90} height={90} />
-          <Text style={styles.buttonText}>유형 결과 확인하기</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.divider} />
-      <Text style={styles.title}>✏️ 주식 초보를 위한 학습가이드</Text>
+      {/* 전체 스크롤 (상단 카드 + 학습가이드 모두 포함) */}
       <ScrollView
-        contentContainerStyle={styles.menuContainer}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingBottom: tabBarHeight + Math.max(insets.bottom, 0) + 56 + 14 + 8,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {LEVELS.map((levelId) => {
-          const data = progressMap[levelId] || {
-            completed: 0,
-            total: 0,
-            is_level_completed: false,
-            progress_ratio: "0/0",
-          };
+        <Text style={styles.title}>🧠 투자 유형 검사하기</Text>
 
-          // 1단계는 항상 잠금 해제.
-          // 그 외에는 이전 단계 완료 여부로 잠금 상태 결정
-          const prevComplete =
-            levelId === 1 || progressMap[levelId - 1]?.is_level_completed;
-          const showLockIcon = !prevComplete;
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.examButton}
+            onPress={() => navigation.navigate("TypeExam")}
+            activeOpacity={0.9}
+          >
+            <InspectIcon width={84} height={84} />
+            <Text
+              style={styles.buttonText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              ellipsizeMode="tail"
+            >
+              유형 검사하기
+            </Text>
+          </TouchableOpacity>
 
-          const label = `${levelId}단계`;
-          const onPress = () => navigation.navigate(`GuideLevel${levelId}`);
+          <TouchableOpacity
+            style={styles.resultButton}
+            onPress={() => navigation.navigate("TypeResult")}
+            activeOpacity={0.9}
+          >
+            <ResultIcon width={84} height={84} />
+            <Text
+              style={styles.buttonText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              ellipsizeMode="tail"
+            >
+              유형 결과 확인하기
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          return (
-            <View key={levelId}>
-              {data.is_level_completed ? (
-                <ClearButton label={label} onPress={onPress} />
-              ) : (
-          <UnClearButton onPress={onPress}>
-            <View style={styles.labelWithIcon}>
-              <Text style={styles.menuText}>{label}</Text>
-              {showLockIcon && (
-                <LockIcon
-                  style={styles.lockIcon}
-                  width={20}
-                  height={20}
-                />
-              )}
-            </View>
-          </UnClearButton>
-              )}
-              <LearningProgressBar
-                current={data.completed}
-                total={data.total}
-              />
-            </View>
-          );
-        })}
+        <View style={styles.divider} />
+
+        <Text style={styles.title}>✏️ 주식 초보를 위한 학습가이드</Text>
+
+        <View style={styles.menuContainer}>
+          {LEVELS.map((levelId) => {
+            const data = progressMap[levelId] || {
+              completed: 0,
+              total: 0,
+              is_level_completed: false,
+              progress_ratio: "0/0",
+            };
+
+            const prevComplete = levelId === 1 || progressMap[levelId - 1]?.is_level_completed;
+            const showLockIcon = !prevComplete;
+
+            const label = `${levelId}단계`;
+            const onPress = () => navigation.navigate(`GuideLevel${levelId}`);
+
+            return (
+              <View key={levelId} style={styles.levelBlock}>
+                {data.is_level_completed ? (
+                  <ClearButton label={label} onPress={onPress} />
+                ) : (
+                  <UnClearButton onPress={onPress}>
+                    <View style={styles.labelWithIcon}>
+                      <Text style={styles.menuText}>{label}</Text>
+                      {showLockIcon && <LockIcon style={styles.lockIcon} width={20} height={20} />}
+                    </View>
+                  </UnClearButton>
+                )}
+
+                <LearningProgressBar current={data.completed} total={data.total} />
+              </View>
+            );
+          })}
+        </View>
       </ScrollView>
-<View style={styles.fabContainer}>
-  <TouchableOpacity
-    onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
-    activeOpacity={0.7}
-    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-    style={styles.fabImageWrapper} // (옵션) 그림자만 주는 래퍼
-  >
-    <Image
-      source={require("../../assets/icons/question.png")}
-      style={styles.fabImage}
-      resizeMode="contain"
-    />
-  </TouchableOpacity>
-  <Text style={styles.fabLabel}>튜토리얼</Text>
-</View>
+
+      {/* 튜토리얼 FAB */}
+      <View
+        style={[
+          styles.fabContainer,
+          {
+            bottom: tabBarHeight + Math.max(insets.bottom, 0) + 4,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <TouchableOpacity
+          onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.fabImageWrapper}
+        >
+          <Image
+            source={require("../../assets/icons/question.png")}
+            style={styles.fabImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+        <Text
+          style={styles.fabLabel}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.9}
+        >
+          튜토리얼
+        </Text>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#003340",
-    paddingHorizontal: 30,
-    paddingTop: 60,
-  },
-  center: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#003340", paddingTop: 50 },
+
+  scrollContent: { paddingHorizontal: 20 },
+
+  center: { justifyContent: "center", alignItems: "center" },
+
   title: {
-    color: "#EEEEEE",
-    fontSize: 18,
-    marginBottom: 20,
-    marginLeft: 15,
+    color: "#c6d4e1ff",
+    fontSize: 17,
+    marginBottom: 15,
+    fontWeight: "500",
+    textAlign: "left",
+    marginLeft: 4,
     marginTop: 5,
-    fontWeight: "600",
+    letterSpacing: 0.2,
   },
+
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 12,
     marginBottom: 10,
   },
   examButton: {
     flex: 1,
-    aspectRatio: 1,
-    backgroundColor: "#6EE69EE0",
-    borderRadius: 20,
-    marginHorizontal: 10,
+    height: 150,
+    backgroundColor: "#6EE69E",
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    paddingHorizontal: 12,
+    shadowColor: "#6EE69E",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
   },
   resultButton: {
     flex: 1,
-    aspectRatio: 1,
-    backgroundColor: "#F074BAE0",
-    borderRadius: 20,
-    marginHorizontal: 10,
+    height: 150,
+    backgroundColor: "#F074BA",
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    paddingHorizontal: 12,
+    shadowColor: "#F074BA",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonText: {
-    fontFamily: "System",
-    color: "#EFF1F5",
-    fontSize: 15,
+    color: "#FFFFFF",
+    fontSize: 17,
     fontWeight: "600",
     marginTop: 10,
+    letterSpacing: 0.3,
+    textAlign: "center",
   },
+
   divider: {
     height: 1,
-    backgroundColor: "#4A5A60",
-    marginVertical: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginVertical: 25,
   },
-  menuContainer: {
-    paddingBottom: 30,
-  },
-  menuRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+
+  menuContainer: { paddingBottom: 10 },
+  levelBlock: { marginBottom: 8 },
+  menuRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+
   clearButton: {
-    backgroundColor: "#D4DDEF60",
-    padding: 15,
-    borderRadius: 15,
-    marginVertical: 5,
-    marginHorizontal: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.14)",
   },
   unclearButton: {
-    backgroundColor: "#D4DDEF20",
-    padding: 15,
-    borderRadius: 15,
-    marginVertical: 5,
-    marginHorizontal: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginVertical: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  labelWithIcon: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  lockIcon: {
-    marginLeft: 6,
-    marginTop: 1,
-  },
-  menuText: {
-    fontSize: 16,
-    color: "white",
-    fontWeight: "bold",
-  },
+
+  labelWithIcon: { flexDirection: "row", alignItems: "center" },
+  lockIcon: { marginLeft: 6, marginTop: 1 },
+
+  menuText: { fontSize: 17, color: "#FFFFFF", fontWeight: "500", letterSpacing: 0.2 },
+
   fabContainer: {
     position: "absolute",
-    right: 30,
-    bottom: 100,
+    right: 24,
     alignItems: "center",
+    zIndex: 999,
+    elevation: 9,
+    pointerEvents: "box-none",
   },
-  // (선택) 이미지에 살짝 그림자 주고 싶으면 사용, 아니면 삭제해도 됨
-  // fabImageWrapper: {
-  //   shadowColor: "#000",
-  //   shadowOffset: { width: 0, height: 2 },
-  //   shadowOpacity: 0.2,
-  //   shadowRadius: 3,
-  //   elevation: 3,
-  // },
-  // PNG 자체가 버튼이므로 배경/테두리 없음
-  fabImage: {
-    width: 56,   // 원본 크기를 쓰고 싶으면 이 두 줄 지워도 됩니다
-    height: 56,
-  },
+  fabImageWrapper: {},
+  fabImage: { width: 56, height: 56 },
   fabLabel: {
-    marginTop: 6,
-    fontSize: 12,
+    marginTop: 4,
+    fontSize: 11,
     color: "#EEEEEE",
+    letterSpacing: 0.2,
+    textAlign: "center",
+    maxWidth: 72,
+    textShadowColor: "rgba(0,0,0,0.35)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
 

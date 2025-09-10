@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE_URL, API_ENDPOINTS } from "./apiConfig";
+import { API_BASE_URL } from "./apiConfig";
 
 // 저장된 토큰 가져오기
 const getStoredAccessToken = async () => {

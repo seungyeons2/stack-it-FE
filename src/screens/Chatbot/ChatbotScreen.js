@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+// ChatbotScreen.js
+import React, { useState, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,337 +10,667 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-} from 'react-native';
-
-import { chatbotReply } from '../../utils/chatbotReply';
+  Animated,
+  Dimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import SearchIcon from "../../assets/icons/search.svg";
+import { chatbotReply } from "../../utils/chatbotReply";
+// Optional: Blur 배경을 쓰고 싶다면 설치 후 주석 해제
+// import { BlurView } from "expo-blur";
 
-// const ChatbotScreen = () => {
-//   console.log('ChatbotScreen 렌더링');
-//   return (
-//     <View style={styles.container}>
-//       <Text style={styles.text}>Chatbot Screen</Text>
-//     </View>
-//   );
-// };
-
-// const ChatbotScreen = () => {
-//   return (
-    
-//     <KeyboardAvoidingView
-//       style={styles.container}
-//       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-//       keyboardVerticalOffset={70} // ✅ 이거 추가!
-//     >
-//       <ScrollView 
-//       contentContainerStyle={styles.chatContainer}
-//         keyboardShouldPersistTaps="handled" // ✅ 이거 추가!
-//         >
-//         <View style={styles.botMessage}>
-//           <Text style={styles.botText}>안녕하세요! 무엇을 도와드릴까요?</Text>
-//         </View>
-
-//         <View style={styles.userMessage}>
-//           <Text style={styles.userText}>ETF 투자가 뭐야?</Text>
-//         </View>
-
-//         <View style={styles.botMessage}>
-//           <Text style={styles.botText}>
-//             ETF 투자를 생각해보면, 이게 마치 쇼핑몰에서 장바구니에 여러 가지 상품을 담는 것과 비슷해요. ETF는 주식, 채권 등 다양한 자산으로 이루어져 있어요. 이걸 사는 것은 그 장바구니 전체를 한 번에 사는 것이랑 같아요. 그래서 요즘은 이런 ETF 투자를 많이 추천하는데, 그 이유는 한 번에 많은 종목의 주식을 사는 것보다 위험을 분산시킬 수 있기 때문이에요. 이렇게 해서 여러 종목의 주식을 한 번에 관리할 수 있어요!
-//           </Text>
-//         </View>
-
-//         <View style={styles.userMessage}>
-//           <Text style={styles.userText}>ETF 투자가 뭐야? ETF 투자가 뭐야?</Text>
-//         </View>
-
-//         <View style={styles.botMessage}>
-//           <Text style={styles.botText}>
-//             이랑 같아요. 그래서 요즘은 이런 ETF 투자를 많이 추천하는데, 그 이유는 한 번에 많은
-//           </Text>
-//         </View>
-      
-      
-      
-      
-      
-//       </ScrollView>
-
-//       <View style={styles.inputBar}>
-//         <TouchableOpacity style={styles.hashButton}>
-//           <Text style={styles.hashText}>#</Text>
-//         </TouchableOpacity>
-//         <TextInput
-//           style={styles.textInput}
-//           placeholder="메시지를 입력하세요"
-//           placeholderTextColor="#aaa"
-//         />
-//         <TouchableOpacity style={styles.searchButton}>
-//           <Text style={styles.searchText}>🔍</Text>
-//         </TouchableOpacity>
-//       </View>
-//     </KeyboardAvoidingView>
-//   );
-// };
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const INPUT_BAR_HEIGHT = 70;
+const INPUT_FONT_SIZE = 16;
+// const INPUT_VERTICAL_PAD = 16; // 미사용이면 제거
+const GAP_FROM_TAB = 0; // 탭바에 밀착. 살짝 띄우고 싶으면 2~4 정도
 
 const ChatbotScreen = () => {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+
   const [messages, setMessages] = useState([
-    { sender: 'bot', text: '안녕하세요! 무엇을 도와드릴까요?' },
+    {
+      sender: "bot",
+      text: "안녕하세요! 투자에 대해 궁금한 것이 있으시면 언제든 물어보세요 ✨",
+      timestamp: Date.now(),
+    },
   ]);
-  const [input, setInput] = useState('');
-  const scrollRef = useRef();
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
-// const suggestions = [
-//   "인기 주식", "AI 추천 종목", "장 초반 이슈", "대장주",
-//   "어제의 급상승 10", "코스피/코스닥 상승률", "배당주 추천", "검색 급상승 종목"
-// ];
+  const scrollRef = useRef(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
-const suggestions = [
-  "주식 시작", "PER", "배당금", "우량주", "선물",
-  "호가창", "분산투자가 왜 필요해?", "상장폐지",
-  "코스피랑 코스닥 차이점", "공매도", "주식 거래 시간",
-  "평단가", "매수&매도", "시가", "수수료", "ETF"
-];
+  const suggestions = [
+    { text: "주식 투자 시작하기", icon: "📈", category: "기초" },
+    { text: "PER과 PBR 차이점", icon: "📊", category: "지표" },
+    { text: "배당주 추천해줘", icon: "💰", category: "투자" },
+    { text: "분산투자 전략", icon: "🎯", category: "전략" },
+    { text: "코스피 vs 코스닥", icon: "🏛️", category: "시장" },
+    { text: "ETF란 무엇인가요?", icon: "📦", category: "상품" },
+    { text: "공매도 원리", icon: "📉", category: "거래" },
+    { text: "주식 거래 시간", icon: "⏰", category: "기초" },
+  ];
 
-  // const suggestions = [
-  // "ETF 투자가 뭐야?",
-  // "삼성전자 주식 어때?",
-  // "카카오 실적은 어때?",
-  // "요즘 뜨는 산업 알려줘",
-  // "AI 관련주 알려줘",
-  // ];
+  React.useEffect(() => {
+    if (showSuggestions) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 50,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [showSuggestions]);
 
-const sendMessage = async () => {
-  if (!input.trim()) return;
+  const sendMessage = useCallback(
+    async (messageText = input) => {
+      if (!messageText.trim()) return;
 
-  const userMsg = { sender: 'user', text: input };
-  const loadingMsg = { sender: 'bot', text: '...' };
+      const userMsg = {
+        sender: "user",
+        text: messageText,
+        timestamp: Date.now(),
+      };
+      const loadingMsg = { sender: "bot", text: "typing", timestamp: Date.now() };
 
-  setMessages((prev) => [...prev, userMsg, loadingMsg]);
-  setInput('');
-  setLoading(true);
+      setMessages((prev) => [...prev, userMsg, loadingMsg]);
+      setInput("");
+      setLoading(true);
+      setShowSuggestions(false);
 
-  setTimeout(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-  }, 100);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 100);
 
-  const reply = await chatbotReply(input);
+      try {
+        const reply = await chatbotReply(messageText);
+        setMessages((prev) => {
+          const next = [...prev];
+          next.pop();
+          return [
+            ...next,
+            { sender: "bot", text: reply, timestamp: Date.now() },
+          ];
+        });
+      } catch {
+        setMessages((prev) => {
+          const next = [...prev];
+          next.pop();
+          return [
+            ...next,
+            {
+              sender: "bot",
+              text: "죄송해요, 잠시 후 다시 시도해주세요 🙏",
+              timestamp: Date.now(),
+            },
+          ];
+        });
+      } finally {
+        setLoading(false);
+        setTimeout(() => {
+          scrollRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    },
+    [input]
+  );
 
-  console.log("🤖 chatbotReply:", reply);
-  console.log("📏 길이:", reply.length);
+  // 탭바에 딱 붙게: iOS 키보드 오프셋/고정 bottom 모두 tabBarHeight 기반
+  const keyboardOffset =
+    Platform.select({
+      ios: tabBarHeight + GAP_FROM_TAB,
+      android: 0,
+      default: 0,
+    }) || 0;
 
-  setMessages((prev) => {
-    const newMessages = [...prev];
-    newMessages.pop(); // loading 메시지 제거
-    return [...newMessages, { sender: 'bot', text: reply }];
-  });
+  const bottomOffset = tabBarHeight + GAP_FROM_TAB;
 
-  setLoading(false);
-
-  // 스크롤
-  setTimeout(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
-  }, 100);
-};
-
-
+  const TypingIndicator = () => (
+    <View style={styles.typingContainer}>
+      <View style={styles.typingDot} />
+      <View style={[styles.typingDot, styles.typingDot2]} />
+      <View style={[styles.typingDot, styles.typingDot3]} />
+    </View>
+  );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={70}
-    >
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }} 
-        contentContainerStyle={styles.chatContainer}
-        keyboardShouldPersistTaps="handled"
+    <View style={styles.container}>
+      {/* Background Gradient Effect (간단히 배경 컬러만 사용) */}
+      <View style={styles.backgroundGradient} />
+
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={keyboardOffset}
       >
-{messages.map((msg, index) => (
-  <View
-    key={index}
-    style={msg.sender === 'user' ? styles.userMessage : styles.botMessage}
-  >
-    {msg.text === '...' && msg.sender === 'bot' ? (
-      <ActivityIndicator size="small" color="#999" />
-    ) : (
-      <Text style={msg.sender === 'user' ? styles.userText : styles.botText}
-      numberOfLines={0}         // ✅ 무제한 줄
-      ellipsizeMode="tail"      // ✅ 잘리면 말줄임표로
-      >
-        {msg.text}
-      </Text>
-    )}
-  </View>
-))}
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.aiIndicator}>
+            <View style={styles.aiDot} />
+            <Text style={styles.aiText}>AI Assistant</Text>
+          </View>
+          <Text style={styles.headerSubtitle}>투자 전문 상담</Text>
+        </View>
 
-      </ScrollView>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.chatScroll}
+          contentContainerStyle={[
+            styles.chatContainer,
+            { paddingBottom: bottomOffset + INPUT_BAR_HEIGHT + 20 },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {messages.map((msg, index) => {
+            const isUser = msg.sender === "user";
+            const isTyping = msg.text === "typing";
 
-{showSuggestions && (
-  <View style={styles.suggestionContainer}>
-    {suggestions.map((item, idx) => (
-      <TouchableOpacity
-        key={idx}
-        onPress={() => {
-          setInput(item);
-          setShowSuggestions(false);
-        }}
-        style={styles.suggestionPill}
-      >
-        <Text style={styles.suggestionText}>{item}</Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-)}
-      <View style={styles.inputBar}>
-        <TouchableOpacity
-  style={[
-  styles.hashButton,
-  showSuggestions && styles.hashButtonActive
-]}
-  onPress={() => setShowSuggestions((prev) => !prev)}
->
+            return (
+              <View
+                key={`${index}-${msg.timestamp}`}
+                style={[
+                  styles.messageWrapper,
+                  isUser ? styles.userMessageWrapper : styles.botMessageWrapper,
+                ]}
+              >
+                {!isUser && (
+                  <View style={styles.avatarContainer}>
+                    <View style={styles.botAvatar}>
+                      <Text style={styles.avatarText}>🤖</Text>
+                    </View>
+                  </View>
+                )}
 
+                <View
+                  style={[
+                    styles.messageBubble,
+                    isUser ? styles.userBubble : styles.botBubble,
+                  ]}
+                >
+                  {isTyping ? (
+                    <TypingIndicator />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.messageText,
+                        isUser ? styles.userText : styles.botText,
+                      ]}
+                    >
+                      {msg.text}
+                    </Text>
+                  )}
+                </View>
 
-  <Text style={styles.hashText}>#</Text>
-</TouchableOpacity>
+                {isUser && (
+                  <View style={styles.avatarContainer}>
+                    <View style={styles.userAvatar}>
+                      <Text style={styles.avatarText}>👤</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
 
+        {/* Suggestions */}
+        {showSuggestions && (
+          <Animated.View
+            style={[
+              styles.suggestionContainer,
+              {
+                bottom: bottomOffset + INPUT_BAR_HEIGHT + 12,
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
+            {/* 배경 레이어 */}
+            {/* Blur 쓰고 싶으면 아래 2줄을 주석 해제하고, backgroundView 제거하세요.
+                <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
+            */}
+            <View style={styles.suggestionBackground} />
 
+            <View style={styles.suggestionHeader}>
+              <Text style={styles.suggestionTitle}>💡 추천 질문</Text>
+            </View>
 
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.suggestionRow}
+            >
+              {suggestions.map((item, idx) => (
+                <TouchableOpacity
+                  key={`${item.text}-${idx}`}
+                  onPress={() => sendMessage(item.text)}
+                  style={styles.suggestionCard}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.suggestionIcon}>{item.icon}</Text>
+                  <Text style={styles.suggestionText}>{item.text}</Text>
+                  <Text style={styles.suggestionCategory}>{item.category}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        )}
 
+        {/* Input Bar */}
+        <View
+          style={[
+            styles.inputBar,
+            {
+              height: INPUT_BAR_HEIGHT,
+              paddingBottom: Math.max(insets.bottom, 12),
+              bottom: bottomOffset,
+            },
+          ]}
+        >
+          <View style={styles.inputContainer}>
+            <TouchableOpacity
+              style={[
+                styles.suggestionButton,
+                showSuggestions && styles.suggestionButtonActive,
+              ]}
+              onPress={() => setShowSuggestions((prev) => !prev)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.suggestionButtonIcon}>
+                {showSuggestions ? "✨" : "💡"}
+              </Text>
+            </TouchableOpacity>
 
-        <TextInput
-          style={styles.textInput}
-          placeholder="메시지를 입력하세요"
-          placeholderTextColor="#aaa"
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={sendMessage}
-        />
-        {/* <TouchableOpacity style={styles.searchButton} onPress={sendMessage}> */}
-          <TouchableOpacity onPress={sendMessage}>
-          <SearchIcon width={24} height={24} />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+            <View style={styles.textInputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="궁금한 투자 정보를 물어보세요..."
+                placeholderTextColor="rgba(255,255,255,0.6)"
+                value={input}
+                onChangeText={setInput}
+                returnKeyType="send"
+                onSubmitEditing={() => sendMessage()}
+                blurOnSubmit={false}
+                autoCorrect={false}
+                autoCapitalize="none"
+                multiline
+                maxLength={500}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => sendMessage()}
+              activeOpacity={0.8}
+              style={[styles.sendButton, input.trim() && styles.sendButtonActive]}
+              disabled={!input.trim() || loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <SearchIcon width={20} height={20} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
+    backgroundColor: "#003340",
   },
-  chatContainer: {
-    flexGrow: 1, // ✅ 이 줄 추가!
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 120,
-  },
-  botMessage: {
-    backgroundColor: '#E0E6E7',
-    borderRadius: 10,
-    padding: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-    maxWidth: '80%', // ✅ 유동 크기 제한
-    marginRight: 30, // ✅ 오른쪽 여백 추가
-    //flexShrink: 1,   // ✅ 텍스트 넘칠 경우 줄이기 허용
-    //flexWrap: 'wrap', // ✅ 텍스트 줄바꿈 허용
-  },
-  botText: {
-    color: '#222',
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userMessage: {
-    backgroundColor: '#D567A1',
-    borderRadius: 10,
-    padding: 12,
-    alignSelf: 'flex-end',
-    marginBottom: 10,
-    maxWidth: '80%',
-  },
-  userText: {
-    color: 'white',
-    fontSize: 15,
-  },
-  inputBar: {
-    position: 'absolute',
-    bottom: 65,
+
+  backgroundGradient: {
+    position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    padding: 18,
-    backgroundColor: '#003340',
-    alignItems: 'center',
+    height: 300,
+    // RN에는 CSS linear-gradient가 없으므로 backgroundColor만 유지
+    backgroundColor: "rgba(16, 185, 129, 0.05)",
   },
-  hashButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#D567A1',
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  keyboardView: {
+    flex: 1,
+  },
+
+  header: {
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255,255,255,0.08)",
+  },
+
+  aiIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  aiDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#fb9dd2ff",
     marginRight: 8,
+    shadowColor: "#fb9dd2ff",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
   },
 
-  hashButtonActive: {
-  backgroundColor: '#738C93', // ✅ 눌렀을 때 조금 진한 핑크 예시
-},
-
-  hashText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 20,
+  aiText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.5,
   },
 
+  headerSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 14,
+    letterSpacing: 0.3,
+  },
+
+  chatScroll: {
+    flex: 1,
+  },
+
+  chatContainer: {
+    paddingTop: 20,
+    paddingHorizontal: 16,
+  },
+
+  messageWrapper: {
+    flexDirection: "row",
+    marginBottom: 16,
+    alignItems: "flex-end",
+  },
+
+  userMessageWrapper: {
+    justifyContent: "flex-end",
+  },
+
+  botMessageWrapper: {
+    justifyContent: "flex-start",
+  },
+
+  avatarContainer: {
+    marginHorizontal: 8,
+  },
+
+  botAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(16, 185, 129, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+  },
+
+  userAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(240, 116, 186, 0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(240, 116, 186, 0.3)",
+  },
+
+  avatarText: {
+    fontSize: 14,
+  },
+
+  messageBubble: {
+    maxWidth: SCREEN_WIDTH * 0.7,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  botBubble: {
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderBottomLeftRadius: 6,
+    shadowColor: "#000000",
+  },
+
+  userBubble: {
+    backgroundColor: "#fb9dd2ff",
+    borderBottomRightRadius: 6,
+    shadowColor: "#fb9dd2ff",
+  },
+
+  messageText: {
+    fontSize: 15,
+    lineHeight: 20,
+    letterSpacing: 0.2,
+  },
+
+  botText: {
+    color: "#1F2937",
+  },
+
+  userText: {
+    color: "#FFFFFF",
+    fontWeight: "500",
+  },
+
+  typingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#9CA3AF",
+    marginRight: 4,
+    opacity: 0.4,
+  },
+
+  typingDot2: {
+    // animationDelay는 RN 스타일 속성이 아님. 필요시 Animated로 처리 권장
+  },
+
+  typingDot3: {
+    marginRight: 0,
+  },
+
+  // ==== Suggestions ====
   suggestionContainer: {
-  flexDirection: 'row',
-  flexWrap: 'wrap',
-  bottom: 140,
-  paddingHorizontal: 20,
-  paddingTop: 20,
-  paddingBottom: 20,
-  gap: 8, // React Native >= 0.71
-  backgroundColor: '#738C93',
-},
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
 
-suggestionPill: {
-  backgroundColor: '#e5e5e5',
-  paddingVertical: 8,
-  paddingHorizontal: 10,
-  borderRadius: 20,
-  marginRight: 8,   
-  marginBottom: 4,
-  
-},
+  // 뒤 배경(반투명 카드 느낌)
+  suggestionBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(10, 26, 36, 0.92)",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+  },
 
-suggestionText: {
-  fontSize: 14,
-  color: '#003340',
-},
+  suggestionHeader: {
+    marginBottom: 12,
+  },
+
+  suggestionTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+
+  suggestionRow: {
+    paddingVertical: 8,
+    gap: 12,
+  },
+
+  suggestionCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    marginRight: 12,
+    minWidth: 140,
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  suggestionIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+
+  suggestionText: {
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 16,
+    marginBottom: 2,
+  },
+
+  suggestionCategory: {
+    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+
+  // ==== Input Bar ====
+  inputBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    backgroundColor: "#003340ff",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255, 255, 255, 0.1)",
+    // backdropFilter는 RN 스타일이 아님
+  },
+
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+
+  suggestionButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+
+  suggestionButtonActive: {
+    backgroundColor: "#10B981",
+    borderColor: "#10B981",
+    transform: [{ scale: 1.05 }],
+  },
+
+  suggestionButtonIcon: {
+    fontSize: 18,
+  },
+
+  textInputContainer: {
+    flex: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+    minHeight: 44,
+    maxHeight: 100,
+    justifyContent: "center",
+  },
 
   textInput: {
-    flex: 1,
-    backgroundColor: '#3D5B66',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    color: 'white',
-    fontSize: 15,
-    marginRight: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: "#FFFFFF",
+    fontSize: INPUT_FONT_SIZE,
+    lineHeight: 20,
+    letterSpacing: 0.2,
+    textAlignVertical: "center",
   },
-  // searchButton: {
-  //   padding: 8,
-  // },
-  searchText: {
-    fontSize: 20,
-    color: 'white',
+
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+
+  sendButtonActive: {
+    backgroundColor: "#10B981",
+    borderColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });
 

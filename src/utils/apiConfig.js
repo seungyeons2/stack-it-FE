@@ -58,12 +58,6 @@ export const API_ENDPOINTS = {
   // 한국투자 토큰 관련
   HANTU_DESTROY_TOKEN: "trade_hantu/destroy_access_token/",
   HANTU_ISSUE_TOKEN: "trade_hantu/issue_access_token/",
-
-  //푸시 토큰 관련
-  PUSH_TOKENS: "api/push-tokens",
-
-  // 공지/알림 전송 테스트
-  ALERT_SEND: "alert/send/", // 뒤에 <id>/ 붙여서 사용
 };
 
 // 공통 fetch 함수

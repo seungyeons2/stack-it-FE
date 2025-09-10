@@ -1,10 +1,8 @@
 {
   "expo": {
-    "name": "Doodook",
-    "slug": "rncourse",
+    "name": "두둑",
+    "slug": "doodook",
     "owner": "yehyeon",
-    "extra": { "eas": { "projectId": "03400e3a-d687-464c-9ef2-13322cf99fcb" } },
-
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/logo-d-app-icon-1500.png",
@@ -13,14 +11,20 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "updates": { "fallbackToCacheTimeout": 0 },
-    "assetBundlePatterns": ["**/*"],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "bundleIdentifier": "com.lipeuoo.doodook",
-      "buildNumber": "10",
+      "buildNumber": "12",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },
@@ -31,10 +35,23 @@
       },
       "package": "com.r8ol7z.doodook"
     },
-    "web": { "favicon": "./src/assets/images/logo-d-app-icon-1500.png" },
+    "web": {
+      "favicon": "./src/assets/images/logo-d-app-icon-1500.png"
+    },
     "plugins": [
       "expo-asset",
-      ["expo-notifications", { "icon": "./src/assets/icons/star-filled.png", "color": "#F074BA" }]
-    ]
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/icons/star-filled.png",
+          "color": "#F074BA"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "57b0a621-af5d-4605-b6e0-cc46a6c474ec"
+      }
+    }
   }
 }

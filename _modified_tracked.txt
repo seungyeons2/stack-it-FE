@@ -1,5 +1,0 @@
-.expo/devices.json
-App.js
-package-lock.json
-package.json
-src/services/PushNotificationService.ios.js
