@@ -17,14 +17,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import SearchIcon from "../../assets/icons/search.svg";
 import { chatbotReply } from "../../utils/chatbotReply";
-// Optional: Blur 배경을 쓰고 싶다면 설치 후 주석 해제
-// import { BlurView } from "expo-blur";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const INPUT_BAR_HEIGHT = 70;
 const INPUT_FONT_SIZE = 16;
-// const INPUT_VERTICAL_PAD = 16; // 미사용이면 제거
-const GAP_FROM_TAB = 0; // 탭바에 밀착. 살짝 띄우고 싶으면 2~4 정도
+const GAP_FROM_TAB = 0;
 
 const ChatbotScreen = () => {
   const insets = useSafeAreaInsets();
@@ -138,7 +135,6 @@ const ChatbotScreen = () => {
     [input]
   );
 
-  // 탭바에 딱 붙게: iOS 키보드 오프셋/고정 bottom 모두 tabBarHeight 기반
   const keyboardOffset =
     Platform.select({
       ios: tabBarHeight + GAP_FROM_TAB,
@@ -148,26 +144,43 @@ const ChatbotScreen = () => {
 
   const bottomOffset = tabBarHeight + GAP_FROM_TAB;
 
-  const TypingIndicator = () => (
-    <View style={styles.typingContainer}>
-      <View style={styles.typingDot} />
-      <View style={[styles.typingDot, styles.typingDot2]} />
-      <View style={[styles.typingDot, styles.typingDot3]} />
-    </View>
-  );
+  const TypingIndicator = () => {
+    const dot1Anim = useRef(new Animated.Value(0.4)).current;
+    const dot2Anim = useRef(new Animated.Value(0.4)).current;
+    const dot3Anim = useRef(new Animated.Value(0.4)).current;
+
+    React.useEffect(() => {
+      const animate = () => {
+        Animated.sequence([
+          Animated.timing(dot1Anim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot2Anim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot3Anim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot1Anim, { toValue: 0.4, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot2Anim, { toValue: 0.4, duration: 400, useNativeDriver: true }),
+          Animated.timing(dot3Anim, { toValue: 0.4, duration: 400, useNativeDriver: true }),
+        ]).start(() => animate());
+      };
+      animate();
+    }, []);
+
+    return (
+      <View style={styles.typingContainer}>
+        <Animated.View style={[styles.typingDot, { opacity: dot1Anim }]} />
+        <Animated.View style={[styles.typingDot, { opacity: dot2Anim }]} />
+        <Animated.View style={[styles.typingDot, { opacity: dot3Anim }]} />
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Background Gradient Effect (간단히 배경 컬러만 사용) */}
-      <View style={styles.backgroundGradient} />
-
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={keyboardOffset}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
           <View style={styles.aiIndicator}>
             <View style={styles.aiDot} />
             <Text style={styles.aiText}>AI Assistant</Text>
@@ -249,10 +262,6 @@ const ChatbotScreen = () => {
               },
             ]}
           >
-            {/* 배경 레이어 */}
-            {/* Blur 쓰고 싶으면 아래 2줄을 주석 해제하고, backgroundView 제거하세요.
-                <BlurView intensity={50} tint="dark" style={StyleSheet.absoluteFill} />
-            */}
             <View style={styles.suggestionBackground} />
 
             <View style={styles.suggestionHeader}>
@@ -269,7 +278,7 @@ const ChatbotScreen = () => {
                   key={`${item.text}-${idx}`}
                   onPress={() => sendMessage(item.text)}
                   style={styles.suggestionCard}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   <Text style={styles.suggestionIcon}>{item.icon}</Text>
                   <Text style={styles.suggestionText}>{item.text}</Text>
@@ -285,7 +294,6 @@ const ChatbotScreen = () => {
           style={[
             styles.inputBar,
             {
-              height: INPUT_BAR_HEIGHT,
               paddingBottom: Math.max(insets.bottom, 12),
               bottom: bottomOffset,
             },
@@ -298,7 +306,7 @@ const ChatbotScreen = () => {
                 showSuggestions && styles.suggestionButtonActive,
               ]}
               onPress={() => setShowSuggestions((prev) => !prev)}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
               <Text style={styles.suggestionButtonIcon}>
                 {showSuggestions ? "✨" : "💡"}
@@ -324,7 +332,7 @@ const ChatbotScreen = () => {
 
             <TouchableOpacity
               onPress={() => sendMessage()}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
               style={[styles.sendButton, input.trim() && styles.sendButtonActive]}
               disabled={!input.trim() || loading}
             >
@@ -341,20 +349,11 @@ const ChatbotScreen = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#003340",
-  },
-
-  backgroundGradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 300,
-    // RN에는 CSS linear-gradient가 없으므로 backgroundColor만 유지
-    backgroundColor: "rgba(16, 185, 129, 0.05)",
   },
 
   keyboardView: {
@@ -362,12 +361,12 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "#003340",
   },
 
   aiIndicator: {
@@ -382,10 +381,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#fb9dd2ff",
     marginRight: 8,
-    shadowColor: "#fb9dd2ff",
+    shadowColor: "#10b981",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
+    elevation: 4,
   },
 
   aiText: {
@@ -403,6 +403,7 @@ const styles = StyleSheet.create({
 
   chatScroll: {
     flex: 1,
+    backgroundColor: "#003340",
   },
 
   chatContainer: {
@@ -443,11 +444,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(240, 116, 186, 0.2)",
+    backgroundColor: "rgba(230, 59, 246, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(240, 116, 186, 0.3)",
+    borderColor: "rgba(230, 59, 246, 0.3)",
   },
 
   avatarText: {
@@ -474,7 +475,7 @@ const styles = StyleSheet.create({
   userBubble: {
     backgroundColor: "#fb9dd2ff",
     borderBottomRightRadius: 6,
-    shadowColor: "#fb9dd2ff",
+    shadowColor: "#3b82f6",
   },
 
   messageText: {
@@ -504,18 +505,9 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: "#9CA3AF",
     marginRight: 4,
-    opacity: 0.4,
   },
 
-  typingDot2: {
-    // animationDelay는 RN 스타일 속성이 아님. 필요시 Animated로 처리 권장
-  },
-
-  typingDot3: {
-    marginRight: 0,
-  },
-
-  // ==== Suggestions ====
+  // Suggestions
   suggestionContainer: {
     position: "absolute",
     left: 0,
@@ -524,14 +516,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 
-  // 뒤 배경(반투명 카드 느낌)
   suggestionBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(10, 26, 36, 0.92)",
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "rgba(0, 51, 64, 0.95)",
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
   },
 
   suggestionHeader: {
@@ -547,7 +537,6 @@ const styles = StyleSheet.create({
 
   suggestionRow: {
     paddingVertical: 8,
-    gap: 12,
   },
 
   suggestionCard: {
@@ -591,23 +580,23 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  // ==== Input Bar ====
+  // Input Bar
   inputBar: {
     position: "absolute",
     left: 0,
     right: 0,
     paddingTop: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#003340ff",
+    backgroundColor: "#003340",
     borderTopWidth: 1,
     borderTopColor: "rgba(255, 255, 255, 0.1)",
-    // backdropFilter는 RN 스타일이 아님
   },
 
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: 8,
+    minHeight: 44,
   },
 
   suggestionButton: {
@@ -622,8 +611,8 @@ const styles = StyleSheet.create({
   },
 
   suggestionButtonActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
+    backgroundColor: "rgba(16, 185, 129, 0.3)",
+    borderColor: "rgba(16, 185, 129, 0.5)",
     transform: [{ scale: 1.05 }],
   },
 
@@ -649,7 +638,8 @@ const styles = StyleSheet.create({
     fontSize: INPUT_FONT_SIZE,
     lineHeight: 20,
     letterSpacing: 0.2,
-    textAlignVertical: "center",
+    textAlignVertical: Platform.OS === "android" ? "top" : "center",
+    minHeight: 44,
   },
 
   sendButton: {
@@ -664,9 +654,9 @@ const styles = StyleSheet.create({
   },
 
   sendButtonActive: {
-    backgroundColor: "#10B981",
-    borderColor: "#10B981",
-    shadowColor: "#10B981",
+    backgroundColor: "rgba(182, 137, 186, 0.3)",
+    borderColor: "#fb9dd28f",
+    shadowColor: "#fb9dd2ff",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
