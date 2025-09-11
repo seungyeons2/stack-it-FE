@@ -5,10 +5,11 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Animated,
   StyleSheet,
   Alert,
   Dimensions,
+  Share,
+  Modal,
 } from "react-native";
 import { useRoute, useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,11 +37,10 @@ const StudyScreen = () => {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState(null);
+  const [showMenu, setShowMenu] = useState(false); // 메뉴 모달 상태
+  const [fontSize, setFontSize] = useState(16); // 글꼴 크기 상태
 
   const [progressIndex, setProgressIndex] = useState(0);
-  const [showButton, setShowButton] = useState(true);
-  const buttonAnim = useRef(new Animated.Value(1)).current;
-  const scrollOffset = useRef(0);
   const scrollViewRef = useRef(null);
 
   // fetch guide content
@@ -86,36 +86,13 @@ const StudyScreen = () => {
     fetchGuide();
   }, [guideApiId]);
 
-  // handle scroll for progress bar & button
+  // handle scroll for progress bar only
   const handleScroll = useCallback((e) => {
     const y = e.nativeEvent.contentOffset.y;
     const scrollH = e.nativeEvent.contentSize.height - e.nativeEvent.layoutMeasurement.height;
     const pct = scrollH > 0 ? Math.max(0, Math.min(1, y / scrollH)) : 0;
     setProgressIndex(Math.min(10, Math.floor(pct * 10)));
-
-    const threshold = 50;
-    const dir = y > scrollOffset.current + threshold ? "down" : y < scrollOffset.current - threshold ? "up" : null;
-    
-    if (dir === "down" && showButton && y > 100) {
-      setShowButton(false);
-      Animated.timing(buttonAnim, { 
-        toValue: 0, 
-        duration: 300, 
-        useNativeDriver: true 
-      }).start();
-    } else if (dir === "up" && !showButton) {
-      setShowButton(true);
-      Animated.timing(buttonAnim, { 
-        toValue: 1, 
-        duration: 300, 
-        useNativeDriver: true 
-      }).start();
-    }
-    
-    if (Math.abs(y - scrollOffset.current) > threshold) {
-      scrollOffset.current = y;
-    }
-  }, [showButton, buttonAnim]);
+  }, []);
 
   // mark complete
   const handleComplete = async () => {
@@ -168,6 +145,49 @@ const StudyScreen = () => {
     fetchGuide();
   };
 
+  // 메뉴 기능들
+  const handleShare = async () => {
+    try {
+      await Share.share({
+        message: `챕터 ${level}-${contentIndex} 학습 콘텐츠를 공유합니다!`,
+        title: '학습 콘텐츠 공유',
+      });
+    } catch (error) {
+      console.error('공유 오류:', error);
+    }
+    setShowMenu(false);
+  };
+
+  const handleBookmark = () => {
+    Alert.alert("북마크", "이 챕터를 북마크에 추가했습니다!", [
+      { text: "확인", onPress: () => setShowMenu(false) }
+    ]);
+  };
+
+  const handleScrollToTop = () => {
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    setShowMenu(false);
+  };
+
+  const handleFontSizeChange = (size) => {
+    setFontSize(size);
+    setShowMenu(false);
+  };
+
+  const handleReport = () => {
+    Alert.alert(
+      "콘텐츠 신고", 
+      "이 콘텐츠에 문제가 있나요?", 
+      [
+        { text: "취소", style: "cancel" },
+        { text: "신고하기", onPress: () => {
+          Alert.alert("신고 완료", "신고가 접수되었습니다. 검토 후 조치하겠습니다.");
+          setShowMenu(false);
+        }}
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -209,9 +229,7 @@ const StudyScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity 
             style={styles.menuButton}
-            onPress={() => {
-              // 메뉴 기능 추가 가능
-            }}
+            onPress={() => setShowMenu(true)}
           >
             <Icon name="more-vertical" size={20} color="#003340" />
           </TouchableOpacity>
@@ -243,46 +261,95 @@ const StudyScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
-          <Markdown style={markdownStyles}>{content}</Markdown>
+          <Markdown style={{...markdownStyles, body: {...markdownStyles.body, fontSize}}}>{content}</Markdown>
+        </View>
+
+        {/* Complete Button - 페이지 하단에 고정 */}
+        <View style={styles.completeButtonContainer}>
+          <TouchableOpacity
+            style={[styles.completeButton, completing && styles.completingButton]}
+            onPress={handleComplete}
+            disabled={completing}
+            activeOpacity={0.8}
+          >
+            {completing ? (
+              <View style={styles.completingContent}>
+                <ActivityIndicator color="#fff" size="small" />
+                <Text style={styles.completingText}>처리 중...</Text>
+              </View>
+            ) : (
+              <View style={styles.buttonContent}>
+                <Icon name="check-circle" size={20} color="#fff" />
+                <Text style={styles.buttonText}>학습을 완료했어요</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Complete Button */}
-      <Animated.View
-        style={[
-          styles.completeButtonContainer,
-          {
-            transform: [
-              {
-                translateY: buttonAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [120, 0],
-                }),
-              },
-            ],
-            opacity: buttonAnim,
-          },
-        ]}
+      {/* Menu Modal */}
+      <Modal
+        visible={showMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMenu(false)}
       >
         <TouchableOpacity
-          style={[styles.completeButton, completing && styles.completingButton]}
-          onPress={handleComplete}
-          disabled={completing}
-          activeOpacity={0.8}
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenu(false)}
         >
-          {completing ? (
-            <View style={styles.completingContent}>
-              <ActivityIndicator color="#fff" size="small" />
-              <Text style={styles.completingText}>처리 중...</Text>
+          <View style={[styles.menuContainer, { top: insets.top + 60 }]}>
+            {/* <TouchableOpacity style={styles.menuItem} onPress={handleBookmark}>
+              <Icon name="bookmark" size={18} color="#666" />
+              <Text style={styles.menuItemText}>북마크 추가</Text>
+            </TouchableOpacity> */}
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleShare}>
+              <Icon name="share" size={18} color="#666" />
+              <Text style={styles.menuItemText}>공유하기</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleScrollToTop}>
+              <Icon name="arrow-up" size={18} color="#666" />
+              <Text style={styles.menuItemText}>맨 위로</Text>
+            </TouchableOpacity>
+
+            <View style={styles.menuDivider} />
+
+            <View style={styles.fontSizeContainer}>
+              <Text style={styles.fontSizeTitle}>글꼴 크기</Text>
+              <View style={styles.fontSizeButtons}>
+                <TouchableOpacity
+                  style={[styles.fontSizeButton, fontSize === 14 && styles.fontSizeButtonActive]}
+                  onPress={() => handleFontSizeChange(14)}
+                >
+                  <Text style={[styles.fontSizeButtonText, fontSize === 14 && styles.fontSizeButtonTextActive]}>작게</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.fontSizeButton, fontSize === 16 && styles.fontSizeButtonActive]}
+                  onPress={() => handleFontSizeChange(16)}
+                >
+                  <Text style={[styles.fontSizeButtonText, fontSize === 16 && styles.fontSizeButtonTextActive]}>보통</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.fontSizeButton, fontSize === 18 && styles.fontSizeButtonActive]}
+                  onPress={() => handleFontSizeChange(18)}
+                >
+                  <Text style={[styles.fontSizeButtonText, fontSize === 18 && styles.fontSizeButtonTextActive]}>크게</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          ) : (
-            <View style={styles.buttonContent}>
-              <Icon name="check-circle" size={20} color="#fff" />
-              <Text style={styles.buttonText}>학습을 완료했어요</Text>
-            </View>
-          )}
+
+            <View style={styles.menuDivider} />
+
+            <TouchableOpacity style={styles.menuItem} onPress={handleReport}>
+              <Icon name="flag" size={18} color="#ff4757" />
+              <Text style={[styles.menuItemText, { color: '#ff4757' }]}>문제 신고</Text>
+            </TouchableOpacity>
+          </View>
         </TouchableOpacity>
-      </Animated.View>
+      </Modal>
     </View>
   );
 };
@@ -416,7 +483,7 @@ const styles = StyleSheet.create({
   },
 
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 20,
   },
 
   contentContainer: {
@@ -427,13 +494,9 @@ const styles = StyleSheet.create({
   },
 
   completeButtonContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: "rgba(248, 250, 251, 0.95)",
+    paddingVertical: 20,
+    backgroundColor: "#F8FAFB",
   },
 
   completeButton: {
@@ -474,6 +537,87 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+
+  // 메뉴 모달 스타일
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  },
+
+  menuContainer: {
+    position: "absolute",
+    right: 20,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 180,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+
+  menuItemText: {
+    fontSize: 15,
+    color: "#333",
+    marginLeft: 12,
+    fontWeight: "500",
+  },
+
+  menuDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 12,
+    marginVertical: 4,
+  },
+
+  fontSizeContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+
+  fontSizeTitle: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
+    fontWeight: "500",
+  },
+
+  fontSizeButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  fontSizeButton: {
+    flex: 1,
+    paddingVertical: 6,
+    alignItems: "center",
+    marginHorizontal: 2,
+    borderRadius: 6,
+    backgroundColor: "#F3F4F6",
+  },
+
+  fontSizeButtonActive: {
+    backgroundColor: "#00AACC",
+  },
+
+  fontSizeButtonText: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+
+  fontSizeButtonTextActive: {
+    color: "#fff",
   },
 });
 

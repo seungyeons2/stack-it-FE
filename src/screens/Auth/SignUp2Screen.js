@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Keyboard,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import EyeOpen from "../../components/EyeOpen";
@@ -57,6 +58,36 @@ const SignUp2Screen = ({ navigation }) => {
   const refCity = useRef(null);
   const refTown = useRef(null);
   const refDetail = useRef(null);
+  const scrollRef = useRef(null);
+
+ // 키보드 열릴 때 하단 여유공간을 크게 확보
+ const [keyboardVisible, setKeyboardVisible] = useState(false);
+ const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+ useEffect(() => {
+   const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+     setKeyboardVisible(true);
+     setKeyboardHeight(e?.endCoordinates?.height ?? 0);
+   });
+   const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+     setKeyboardVisible(false);
+     setKeyboardHeight(0);
+   });
+   return () => {
+     showSub.remove();
+     hideSub.remove();
+   };
+ }, []);
+
+ // 기본 버튼 영역 96 + 키보드가 보이면 키보드 높이 + 여백 120
+ const bottomSpacer = useMemo(() => {
+   if (!keyboardVisible) return 120; // 평소에도 넉넉히
+   return Math.max(220, keyboardHeight + 140);
+ }, [keyboardVisible, keyboardHeight]);
+
+
+
+
 
   // validators
   const validateEmail = (e) =>
@@ -270,7 +301,7 @@ const SignUp2Screen = ({ navigation }) => {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 12 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 0}
       >
         {/* 헤더 */}
         <View style={styles.header}>
@@ -494,6 +525,12 @@ const SignUp2Screen = ({ navigation }) => {
                   onChangeText={setAddrTown}
                   returnKeyType="next"
                   onSubmitEditing={() => refDetail.current && refDetail.current.focus && refDetail.current.focus()}
+                  onFocus={() => {
+                   if (!showMoreAddr) setShowMoreAddr(true);
+                    requestAnimationFrame(() => {
+                     scrollRef.current?.scrollToEnd({ animated: true });
+                    });
+                }}
                 />
                 <TextInput
                   ref={refDetail}
@@ -503,13 +540,23 @@ const SignUp2Screen = ({ navigation }) => {
                   value={addrDetail}
                   onChangeText={setAddrDetail}
                   returnKeyType="done"
+
+
+                onFocus={() => {
+                 if (!showMoreAddr) setShowMoreAddr(true);
+                   requestAnimationFrame(() => {
+                     scrollRef.current?.scrollToEnd({ animated: true });
+                   });
+                 }}
+
+
                 />
               </View>
             </View>
           )}
 
           {/* 하단 여백: 버튼 공간 확보 */}
-          <View style={{ height: 96 }} />
+          <View style={{ height: bottomSpacer }} />
         </ScrollView>
 
         {/* 제출 버튼 */}

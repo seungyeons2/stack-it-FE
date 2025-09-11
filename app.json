@@ -19,7 +19,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.lipeuoo.doodook",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [

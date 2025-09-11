@@ -1,4 +1,6 @@
+// /src/screens/MyPage/MyPageScreen.js
 import React, { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   View,
   Text,
@@ -20,6 +22,7 @@ import { increaseBalance } from "../../utils/point";
 import { unregisterPushToken } from "../../services/PushNotificationService";
 
 const MyPageScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   console.log("🔌 MyPageScreen 렌더링");
 
   const [userInfo, setUserInfo] = useState(null);
@@ -86,7 +89,7 @@ const MyPageScreen = ({ navigation }) => {
     }
   };
 
-  // 생년월일 포맷팅 (원래는 YYYY-MM-DD인데 일단 바꿀 수도 있음)
+  // 생년월일 포맷팅
   const formatBirthdate = (birthdate) => {
     if (!birthdate) return "";
     const date = new Date(birthdate);
@@ -333,129 +336,138 @@ const MyPageScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* 프로필 섹션 */}
-      <View style={styles.profileSection}>
-        <View style={styles.profileCard}>
-          {/* 프로필 이미지 */}
-          <View style={styles.profileImageContainer}>
-            <Image
-              source={
-                mbtiType && getMbtiImage(mbtiType)
-                  ? getMbtiImage(mbtiType)
-                  : require("../../assets/profile.png")
-              }
-              style={styles.profileImage}
-            />
-            <View style={styles.profileImageShadow} />
-          </View>
+      {/* ✅ 화면 전체 스크롤 */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          // 하단 여유: 기기 안전영역 + 여분(80px)
+          { paddingBottom: (insets?.bottom || 0) + 80 },
+        ]}
+        contentInsetAdjustmentBehavior="automatic"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 프로필 섹션 */}
+        <View style={styles.profileSection}>
+          <View style={styles.profileCard}>
+            {/* 프로필 이미지 */}
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={
+                  mbtiType && getMbtiImage(mbtiType)
+                    ? getMbtiImage(mbtiType)
+                    : require("../../assets/profile.png")
+                }
+                style={styles.profileImage}
+              />
+              <View style={styles.profileImageShadow} />
+            </View>
 
-          {/* 유저 정보 */}
-          <View style={styles.userInfoContainer}>
-            <Text style={styles.userName}>
-              {userInfo?.nickname || "잔고가 두둑한 햄스터"}
-            </Text>
+            {/* 유저 정보 */}
+            <View style={styles.userInfoContainer}>
+              <Text style={styles.userName}>
+                {userInfo?.nickname || "잔고가 두둑한 햄스터"}
+              </Text>
 
-            {/* MBTI 별명 */}
-            {aliasLoading ? (
-              <View style={styles.aliasLoadingContainer}>
-                <ActivityIndicator size="small" color="#A8E6CF" />
-                <Text style={styles.aliasLoadingText}></Text>
+              {/* MBTI 별명 */}
+              {aliasLoading ? (
+                <View style={styles.aliasLoadingContainer}>
+                  <ActivityIndicator size="small" color="#A8E6CF" />
+                  <Text style={styles.aliasLoadingText}></Text>
+                </View>
+              ) : mbtiAlias ? (
+                <Text style={styles.mbtiAlias}>"{mbtiAlias}"</Text>
+              ) : (
+                <Text style={styles.mbtiAliasEmpty}>별명을 불러오는 중...</Text>
+              )}
+
+              <View style={styles.userDetailsContainer}>
+                {userInfo?.email && (
+                  <View style={styles.userDetailRow}>
+                    <Icon
+                      name="mail"
+                      size={14}
+                      color="#B8C5D1"
+                      style={styles.detailIcon}
+                    />
+                    <Text style={styles.userDetailText}>
+                      {userInfo.email /* 마스킹은 필요 시 maskEmail 사용 */}
+                    </Text>
+                  </View>
+                )}
+
+                {userInfo?.birthdate && (
+                  <View style={styles.userDetailRow}>
+                    <Icon
+                      name="calendar"
+                      size={14}
+                      color="#B8C5D1"
+                      style={styles.detailIcon}
+                    />
+                    <Text style={styles.userDetailText}>
+                      {formatBirthdate(userInfo.birthdate)}
+                    </Text>
+                    <Text style={styles.birthdayDday}>
+                      {calculateBirthdayDday(userInfo.birthdate)}
+                    </Text>
+                  </View>
+                )}
               </View>
-            ) : mbtiAlias ? (
-              <Text style={styles.mbtiAlias}>"{mbtiAlias}"</Text>
-            ) : (
-              <Text style={styles.mbtiAliasEmpty}>별명을 불러오는 중...</Text>
-            )}
-
-            <View style={styles.userDetailsContainer}>
-              {userInfo?.email && (
-                <View style={styles.userDetailRow}>
-                  <Icon
-                    name="mail"
-                    size={14}
-                    color="#B8C5D1"
-                    style={styles.detailIcon}
-                  />
-                  <Text style={styles.userDetailText}>
-                    {/* {maskEmail(userInfo.email)} 일단 마스킹 안함.*/}
-                    {userInfo.email}
-                  </Text>
-                </View>
-              )}
-
-              {userInfo?.birthdate && (
-                <View style={styles.userDetailRow}>
-                  <Icon
-                    name="calendar"
-                    size={14}
-                    color="#B8C5D1"
-                    style={styles.detailIcon}
-                  />
-                  <Text style={styles.userDetailText}>
-                    {formatBirthdate(userInfo.birthdate)}
-                  </Text>
-                  <Text style={styles.birthdayDday}>
-                    {calculateBirthdayDday(userInfo.birthdate)}
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
         </View>
-      </View>
 
-      <View style={styles.divider} />
+        <View style={styles.divider} />
 
-      {/* 돌림판 섹션 */}
-      <View style={styles.rouletteSection}>
-        <Text style={styles.moneyTitle}>📢 진행 중인 이벤트</Text>
-        <TouchableOpacity
-          style={styles.rouletteButton}
-          onPress={() => navigation.navigate("Roulette")}
-        >
-          <View style={styles.rouletteButtonContent}>
-            <Text style={styles.rouletteButtonText}>일일 룰렛 돌리기</Text>
-            <Icon name="arrow-right" size={20} color="#FFFFFF" />
+        {/* 돌림판 섹션 */}
+        <View style={styles.rouletteSection}>
+          <Text style={styles.moneyTitle}>📢 진행 중인 이벤트</Text>
+          <TouchableOpacity
+            style={styles.rouletteButton}
+            onPress={() => navigation.navigate("Roulette")}
+          >
+            <View style={styles.rouletteButtonContent}>
+              <Text style={styles.rouletteButtonText}>일일 룰렛 돌리기</Text>
+              <Icon name="arrow-right" size={20} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.divider} />
+
+        {/* 메뉴 섹션 (내부 스크롤 ❌) */}
+        <View style={styles.menuSectionContainer}>
+          <View style={styles.menuContainer}>
+            <MenuButton
+              label="공지사항"
+              onPress={() => navigation.navigate("Notice")}
+              iconColor="#6EE69E"
+            />
+            <MenuButton
+              label="자주 묻는 질문(FAQ)"
+              onPress={() => navigation.navigate("FAQ")}
+              iconColor="#6EE69E"
+            />
+            <MenuButton
+              label="비밀번호 변경"
+              onPress={() => navigation.navigate("ChangePassword")}
+              iconColor="#6EE69E"
+            />
+            <MenuButton
+              label="로그아웃"
+              onPress={handleLogout}
+              iconColor="#6EE69E"
+            />
+            <MenuButton
+              label="회원 탈퇴"
+              onPress={handleDeleteAccount}
+              iconColor="#9aa19dff"
+            />
           </View>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.divider} />
-
-      {/* 메뉴 섹션 */}
-      <View style={styles.menuSectionContainer}>
-        <ScrollView
-          contentContainerStyle={styles.menuContainer}
-          showsVerticalScrollIndicator={false}
-          style={styles.menuScrollView}
-        >
-          <MenuButton
-            label="공지사항"
-            onPress={() => navigation.navigate("Notice")}
-            iconColor="#6EE69E"
-          />
-          <MenuButton
-            label="자주 묻는 질문(FAQ)"
-            onPress={() => navigation.navigate("FAQ")}
-            iconColor="#6EE69E"
-          />
-          <MenuButton
-            label="비밀번호 변경"
-            onPress={() => navigation.navigate("ChangePassword")}
-            iconColor="#6EE69E"
-          />
-          <MenuButton
-            label="로그아웃"
-            onPress={handleLogout}
-            iconColor="#6EE69E"
-          />
-          <MenuButton
-            label="회원 탈퇴"
-            onPress={handleDeleteAccount}
-            iconColor="#9aa19dff"
-          />
-        </ScrollView>
-      </View>
+        </View>
+       <View style={{ height: (insets?.bottom || 0) + 16 }} />
+      </ScrollView>
     </View>
   );
 };
@@ -466,6 +478,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#003340",
     paddingHorizontal: 20,
     paddingTop: 50,
+  },
+
+  // 전체 스크롤 뷰
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 24,
   },
 
   // 프로필 섹션
@@ -480,17 +500,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
   },
-  profileImageContainer: {
-    position: "relative",
-    marginRight: 20,
-  },
+  profileImageContainer: { position: "relative", marginRight: 20 },
   profileImage: {
     width: 95,
     height: 95,
@@ -508,11 +522,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(247, 206, 229, 0.3)",
   },
-  userInfoContainer: {
-    flex: 1,
-    justifyContent: "center",
-    backgroundColor: "transparent",
-  },
+  userInfoContainer: { flex: 1, justifyContent: "center", backgroundColor: "transparent" },
   userName: {
     fontSize: 22,
     fontWeight: "700",
@@ -526,7 +536,6 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "#dadadaff",
     marginBottom: 13,
-    //fontStyle: "italic",
     letterSpacing: 0.3,
   },
   mbtiAliasEmpty: {
@@ -534,30 +543,12 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     color: "rgba(168, 230, 207, 0.5)",
     marginBottom: 13,
-    //fontStyle: "italic",
   },
-  aliasLoadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  aliasLoadingText: {
-    fontSize: 12,
-    color: "#dadadaff",
-    marginLeft: 6,
-    fontStyle: "italic",
-  },
-  userDetailsContainer: {
-    gap: 6,
-  },
-  userDetailRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  detailIcon: {
-    marginRight: 8,
-    width: 16,
-  },
+  aliasLoadingContainer: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  aliasLoadingText: { fontSize: 12, color: "#dadadaff", marginLeft: 6, fontStyle: "italic" },
+  userDetailsContainer: { gap: 6 },
+  userDetailRow: { flexDirection: "row", alignItems: "center" },
+  detailIcon: { marginRight: 8, width: 16 },
   userDetailText: {
     fontSize: 14,
     color: "#B8C5D1",
@@ -584,9 +575,7 @@ const styles = StyleSheet.create({
   },
 
   // 돌림판 섹션
-  rouletteSection: {
-    marginBottom: 10,
-  },
+  rouletteSection: { marginBottom: 10 },
   moneyTitle: {
     color: "#c6d4e1ff",
     fontSize: 17,
@@ -601,19 +590,12 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
     shadowColor: "#F074BA",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
   },
-  rouletteButtonContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  rouletteButtonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   rouletteButtonText: {
     color: "#FFFFFF",
     fontSize: 17,
@@ -622,17 +604,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // 메뉴 섹션
+  // 메뉴 섹션 (내부 스크롤 제거)
   menuSectionContainer: {
-    flex: 1,
     marginTop: 0,
   },
-  menuScrollView: {
-    flex: 1,
-  },
   menuContainer: {
-    paddingBottom: 30,
-    flexGrow: 1,
+    paddingBottom: 10,
   },
   menuButton: {
     backgroundColor: "rgba(255, 255, 255, 0.06)",
@@ -643,17 +620,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.08)",
   },
-  menuRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  menuText: {
-    fontSize: 17,
-    color: "#FFFFFF",
-    fontWeight: "500",
-    letterSpacing: 0.2,
-  },
+  menuRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  menuText: { fontSize: 17, color: "#FFFFFF", fontWeight: "500", letterSpacing: 0.2 },
 });
 
 export default MyPageScreen;
