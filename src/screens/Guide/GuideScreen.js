@@ -30,11 +30,30 @@ const GuideScreen = () => {
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
+  // 상단 여백: 기기 safe-area + 추가 마진
+  const topGutter = Math.max(insets.top, 0) + 24;
+
   const [progressMap, setProgressMap] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // ✅ 튜토리얼: 헤더 우측 아이콘으로 이동
   useFocusEffect(
     useCallback(() => {
+      navigation.setOptions({
+        headerTitle: "학습 가이드",
+        headerStyle: { backgroundColor: "#003340" },
+        headerTintColor: "#c6d4e1",
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
+            style={{ paddingHorizontal: 12, paddingVertical: 6 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="help-circle" size={22} color="#c6d4e1" />
+          </TouchableOpacity>
+        ),
+      });
+
       const loadAllProgress = async () => {
         setLoading(true);
         const accessToken = await getNewAccessToken(navigation);
@@ -69,7 +88,7 @@ const GuideScreen = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, { paddingTop: topGutter }, styles.center]}>
         <ActivityIndicator size="large" color="#ffffff" />
       </View>
     );
@@ -94,18 +113,38 @@ const GuideScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      {/* 전체 스크롤 (상단 카드 + 학습가이드 모두 포함) */}
+    <View style={[styles.container, { paddingTop: topGutter }]}>
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           {
+            paddingTop: 4,
             paddingBottom: tabBarHeight + Math.max(insets.bottom, 0) + 56 + 14 + 8,
           },
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* 인라인 튜토리얼 카드 (헤더 아이콘 보완) */}
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
+          style={styles.tutorialCard}
+        >
+          <View style={styles.tutorialCardLeft}>
+            <Image
+              source={require("../../assets/icons/question.png")}
+              style={{ width: 36, height: 36 }}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={{ flex: 1, marginHorizontal: 10 }}>
+            <Text style={styles.tutorialTitle}>튜토리얼 빠르게 보기</Text>
+            <Text style={styles.tutorialDesc}>핵심 기능을 1분 컷으로 훑어보기</Text>
+          </View>
+          <Icon name="arrow-right" size={18} color="rgba(255,255,255,0.85)" />
+        </TouchableOpacity>
+
         <Text style={styles.title}>🧠 투자 유형 검사하기</Text>
 
         <View style={styles.buttonContainer}>
@@ -114,16 +153,16 @@ const GuideScreen = () => {
             onPress={() => navigation.navigate("TypeExam")}
             activeOpacity={0.9}
           >
-            <InspectIcon width={84} height={84} />
-            <Text
-              style={styles.buttonText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-              ellipsizeMode="tail"
-            >
-              유형 검사하기
-            </Text>
+            <View style={styles.examButtonContent}>
+              <View style={styles.examIconContainer}>
+                <InspectIcon width={64} height={64} />
+              </View>
+              <View style={styles.examTextContainer}>
+                <Text style={styles.examButtonTitle}>유형 검사하기</Text>
+                <Text style={styles.examButtonSubtitle}>간단한 질문으로 투자 성향 파악</Text>
+              </View>
+              <Icon name="arrow-right" size={20} color="rgba(255,255,255,0.8)" />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -131,16 +170,16 @@ const GuideScreen = () => {
             onPress={() => navigation.navigate("TypeResult")}
             activeOpacity={0.9}
           >
-            <ResultIcon width={84} height={84} />
-            <Text
-              style={styles.buttonText}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
-              ellipsizeMode="tail"
-            >
-              유형 결과 확인하기
-            </Text>
+            <View style={styles.examButtonContent}>
+              <View style={styles.resultIconContainer}>
+                <ResultIcon width={64} height={64} />
+              </View>
+              <View style={styles.examTextContainer}>
+                <Text style={styles.examButtonTitle}>결과 확인하기</Text>
+                <Text style={styles.examButtonSubtitle}>나의 투자 유형과 추천 전략</Text>
+              </View>
+              <Icon name="arrow-right" size={20} color="rgba(255,255,255,0.8)" />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -183,47 +222,48 @@ const GuideScreen = () => {
         </View>
       </ScrollView>
 
-      {/* 튜토리얼 FAB */}
-      <View
-        style={[
-          styles.fabContainer,
-          {
-            bottom: tabBarHeight + Math.max(insets.bottom, 0) + 4,
-          },
-        ]}
-        pointerEvents="box-none"
-      >
-        <TouchableOpacity
-          onPress={() => navigation.navigate("TutorialScreen", { allowSkip: true })}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          style={styles.fabImageWrapper}
-        >
-          <Image
-            source={require("../../assets/icons/question.png")}
-            style={styles.fabImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-        <Text
-          style={styles.fabLabel}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.9}
-        >
-          튜토리얼
-        </Text>
-      </View>
+      {/* ⛔ FAB 제거: 위치 애매/시야 방해 이슈 해소 */}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#003340", paddingTop: 50 },
+  container: { flex: 1, backgroundColor: "#003340" },
 
   scrollContent: { paddingHorizontal: 20 },
 
   center: { justifyContent: "center", alignItems: "center" },
+
+  // 인라인 튜토리얼 카드
+  tutorialCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+    marginBottom: 16,
+  },
+  tutorialCardLeft: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tutorialTitle: {
+    color: "#FFFFFF",
+    fontSize: 14.5,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  tutorialDesc: {
+    marginTop: 2,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12.5,
+  },
 
   title: {
     color: "#c6d4e1ff",
@@ -237,45 +277,79 @@ const styles = StyleSheet.create({
   },
 
   buttonContainer: {
-    flexDirection: "row",
     gap: 12,
     marginBottom: 10,
   },
+
   examButton: {
-    flex: 1,
-    height: 150,
-    backgroundColor: "#6EE69E",
+    backgroundColor: "rgba(110, 230, 158, 0.15)",
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    shadowColor: "#6EE69E",
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(110, 230, 158, 0.3)",
+    shadowColor: "rgba(110, 230, 158, 0.4)",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
+
   resultButton: {
-    flex: 1,
-    height: 150,
-    backgroundColor: "#F074BA",
+    backgroundColor: "rgba(240, 116, 186, 0.15)",
     borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    shadowColor: "#F074BA",
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "rgba(240, 116, 186, 0.3)",
+    shadowColor: "rgba(240, 116, 186, 0.4)",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
   },
-  buttonText: {
-    color: "#FFFFFF",
+
+  examButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  examIconContainer: {
+    width: 80,
+    height: 75,
+    backgroundColor: "rgba(110, 230, 158, 0.2)",
+    borderRadius: 16,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+
+  resultIconContainer: {
+    width: 80,
+    height: 75,
+    backgroundColor: "rgba(240, 116, 186, 0.2)",
+    borderRadius: 16,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+
+  examTextContainer: {
+    flex: 1,
+    marginLeft: 16,
+    marginRight: 12,
+  },
+
+  examButtonTitle: {
+    color: "#ffffff",
     fontSize: 17,
     fontWeight: "600",
-    marginTop: 10,
+    marginBottom: 4,
     letterSpacing: 0.3,
-    textAlign: "center",
+  },
+
+  examButtonSubtitle: {
+    color: "rgba(255, 255, 255, 0.7)",
+    fontSize: 13,
+    fontWeight: "400",
+    lineHeight: 18,
   },
 
   divider: {
@@ -311,28 +385,6 @@ const styles = StyleSheet.create({
   lockIcon: { marginLeft: 6, marginTop: 1 },
 
   menuText: { fontSize: 17, color: "#FFFFFF", fontWeight: "500", letterSpacing: 0.2 },
-
-  fabContainer: {
-    position: "absolute",
-    right: 24,
-    alignItems: "center",
-    zIndex: 999,
-    elevation: 9,
-    pointerEvents: "box-none",
-  },
-  fabImageWrapper: {},
-  fabImage: { width: 56, height: 56 },
-  fabLabel: {
-    marginTop: 4,
-    fontSize: 11,
-    color: "#EEEEEE",
-    letterSpacing: 0.2,
-    textAlign: "center",
-    maxWidth: 72,
-    textShadowColor: "rgba(0,0,0,0.35)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
 });
 
 export default GuideScreen;

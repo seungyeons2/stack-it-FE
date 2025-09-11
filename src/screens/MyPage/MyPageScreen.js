@@ -83,8 +83,8 @@ const MyPageScreen = ({ navigation }) => {
         );
       }
     } catch (error) {
-      console.error("❌ MBTI 추천 정보 가져오기 중 오류:", error);
-    } finally {
+  console.log("ℹ️ MBTI 추천 정보 가져오기 완료:", error.message || error);
+} finally {
       setAliasLoading(false);
     }
   };
@@ -154,8 +154,8 @@ const MyPageScreen = ({ navigation }) => {
           console.warn("⚠️ Push Token 해제 실패 (계속 진행)");
         }
       } catch (pushError) {
-        console.error("❌ Push Token 해제 중 오류:", pushError);
-      }
+  console.log("ℹ️ Push Token 해제 건너뜀:", pushError.message || pushError);
+}
 
       try {
         const accessToken = await getNewAccessToken(navigation);
@@ -228,68 +228,70 @@ const MyPageScreen = ({ navigation }) => {
     }
   };
 
-  const handleDeleteAccount = () => {
-    Alert.alert(
-      "회원 탈퇴",
-      "정말 탈퇴하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "탈퇴하기",
-          style: "destructive",
-          onPress: async () => {
+const handleDeleteAccount = () => {
+  Alert.alert(
+    "회원 탈퇴",
+    "정말 탈퇴하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+    [
+      { text: "취소", style: "cancel" },
+      {
+        text: "탈퇴하기",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            console.log("🔱 회원 탈퇴 - Push Token 해제 시작");
+            
+            // Push Token 해제를 조용하게 처리
             try {
-              console.log("📱 회원 탈퇴 - Push Token 해제 시작");
-              try {
-                await unregisterPushToken(navigation);
-                console.log("✅ 탈퇴 시 Push Token 해제 성공");
-              } catch (pushError) {
-                console.error("❌ 탈퇴 시 Push Token 해제 오류:", pushError);
-              }
-
-              const accessToken = await getNewAccessToken(navigation);
-              if (!accessToken) {
-                Alert.alert(
-                  "인증 오류",
-                  "토큰이 만료되었습니다. 다시 로그인해주세요."
-                );
-                navigation.navigate("Login");
-                return;
-              }
-
-              const response = await fetch(`${API_BASE_URL}users/delete/`, {
-                method: "DELETE",
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  "Content-Type": "application/json",
-                },
-              });
-
-              if (response.ok) {
-                await Promise.all([
-                  clearTokens(),
-                  AsyncStorage.removeItem("userEmail"),
-                  AsyncStorage.removeItem("userPassword"),
-                  AsyncStorage.removeItem("deviceId"),
-                  AsyncStorage.removeItem("pushToken"),
-                ]);
-
-                Alert.alert("탈퇴 완료", "계정이 삭제되었습니다.");
-                navigation.navigate("Login");
-              } else {
-                const text = await response.text();
-                console.error("회원 탈퇴 실패 응답:", text);
-                Alert.alert("오류", "회원 탈퇴에 실패했습니다.");
-              }
-            } catch (err) {
-              console.error("회원 탈퇴 중 오류:", err);
-              Alert.alert("오류", "네트워크 오류로 탈퇴에 실패했습니다.");
+              await unregisterPushToken(navigation);
+              console.log("✅ 탈퇴 시 Push Token 해제 성공");
+            } catch (pushError) {
+              console.log("ℹ️ 탈퇴 시 Push Token 해제 건너뜀:", pushError.message || "알 수 없는 오류");
             }
-          },
+
+            const accessToken = await getNewAccessToken(navigation);
+            if (!accessToken) {
+              Alert.alert(
+                "인증 오류",
+                "토큰이 만료되었습니다. 다시 로그인해주세요."
+              );
+              navigation.navigate("Login");
+              return;
+            }
+
+            const response = await fetch(`${API_BASE_URL}users/delete/`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (response.ok) {
+              await Promise.all([
+                clearTokens(),
+                AsyncStorage.removeItem("userEmail"),
+                AsyncStorage.removeItem("userPassword"),
+                AsyncStorage.removeItem("deviceId"),
+                AsyncStorage.removeItem("pushToken"),
+              ]);
+
+              Alert.alert("탈퇴 완료", "계정이 삭제되었습니다.");
+              navigation.navigate("Login");
+            } else {
+              const text = await response.text();
+              console.error("회원 탈퇴 실패 응답:", text);
+              Alert.alert("오류", "회원 탈퇴에 실패했습니다.");
+            }
+          } catch (err) {
+            console.error("회원 탈퇴 중 오류:", err);
+            Alert.alert("오류", "네트워크 오류로 탈퇴에 실패했습니다.");
+          }
         },
-      ]
-    );
-  };
+      },
+    ]
+  );
+};
 
   useEffect(() => {
     const loadUserData = async () => {

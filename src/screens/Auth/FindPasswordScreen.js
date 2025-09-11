@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,191 +6,536 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  ScrollView,
+  Dimensions,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  Keyboard,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import EyeOpen from "../../components/EyeOpen";
+import EyeClosed from "../../components/EyeClosed";
+
+const { height, width } = Dimensions.get("window");
 
 const FindPasswordScreen = ({ navigation }) => {
+  const [step, setStep] = useState(1); // 1: 이메일 입력, 2: 인증번호 + 새 비밀번호
+  
+  // 이메일 입력 단계
   const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 인증 단계
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [seeNewPassword, setSeeNewPassword] = useState(true);
+  const [seeConfirmPassword, setSeeConfirmPassword] = useState(true);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSendCode = async () => {
-    if (!email) {
-      Alert.alert("오류", "이메일을 입력해주세요.");
+  // refs
+  const codeInputs = useRef([]);
+  const refNewPw = useRef(null);
+  const refConfirmPw = useRef(null);
+  const scrollRef = useRef(null);
+
+  // 키보드 처리
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(e?.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const bottomSpacer = useMemo(() => {
+    if (!keyboardVisible) return 120;
+    return Math.max(220, keyboardHeight + 140);
+  }, [keyboardVisible, keyboardHeight]);
+
+  // validators
+  const validateEmail = (e) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || "").trim().toLowerCase());
+
+  const passwordValid = (p) => {
+    const s = p || "";
+    if (s.length < 8 || s.length > 32) return false;
+    const kinds =
+      (/[A-Za-z]/.test(s) ? 1 : 0) + (/\d/.test(s) ? 1 : 0) + (/[^\w\s]/.test(s) ? 1 : 0);
+    return kinds >= 2;
+  };
+
+  // 비밀번호 강도(0~3)
+  const passwordStrength = useMemo(() => {
+    if (!newPassword) return 0;
+    const lenScore = newPassword.length >= 12 ? 1 : 0;
+    const kinds =
+      (/[A-Z]/.test(newPassword) ? 1 : 0) +
+      (/[a-z]/.test(newPassword) ? 1 : 0) +
+      (/\d/.test(newPassword) ? 1 : 0) +
+      (/[^\w\s]/.test(newPassword) ? 1 : 0);
+    if (newPassword.length >= 8 && kinds >= 2) {
+      if (lenScore && kinds >= 3) return 3; // 강
+      return 2; // 보통
+    }
+    return 1; // 약
+  }, [newPassword]);
+
+  const strengthText = ["", "약함", "보통", "강함"][passwordStrength];
+
+  // 1단계: 이메일로 인증번호 요청
+  const handleRequestCode = async () => {
+    if (isLoading) return;
+
+    if (!validateEmail(email)) {
+      Alert.alert("오류", "올바른 이메일 형식을 입력해주세요.");
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}users/password_reset/request/`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        }
-      );
+    setIsLoading(true);
 
-      // 응답 타입 확인
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const textResponse = await response.text();
-        console.error("서버 응답이 JSON이 아님:", textResponse);
-        Alert.alert("오류", "서버 응답 형식 오류");
-        setLoading(false);
-        return;
-      }
+    try {
+      const response = await fetch(`${API_BASE_URL}users/password_reset/request/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+        }),
+      });
 
       const data = await response.json();
+      console.log("✅ 인증번호 요청 응답:", data);
 
-      if (response.ok) {
+      if (response.status === 200 || data.message) {
         Alert.alert(
-          "성공",
-          data.message || "비밀번호 재설정 링크를 이메일로 보냈습니다.",
-          [
-            {
-              text: "다음",
-              onPress: () =>
-                navigation.navigate("ResetPassword", { email: email }),
-            },
-          ]
+          "인증번호 전송",
+          "이메일로 인증번호가 전송되었습니다.\n6자리 인증번호를 입력해주세요.",
+          [{ text: "확인", onPress: () => setStep(2) }]
         );
       } else {
-        Alert.alert("오류", data.message || "비밀번호 찾기에 실패했습니다.");
+        Alert.alert("오류", data.message || "인증번호 전송에 실패했습니다.");
       }
     } catch (error) {
       console.error("🚨 Network Error:", error);
       Alert.alert("오류", "네트워크 오류가 발생했습니다.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
+  // 인증번호 입력 처리
+  const handleCodeChange = (text, index) => {
+    if (/^\d$/.test(text)) {
+      const newCode = [...code];
+      newCode[index] = text;
+      setCode(newCode);
+
+      if (index < 5) {
+        codeInputs.current[index + 1].focus();
+      } else {
+        // 6자리 입력 완료
+        codeInputs.current[index].blur();
+      }
+    } else if (text === "") {
+      const newCode = [...code];
+      newCode[index] = "";
+      setCode(newCode);
+    }
+  };
+
+  // 2단계: 인증번호 + 새 비밀번호 검증
+  const handleResetPassword = async () => {
+    if (isVerifying) return;
+
+    const enteredCode = code.join("");
+    
+    if (enteredCode.length !== 6) {
+      Alert.alert("오류", "6자리 인증번호를 모두 입력해주세요.");
+      return;
+    }
+
+    if (!passwordValid(newPassword)) {
+      Alert.alert("오류", "비밀번호는 8~32자이며, 영문/숫자/특수 중 2가지 이상을 포함해야 합니다.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("오류", "비밀번호가 일치하지 않습니다.");
+      return;
+    }
+
+    setIsVerifying(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}users/password_reset/verify/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          code: enteredCode,
+          new_password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("✅ 비밀번호 찾기 응답:", data);
+
+      if (response.status === 200 || data.status === "success") {
+        Alert.alert(
+          "성공",
+          "비밀번호가 성공적으로 변경되었습니다.\n새 비밀번호로 로그인해주세요.",
+          [{ text: "확인", onPress: () => navigation.navigate("Login") }]
+        );
+      } else {
+        Alert.alert("오류", data.message || "비밀번호 재설정에 실패했습니다.");
+        // 인증번호 초기화
+        setCode(["", "", "", "", "", ""]);
+        if (codeInputs.current[0]) {
+          codeInputs.current[0].focus();
+        }
+      }
+    } catch (error) {
+      console.error("🚨 비밀번호 찾기 오류:", error);
+      Alert.alert("오류", "네트워크 오류가 발생했습니다.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  // 인증번호 재전송
+  const handleResendCode = async () => {
+    setCode(["", "", "", "", "", ""]);
+    await handleRequestCode();
+  };
+
+  // 단계별 제출 가능 여부
+  const canSubmitStep1 = validateEmail(email);
+  const canSubmitStep2 = 
+    code.join("").length === 6 && 
+    passwordValid(newPassword) && 
+    newPassword === confirmPassword;
+
   return (
-    <View style={styles.container}>
-      {/* 🔙 뒤로 가기 버튼 */}
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 0}
       >
-        <Text style={styles.backText}>{"<"}</Text>
-      </TouchableOpacity>
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => step === 1 ? navigation.goBack() : setStep(1)}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Text style={styles.backText}>{"<"}</Text>
+          </TouchableOpacity>
+          <Text style={styles.title}>비밀번호 찾기</Text>
+          <View style={{ width: 36 }} />
+        </View>
 
-      {/* 🏷 타이틀 */}
-      <Text style={styles.title}>비밀번호 찾기</Text>
-
-      {/* 📧 이메일 입력 */}
-      <Text style={styles.label}>이메일</Text>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="가입 시 사용한 이메일 입력"
-          placeholderTextColor="#ccc"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TouchableOpacity
-          style={[styles.sendButton, loading && styles.disabledButton]}
-          onPress={handleSendCode}
-          disabled={loading}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.sendButtonText}>
-            {loading ? "전송 중..." : "전송"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {step === 1 ? (
+            // 1단계: 이메일 입력
+            <>
+              <Text style={styles.stepTitle}>이메일 주소 입력</Text>
+              <Text style={styles.stepDescription}>
+                가입 시 사용한 이메일 주소를 입력하시면{"\n"}
+                비밀번호 재설정 인증번호를 보내드립니다.
+              </Text>
 
-      <Text style={styles.infoText}>
-        가입하신 이메일로 비밀번호 재설정 링크가 발송됩니다.
-      </Text>
-    </View>
+              <Text style={styles.label}>이메일</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  email.length > 0 && !validateEmail(email) ? styles.inputError : null
+                ]}
+                placeholder="이메일 입력"
+                placeholderTextColor="#bcd1d6"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={(t) => setEmail((t || "").trimStart())}
+                returnKeyType="done"
+                onSubmitEditing={handleRequestCode}
+              />
+              {email.length > 0 && !validateEmail(email) && (
+                <Text style={styles.errorText}>올바른 이메일 형식이 아닙니다.</Text>
+              )}
+
+              <View style={{ height: bottomSpacer }} />
+            </>
+          ) : (
+            // 2단계: 인증번호 + 새 비밀번호
+            <>
+              <Text style={styles.stepTitle}>인증번호 및 새 비밀번호 입력</Text>
+              <Text style={styles.stepDescription}>
+                {email} 주소로 전송된{"\n"}
+                인증번호 6자리와 새 비밀번호를 입력해주세요.
+              </Text>
+
+              {/* 인증번호 입력 */}
+              <Text style={styles.label}>인증번호</Text>
+              <View style={styles.codeContainer}>
+                {code.map((digit, index) => (
+                  <TextInput
+                    key={index}
+                    ref={(ref) => (codeInputs.current[index] = ref)}
+                    style={styles.codeInput}
+                    value={digit}
+                    onChangeText={(text) => handleCodeChange(text, index)}
+                    keyboardType="number-pad"
+                    maxLength={1}
+                    textAlign="center"
+                  />
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={styles.resendButton}
+                onPress={handleResendCode}
+              >
+                <Text style={styles.resendText}>인증번호 다시 보내기</Text>
+              </TouchableOpacity>
+
+              {/* 새 비밀번호 */}
+              <Text style={styles.label}>새 비밀번호</Text>
+              <View style={[
+                styles.inputContainer,
+                newPassword.length > 0 && !passwordValid(newPassword) ? styles.inputError : null
+              ]}>
+                <TextInput
+                  ref={refNewPw}
+                  style={styles.inputField}
+                  placeholder="새 비밀번호 입력"
+                  placeholderTextColor="#bcd1d6"
+                  secureTextEntry={seeNewPassword}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  returnKeyType="next"
+                  onSubmitEditing={() => refConfirmPw.current && refConfirmPw.current.focus()}
+                />
+                <TouchableOpacity onPress={() => setSeeNewPassword((v) => !v)} style={styles.icon}>
+                  {seeNewPassword ? <EyeClosed /> : <EyeOpen />}
+                </TouchableOpacity>
+              </View>
+
+              {/* 강도 표시 */}
+              {newPassword.length > 0 && (
+                <View style={styles.strengthRow}>
+                  <View style={[styles.strengthBar, passwordStrength >= 1 && styles.strengthOn]} />
+                  <View style={[styles.strengthBar, passwordStrength >= 2 && styles.strengthOn]} />
+                  <View style={[styles.strengthBar, passwordStrength >= 3 && styles.strengthOn]} />
+                  <Text style={styles.strengthText}>{strengthText}</Text>
+                </View>
+              )}
+              {newPassword.length > 0 && !passwordValid(newPassword) && (
+                <Text style={styles.errorText}>영문/숫자/특수 중 2종 이상, 8~32자</Text>
+              )}
+              <Text style={styles.passwordGuide}>영문 대/소문자·숫자·특수 중 2가지 이상, 8~32자</Text>
+
+              {/* 비밀번호 확인 */}
+              <Text style={styles.label}>새 비밀번호 확인</Text>
+              <View style={[
+                styles.inputContainer,
+                confirmPassword.length > 0 && confirmPassword !== newPassword ? styles.inputError : null
+              ]}>
+                <TextInput
+                  ref={refConfirmPw}
+                  style={styles.inputField}
+                  placeholder="새 비밀번호 확인"
+                  placeholderTextColor="#bcd1d6"
+                  secureTextEntry={seeConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleResetPassword}
+                />
+                <TouchableOpacity onPress={() => setSeeConfirmPassword((v) => !v)} style={styles.icon}>
+                  {seeConfirmPassword ? <EyeClosed /> : <EyeOpen />}
+                </TouchableOpacity>
+              </View>
+              {confirmPassword.length > 0 && confirmPassword !== newPassword && (
+                <Text style={styles.errorText}>비밀번호가 일치하지 않아요.</Text>
+              )}
+              {confirmPassword.length > 0 && newPassword === confirmPassword && (
+                <Text style={styles.passwordMatch}>비밀번호가 일치합니다.</Text>
+              )}
+
+              <View style={{ height: bottomSpacer }} />
+            </>
+          )}
+        </ScrollView>
+
+        {/* 제출 버튼 */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[
+              styles.button,
+              {
+                backgroundColor: (step === 1 ? canSubmitStep1 : canSubmitStep2)
+                  ? "#F074BA"
+                  : "#F8C7CC"
+              }
+            ]}
+            onPress={step === 1 ? handleRequestCode : handleResetPassword}
+            disabled={(step === 1 ? !canSubmitStep1 || isLoading : !canSubmitStep2 || isVerifying)}
+            activeOpacity={0.9}
+          >
+            {(step === 1 ? isLoading : isVerifying) ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>
+                {step === 1 ? "인증번호 전송" : "비밀번호 찾기"}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
-// ✅ 스타일 정의
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#003340",
+  safe: { flex: 1, backgroundColor: "#003340" },
+  flex: { flex: 1 },
+
+  header: {
+    height: 56,
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 30,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    backgroundColor: "#003340",
   },
+  backButton: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  backText: { fontSize: 28, color: "#F074BA", marginTop: -2 },
+  title: { fontSize: 20, fontWeight: "bold", color: "#F074BA" },
 
-  backButton: {
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 10,
-  },
-  backText: {
-    fontSize: 36,
-    color: "#F074BA",
-  },
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8 },
 
-  title: {
-    fontSize: 24,
+  stepTitle: {
+    fontSize: 22,
     fontWeight: "bold",
     color: "#F074BA",
-    position: "absolute",
-    top: 150,
-    left: 30,
-  },
-
-  label: {
-    fontSize: 16,
-    color: "#F074BA",
-    alignSelf: "flex-start",
-    marginTop: 10,
+    textAlign: "center",
+    marginTop: 20,
     marginBottom: 10,
   },
+  stepDescription: {
+    fontSize: 15,
+    color: "#cfe7ec",
+    textAlign: "center",
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+
+  label: { fontSize: 15, color: "#F074BA", marginTop: 12, marginBottom: 8 },
+
+  input: {
+    width: "100%",
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#87a9b1",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    fontSize: 16,
+    backgroundColor: "#f1f6f7",
+    color: "#0a0a0a",
+  },
+  inputError: { borderColor: "#ff8a8a" },
 
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    backgroundColor: "#f9f9f9",
+    borderColor: "#87a9b1",
+    borderRadius: 10,
+    backgroundColor: "#f1f6f7",
     marginBottom: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 6,
   },
+  inputField: { flex: 1, height: 50, fontSize: 16, color: "#0a0a0a", paddingHorizontal: 8 },
+  icon: { padding: 10 },
 
-  input: {
-    flex: 1,
+  // 인증번호 입력
+  codeContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 20,
+  },
+  codeInput: {
+    width: 45,
     height: 50,
-    fontSize: 16,
-    color: "black",
+    borderWidth: 1,
+    borderColor: "#87a9b1",
+    borderRadius: 8,
+    fontSize: 20,
+    color: "#0a0a0a",
+    backgroundColor: "#f1f6f7",
+    textAlign: "center",
   },
 
-  sendButton: {
-    width: 60,
-    height: 35,
+  resendButton: {
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  resendText: {
+    color: "#F074BA",
+    fontSize: 14,
+    textDecorationLine: "underline",
+  },
+
+  errorText: { color: "tomato", fontSize: 12, marginBottom: 6, marginLeft: 2 },
+  passwordGuide: { fontSize: 12, color: "#cfe7ec", marginBottom: 6, marginLeft: 2 },
+  passwordMatch: { fontSize: 12, color: "#00e676", marginBottom: 6, marginLeft: 2 },
+
+  // 비밀번호 강도
+  strengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6, marginLeft: 2 },
+  strengthBar: { width: 32, height: 6, borderRadius: 4, backgroundColor: "#6e8f98" },
+  strengthOn: { backgroundColor: "#F074BA" },
+  strengthText: { color: "#cfe7ec", fontSize: 12, marginLeft: 6 },
+
+  // 푸터 버튼
+  footer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: "rgba(0, 51, 64, 0.92)",
+  },
+  button: {
+    height: 52,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#CCCDD0",
-    borderRadius: 16,
-    marginLeft: 10,
   },
-
-  disabledButton: {
-    backgroundColor: "#A0A0A0",
-  },
-
-  sendButtonText: {
-    fontSize: 14,
-    color: "black",
-  },
-
-  infoText: {
-    fontSize: 14,
-    color: "#F074BA",
-    textAlign: "center",
-    marginTop: 20,
-    opacity: 0.7,
-  },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
 
 export default FindPasswordScreen;
