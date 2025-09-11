@@ -1,5 +1,5 @@
 // ChatbotScreen.js
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Keyboard,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -37,6 +38,9 @@ const ChatbotScreen = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [inputHeight, setInputHeight] = useState(44);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  
   const scrollRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -46,11 +50,33 @@ const ChatbotScreen = () => {
     { text: "PER과 PBR 차이점", icon: "📊", category: "지표" },
     { text: "배당주 추천해줘", icon: "💰", category: "투자" },
     { text: "분산투자 전략", icon: "🎯", category: "전략" },
-    { text: "코스피 vs 코스닥", icon: "🏛️", category: "시장" },
+    { text: "코스피 vs 코스닥", icon: "🛍️", category: "시장" },
     { text: "ETF란 무엇인가요?", icon: "📦", category: "상품" },
     { text: "공매도 원리", icon: "📉", category: "거래" },
     { text: "주식 거래 시간", icon: "⏰", category: "기초" },
   ];
+
+  // 키보드 이벤트 리스너
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        setKeyboardHeight(event.endCoordinates.height);
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, []);
 
   React.useEffect(() => {
     if (showSuggestions) {
@@ -97,6 +123,7 @@ const ChatbotScreen = () => {
       setInput("");
       setLoading(true);
       setShowSuggestions(false);
+      setInputHeight(44);
 
       setTimeout(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
@@ -135,14 +162,14 @@ const ChatbotScreen = () => {
     [input]
   );
 
-  const keyboardOffset =
-    Platform.select({
-      ios: tabBarHeight + GAP_FROM_TAB,
-      android: 0,
-      default: 0,
-    }) || 0;
-
-  const bottomOffset = tabBarHeight + GAP_FROM_TAB;
+  // 동적 높이 계산
+  const dynamicInputBarHeight = Math.max(INPUT_BAR_HEIGHT, inputHeight + 26);
+  const bottomOffset = keyboardHeight > 0 ? 0 : tabBarHeight + GAP_FROM_TAB;
+  
+  // 추천 질문 컨테이너의 bottom 위치 계산 (키보드 높이 포함)
+  const suggestionBottomPosition = keyboardHeight > 0 
+    ? keyboardHeight + dynamicInputBarHeight + 12
+    : bottomOffset + dynamicInputBarHeight + 12;
 
   const TypingIndicator = () => {
     const dot1Anim = useRef(new Animated.Value(0.4)).current;
@@ -176,8 +203,8 @@ const ChatbotScreen = () => {
     <View style={styles.container}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={keyboardOffset}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
@@ -193,7 +220,7 @@ const ChatbotScreen = () => {
           style={styles.chatScroll}
           contentContainerStyle={[
             styles.chatContainer,
-            { paddingBottom: bottomOffset + INPUT_BAR_HEIGHT + 20 },
+            { paddingBottom: dynamicInputBarHeight + keyboardHeight + 20 },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -256,7 +283,7 @@ const ChatbotScreen = () => {
             style={[
               styles.suggestionContainer,
               {
-                bottom: bottomOffset + INPUT_BAR_HEIGHT + 12,
+                bottom: suggestionBottomPosition,
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
               },
@@ -320,6 +347,11 @@ const ChatbotScreen = () => {
                 placeholderTextColor="rgba(255,255,255,0.6)"
                 value={input}
                 onChangeText={setInput}
+                onContentSizeChange={(event) => {
+                  const { height } = event.nativeEvent.contentSize;
+                  const newHeight = Math.min(Math.max(height + 8, 44), 120);
+                  setInputHeight(newHeight);
+                }}
                 returnKeyType="send"
                 onSubmitEditing={() => sendMessage()}
                 blurOnSubmit={false}
@@ -327,6 +359,7 @@ const ChatbotScreen = () => {
                 autoCapitalize="none"
                 multiline
                 maxLength={500}
+                textAlignVertical="top"
               />
             </View>
 
@@ -348,7 +381,6 @@ const ChatbotScreen = () => {
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
@@ -582,9 +614,6 @@ const styles = StyleSheet.create({
 
   // Input Bar
   inputBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
     paddingTop: 12,
     paddingHorizontal: 16,
     backgroundColor: "#003340",
@@ -627,7 +656,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.15)",
     minHeight: 44,
-    maxHeight: 100,
+    maxHeight: 120,
     justifyContent: "center",
   },
 
@@ -638,7 +667,6 @@ const styles = StyleSheet.create({
     fontSize: INPUT_FONT_SIZE,
     lineHeight: 20,
     letterSpacing: 0.2,
-    textAlignVertical: Platform.OS === "android" ? "top" : "center",
     minHeight: 44,
   },
 
