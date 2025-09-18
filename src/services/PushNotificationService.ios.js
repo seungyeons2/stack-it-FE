@@ -1,86 +1,106 @@
-// // src/services/PushNotificationService.ios.js
-// import { Platform } from "react-native";
-// import * as Device from "expo-device";
-// import * as Notifications from "expo-notifications";
-// import Constants from "expo-constants";
-
-// export function setupNotificationListeners() {
-//   const recvSub = Notifications.addNotificationReceivedListener((n) => {
-//     console.log("[Push][recv]:", n);
-//   });
-//   const respSub = Notifications.addNotificationResponseReceivedListener((r) => {
-//     console.log("[Push][tap]:", r);
-//   });
-
-//   return () => {
-//     Notifications.removeNotificationSubscription(recvSub);
-//     Notifications.removeNotificationSubscription(respSub);
-//   };
-// }
-
-// function getProjectId() {
-//   return (
-//     (Constants.easConfig && Constants.easConfig.projectId) ||
-//     (Constants.expoConfig?.extra?.eas?.projectId) ||
-//     null
-//   );
-// }
-
-// async function ensurePermissions() {
-//   const { status: existing } = await Notifications.getPermissionsAsync();
-//   if (existing === "granted") return "granted";
-
-//   const { status } = await Notifications.requestPermissionsAsync({
-//     ios: { allowAlert: true, allowBadge: true, allowSound: true },
-//   });
-//   return status;
-// }
-
-// export async function registerExpoPushToken() {
-//   try {
-//     if (Platform.OS !== "ios") throw new Error("iOS only");
-//     if (!Device.isDevice) throw new Error("실기기 필요");
-
-//     const perm = await ensurePermissions();
-//     if (perm !== "granted") throw new Error("알림 권한 거부됨");
-
-//     const projectId = getProjectId();
-//     if (!projectId) throw new Error("EAS projectId 없음");
-
-//     const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({ projectId });
-
-//     console.log("📢 [Push] ExpoPushToken:", expoPushToken);
-
-//     return { success: true, expoPushToken }; // DB에 그대로 저장 (ExponentPushToken[...] 형태)
-//   } catch (e) {
-//     const msg = e?.message || String(e);
-//     console.warn("[Push][ERR] registerExpoPushToken:", msg);
-//     return { success: false, error: msg };
-//   }
-// }
-
-//export const registerPushToken = registerExpoPushToken;
-
-
 // src/services/PushNotificationService.ios.js
 import { Platform } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-export function setupNotificationListeners() {
-  const recvSub = Notifications.addNotificationReceivedListener((n) => {
-    console.log("[Push][recv]:", n);
-  });
-  const respSub = Notifications.addNotificationResponseReceivedListener((r) => {
-    console.log("[Push][tap]:", r);
-  });
-  return () => {
-    Notifications.removeNotificationSubscription(recvSub);
-    Notifications.removeNotificationSubscription(respSub);
-  };
+// ============================
+// 내부 유틸
+// ============================
+async function getOrCreateDeviceId() {
+  const KEY = "deviceId";
+  let id = await AsyncStorage.getItem(KEY);
+  if (id) return id;
+
+  const rand = Math.random().toString(36).slice(2, 10);
+  const stamp = Date.now().toString(36);
+  const model = (Device.modelId || "ios").toString().replace(/[^a-zA-Z0-9_-]/g, "");
+  id = `ios-${model}-${stamp}-${rand}`;
+  await AsyncStorage.setItem(KEY, id);
+  return id;
 }
 
+async function saveLocalToken(token) {
+  try {
+    await AsyncStorage.setItem("pushToken", token);
+  } catch {}
+}
+async function loadLocalToken() {
+  try {
+    return (await AsyncStorage.getItem("pushToken")) || null;
+  } catch {
+    return null;
+  }
+}
+
+// ============================
+// 서버 API 연동 (/api/push-tokens)
+// ============================
+async function uploadTokenToServer(token) {
+  try {
+    const deviceId = await getOrCreateDeviceId();
+    const accessToken = await AsyncStorage.getItem("accessToken"); // 🔑 로그인 토큰
+
+    // 🚀 서버에 저장할 body (문자열 그대로 ExponentPushToken[...] 포함)
+    const body = {
+      token, // ExponentPushToken[...] 형태 그대로
+      deviceId,
+      platform: "ios",
+    };
+
+    const res = await fetch(`${API_BASE_URL}api/push-tokens`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      console.warn("[Push] 등록 실패:", res.status, await res.text());
+      return false;
+    }
+
+    console.log("[Push] 등록 성공:", body);
+    await saveLocalToken(token);
+    return true;
+  } catch (e) {
+    console.warn("[Push] 등록 오류:", e?.message || e);
+    return false;
+  }
+}
+
+async function deleteTokenFromServer(token) {
+  try {
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    const res = await fetch(`${API_BASE_URL}api/push-tokens`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!res.ok) {
+      console.warn("[Push] 해제 실패:", res.status, await res.text());
+      return false;
+    }
+
+    console.log("[Push] 해제 성공:", token);
+    return true;
+  } catch (e) {
+    console.warn("[Push] 해제 오류:", e?.message || e);
+    return false;
+  }
+}
+
+// ============================
+// 퍼블릭 API
+// ============================
 function getProjectId() {
   return (
     (Constants.easConfig && Constants.easConfig.projectId) ||
@@ -89,40 +109,21 @@ function getProjectId() {
   );
 }
 
-function pushEnabledByFlag() {
-  // .env or app.json에서 끌 수 있게 (기본: 켬)
-  // .env: EXPO_PUBLIC_PUSH_ENABLED=0  → 비활성화
-  const v = process.env.EXPO_PUBLIC_PUSH_ENABLED;
-  if (v === "0" || v === "false") return false;
-
-  // app.json의 featureFlags도 지원 (선택)
-  const ff = Constants.expoConfig?.extra?.featureFlags;
-  if (ff && ff.pushEnabled === false) return false;
-  return true;
-}
-
 async function ensurePermissions() {
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === "granted") return "granted";
+
   const { status } = await Notifications.requestPermissionsAsync({
     ios: { allowAlert: true, allowBadge: true, allowSound: true },
   });
   return status;
 }
 
+// 앱 시작 시 토큰 등록
 export async function registerExpoPushToken() {
   try {
     if (Platform.OS !== "ios") return { success: true, skipped: "not_ios" };
-
-    // ⚠️ 시뮬레이터/플래그면 "바로 스킵" — 절대 throw 하지 않음
-    if (!pushEnabledByFlag()) {
-      console.log("[Push] skipped by flag");
-      return { success: true, skipped: "flag" };
-    }
-    if (!Device.isDevice) {
-      console.log("[Push] simulator: skip push token");
-      return { success: true, skipped: "simulator" };
-    }
+    if (!Device.isDevice) return { success: true, skipped: "simulator" };
 
     const perm = await ensurePermissions();
     if (perm !== "granted") return { success: true, skipped: "perm_denied" };
@@ -131,34 +132,57 @@ export async function registerExpoPushToken() {
     if (!projectId) return { success: true, skipped: "no_project_id" };
 
     const { data: expoPushToken } = await Notifications.getExpoPushTokenAsync({ projectId });
+
     console.log("📢 [Push] ExpoPushToken:", expoPushToken);
-    return { success: true, expoPushToken };
+
+    const uploaded = await uploadTokenToServer(expoPushToken);
+    return { success: true, expoPushToken, uploaded };
   } catch (e) {
     console.warn("[Push][ERR] registerExpoPushToken:", e?.message || String(e));
-    // 실패해도 전체 앱 흐름은 막지 않음
     return { success: false, error: e?.message || String(e) };
   }
 }
 
-// 기존 호출부 호환
-export const registerPushToken = registerExpoPushToken;
+// 로그아웃/탈퇴 시 토큰 해제
+export async function unregisterPushToken() {
+  try {
+    let token = await loadLocalToken();
 
-// (선택) 초기화 편의 함수: 핸들러만 설정하고, 토큰 등록은 백그라운드로
-export function initializeNotifications() {
-  console.log("[Push] initializeNotifications: start");
+    if (!token && Device.isDevice && Platform.OS === "ios") {
+      const projectId = getProjectId();
+      if (projectId) {
+        const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+        token = data;
+      }
+    }
 
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-    }),
+    if (!token) {
+      console.warn("[Push] 해제 스킵: 로컬 토큰 없음");
+      return false;
+    }
+
+    const ok = await deleteTokenFromServer(token);
+    if (ok) {
+      await AsyncStorage.removeItem("pushToken");
+    }
+    return ok;
+  } catch (e) {
+    console.warn("[Push] unregister 오류:", e?.message || e);
+    return false;
+  }
+}
+
+// 알림 리스너
+export function setupNotificationListeners() {
+  const recvSub = Notifications.addNotificationReceivedListener((n) => {
+    console.log("[Push][recv]:", n);
+  });
+  const respSub = Notifications.addNotificationResponseReceivedListener((r) => {
+    console.log("[Push][tap]:", r);
   });
 
-  // 절대 await 하지 말 것! → 화면/네비게이션이 이걸 기다리면 '막힌 느낌'이 남
-  registerExpoPushToken().then((res) => {
-    if (res?.skipped) console.log("[Push] token register skipped:", res.skipped);
-  }).catch((e) => {
-    console.warn("[Push] token register error:", e);
-  });
+  return () => {
+    Notifications.removeNotificationSubscription(recvSub);
+    Notifications.removeNotificationSubscription(respSub);
+  };
 }

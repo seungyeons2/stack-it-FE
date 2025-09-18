@@ -7,18 +7,16 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import StackNavigator from "./src/navigation/StackNavigator";
 
-// Push 서비스 (Promise 체인 버전)
+// Push 서비스
 import {
   setupNotificationListeners,
   registerExpoPushToken,
 } from "./src/services/PushNotificationService";
 
-// ===== 로컬 환영 배너 노출 스위치 =====
-// 개발 중에만 보고 싶다면: const SHOW_WELCOME_ON_LAUNCH = __DEV__;
-const SHOW_WELCOME_ON_LAUNCH = true; // 필요할 때 true 로 바꿔서 1회 표시
+const SHOW_WELCOME_ON_LAUNCH = true;
 
 // ============================================
-// 전역 Notification Handler (iOS 포그라운드 배너/리스트/사운드/배지)
+// 전역 Notification Handler
 // ============================================
 console.log("[Push] setNotificationHandler: init");
 Notifications.setNotificationHandler({
@@ -37,7 +35,7 @@ export default function App() {
   const navigationRef = useRef(null);
   const cleanupRef = useRef(null);
   const localListeners = useRef({ received: null, response: null });
-  const shownWelcomeRef = useRef(false); // 같은 세션에서 중복 표시 방지
+  const shownWelcomeRef = useRef(false);
 
   useEffect(() => {
     let timer;
@@ -56,6 +54,7 @@ export default function App() {
         return;
       }
 
+      // ===== 권한 확인 =====
       try {
         const existing = await Notifications.getPermissionsAsync();
         console.log("[Push] permissions(existing):", existing?.status, existing);
@@ -74,6 +73,7 @@ export default function App() {
         return;
       }
 
+      // ===== 리스너 등록 =====
       console.log("[Push] setupNotificationListeners() 호출");
       const serviceCleanup = setupNotificationListeners?.();
       cleanupRef.current = serviceCleanup;
@@ -106,10 +106,12 @@ export default function App() {
         console.log("[Push][ERR] add listeners failed:", e?.message || e);
       }
 
+      // ===== 토큰 발급 + 서버 업서트 =====
       try {
         console.log("[Push] registerExpoPushToken() 호출");
         const res = await registerExpoPushToken();
         console.log("[Push] registerExpoPushToken() result:", res);
+
         if (res?.success && res?.expoPushToken) {
           console.log("✅ [Push] ExpoPushToken:", res.expoPushToken);
         } else {
@@ -119,7 +121,7 @@ export default function App() {
         console.warn("[Push][ERR] registerExpoPushToken error:", e?.message || e);
       }
 
-      // ===== 선택적: 환영 배너 1회 표시 =====
+      // ===== 환영 배너 =====
       if (SHOW_WELCOME_ON_LAUNCH && !shownWelcomeRef.current) {
         shownWelcomeRef.current = true;
         try {
@@ -135,7 +137,7 @@ export default function App() {
               data: { _meta: "welcome" },
               sound: "default",
             },
-            trigger: null, // 즉시
+            trigger: null,
           });
         } catch (e) {
           console.log("[Push][ERR] schedule welcome failed:", e?.message || e);
@@ -150,19 +152,15 @@ export default function App() {
     return () => {
       clearTimeout(timer);
       try {
-        cleanupRef.current?.(); // 서비스 리스너 해제
+        cleanupRef.current?.();
       } catch {}
       try {
         if (localListeners.current.received) {
-          Notifications.removeNotificationSubscription(
-            localListeners.current.received
-          );
+          Notifications.removeNotificationSubscription(localListeners.current.received);
           localListeners.current.received = null;
         }
         if (localListeners.current.response) {
-          Notifications.removeNotificationSubscription(
-            localListeners.current.response
-          );
+          Notifications.removeNotificationSubscription(localListeners.current.response);
           localListeners.current.response = null;
         }
       } catch {}
