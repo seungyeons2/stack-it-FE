@@ -346,6 +346,7 @@ const SignUp2Screen = ({ navigation }) => {
               placeholder="비밀번호 입력"
               placeholderTextColor="#bcd1d6"
               secureTextEntry={seePassword}
+              showSoftInputOnFocus={false}
               value={password}
               onChangeText={setPassword}
               returnKeyType="next"
@@ -378,6 +379,7 @@ const SignUp2Screen = ({ navigation }) => {
               placeholderTextColor="#bcd1d6"
               secureTextEntry={seeConfirmPassword}
               value={confirmPassword}
+              //showSoftInputOnFocus={false}
               onChangeText={setConfirmPassword}
               returnKeyType="next"
               onSubmitEditing={() => refNick.current && refNick.current.focus && refNick.current.focus()}

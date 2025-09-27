@@ -1,4 +1,4 @@
-// GuideLevel3.js - Improved Version (keeping original clean design)
+// GuideLevel3.js - Updated Header Row (consistent with Level1)
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -87,7 +87,7 @@ const GuideLevel3 = () => {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, { paddingTop: insets.top + 20 }]}>
         <ActivityIndicator size="large" color="#ffffff" />
       </View>
     );
@@ -95,7 +95,7 @@ const GuideLevel3 = () => {
 
   if (error) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.container, styles.center, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.errorText}>네트워크 오류</Text>
         <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
           <Text style={styles.retryButtonText}>다시 시도</Text>
@@ -113,15 +113,18 @@ const GuideLevel3 = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-        accessibilityLabel="뒤로가기"
-      >
-        <Text style={styles.backText}>{'<'}</Text>
-      </TouchableOpacity>
+      {/* 🔹 Header Row - Level1과 동일한 구조 */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityLabel="뒤로가기"
+        >
+          <Text style={styles.backText}>{'<'}</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.title}>3단계</Text>
+        <Text style={styles.title}>3단계</Text>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollView}
@@ -159,7 +162,7 @@ const GuideLevel3 = () => {
                     {IconComponent}
                   </TouchableOpacity>
                 ) : (
-                  <View style={styles.iconContainer}>
+                  <View style={styles.iconLocked}>
                     {IconComponent}
                   </View>
                 )}
@@ -185,26 +188,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
+  // 🔹 Header Row 스타일 - Level1과 동일
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // 가운데 기준
+    marginTop: 20,
+    marginBottom: 20,
+  },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
+    position: 'absolute', // 왼쪽에 고정
+    left: 0,
     padding: 10, // 터치 영역 확대
   },
-  
   backText: {
     fontSize: 36,
     color: '#FFFFFF',
   },
-  
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    alignSelf: 'center',
-    marginBottom: 20,
-    marginTop: 60,
   },
   
   scrollView: {
@@ -237,7 +241,7 @@ const styles = StyleSheet.create({
     padding: 10, // 터치 영역 확대
   },
   
-  iconContainer: {
+  iconLocked: {
     padding: 10,
     opacity: 0.6,
   },
@@ -261,14 +265,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
-  
   retryButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
   },
-  
   retryButtonText: {
     color: '#ffffff',
     fontSize: 16,

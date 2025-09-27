@@ -1,4 +1,4 @@
-// GuideLevel1.js - Updated using Level3/updated Level2 improvements
+// GuideLevel1.js - Updated Header Row
 import React, { useState } from 'react';
 import {
   View,
@@ -100,15 +100,18 @@ const GuideLevel1 = () => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
-      <TouchableOpacity
-        onPress={() => navigation.goBack()}
-        style={styles.backButton}
-        accessibilityLabel="뒤로가기"
-      >
-        <Text style={styles.backText}>{'<'}</Text>
-      </TouchableOpacity>
+      {/* 🔹 Header Row */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityLabel="뒤로가기"
+        >
+          <Text style={styles.backText}>{'<'}</Text>
+        </TouchableOpacity>
 
-      <Text style={styles.title}>1단계</Text>
+        <Text style={styles.title}>1단계</Text>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollView} showsVerticalScrollIndicator={false}>
         {entries.map(({ id, done }, idx) => {
@@ -154,11 +157,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // 🔹 Header Row 스타일
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // 가운데 기준
+    marginTop: 20,
+    marginBottom: 20,
+  },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
+    position: 'absolute', // 왼쪽에 고정
+    left: 0,
     padding: 10, // 터치 영역 확대
   },
   backText: {
@@ -169,9 +178,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    alignSelf: 'center',
-    marginBottom: 20,
-    marginTop: 60,
   },
   scrollView: {
     paddingBottom: 60,

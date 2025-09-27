@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120, // 탭 바 공간 확보
   },
   searchContainer: {
-    marginTop: 40,
+    marginTop: 60,
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
