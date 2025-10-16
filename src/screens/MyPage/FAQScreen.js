@@ -9,6 +9,9 @@ import {
   TouchableOpacity,
 } from 'react-native';
 
+// 🎨 테마 훅 import
+import { useTheme } from '../../utils/ThemeContext';
+
 const dummyFaqs = [
   {
     id: 1,
@@ -30,7 +33,7 @@ const dummyFaqs = [
     question: '매수와 매도 방법이 궁금해요.',
     answer: '종목을 검색한 후, 매수 또는 매도 버튼을 눌러 수량을 입력하고 주문을 실행하면 됩니다.',
   },
-    {
+  {
     id: 5,
     question: '모의 투자는 실제 돈이 드나요?',
     answer: '아니요! 모의 투자는 가상의 자산을 활용하는 시뮬레이션으로, 실제 돈이 들지 않습니다.',
@@ -40,15 +43,17 @@ const dummyFaqs = [
     question: '모의 투자로 수익이 나면 현금으로 받을 수 있나요?',
     answer: '모의 투자는 학습용 기능이기 때문에 실제 수익이나 손실은 발생하지 않으며, 현금으로 교환되지 않습니다.',
   },
-//   {
+  //   {
 //     id: 7,
 //     question: '랭킹은 어떻게 계산되나요?',
 //     answer: '랭킹은 전체 사용자 중 수익률을 기준으로 실시간 집계되며, 일/주/월 단위로 확인할 수 있습니다.',
 //   },
+
 ];
 
-
 const FAQScreen = ({ navigation }) => {
+  const { theme } = useTheme(); // 🎨 현재 테마 적용
+
   const [loading, setLoading] = useState(true);
   const [faqs, setFaqs] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
@@ -57,6 +62,7 @@ const FAQScreen = ({ navigation }) => {
     const loadFaqs = async () => {
       setLoading(true);
       try {
+        // API에서 불러오는 경우
         // const res = await fetch('https://your-api/faq');
         // const data = await res.json();
         setFaqs(dummyFaqs);
@@ -75,28 +81,47 @@ const FAQScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color="#F074BA" />
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: theme.background.primary, justifyContent: 'center' },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.accent.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      {/* 뒤로가기 버튼 */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>{'<'}</Text>
+        <Text style={[styles.backText, { color: theme.accent.primary }]}>{'<'}</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>자주 묻는 질문</Text>
+
+      <Text style={[styles.title, { color: theme.text.primary }]}>자주 묻는 질문</Text>
+
       <ScrollView contentContainerStyle={styles.scroll}>
         {faqs.map((faq) => (
           <TouchableOpacity
             key={faq.id}
             onPress={() => toggleExpand(faq.id)}
-            style={styles.faqBox}
+            style={[
+              styles.faqBox,
+              {
+                backgroundColor: theme.background.card,
+                borderColor: theme.border.medium,
+                borderWidth: 1,
+              },
+            ]}
           >
-            <Text style={styles.faqQuestion}>{faq.question}</Text>
+            <Text style={[styles.faqQuestion, { color: theme.text.primary }]}>
+              {faq.question}
+            </Text>
             {expandedId === faq.id && (
-              <Text style={styles.faqAnswer}>{faq.answer}</Text>
+              <Text style={[styles.faqAnswer, { color: theme.text.secondary }]}>
+                {faq.answer}
+              </Text>
             )}
           </TouchableOpacity>
         ))}
@@ -110,7 +135,6 @@ export default FAQScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
     paddingHorizontal: 30,
     paddingTop: 60,
   },
@@ -122,11 +146,9 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: '#F074BA',
   },
   title: {
     fontSize: 20,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
@@ -135,19 +157,16 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
   faqBox: {
-    backgroundColor: '#D4DDEF30',
     padding: 16,
     borderRadius: 10,
     marginBottom: 12,
   },
   faqQuestion: {
     fontSize: 16,
-    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   faqAnswer: {
     marginTop: 10,
-    color: '#EEEEEE',
     fontSize: 15,
     lineHeight: 22,
   },

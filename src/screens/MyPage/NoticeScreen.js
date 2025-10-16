@@ -12,7 +12,12 @@ import {
 } from 'react-native';
 import { API_BASE_URL, fetchAPI } from '../../utils/apiConfig';
 
+// 🎨 테마 적용
+import { useTheme } from '../../utils/ThemeContext';
+
 const NoticeScreen = ({ navigation }) => {
+  const { theme } = useTheme(); // 현재 테마 가져오기
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notices, setNotices] = useState([]);
@@ -21,10 +26,7 @@ const NoticeScreen = ({ navigation }) => {
   // 공지사항 목록 조회
   const loadNotices = async () => {
     try {
-
-      
       const result = await fetchAPI('notification/');
-      
       if (result.success) {
         console.log('공지사항 로딩 성공:', result.data.length, '개');
         setNotices(result.data);
@@ -41,32 +43,10 @@ const NoticeScreen = ({ navigation }) => {
     }
   };
 
-  // 개별 공지사항 상세 조회
-  const loadNoticeDetail = async (id) => {
-    try {
-      console.log(`공지사항 상세 조회: ID ${id}`);
-      
-      const result = await fetchAPI(`notification/${id}`);
-      
-      if (result.success) {
-        console.log('공지사항 상세 조회 성공');
-
-        return result.data;
-      } else {
-        console.error('공지사항 상세 조회 실패:', result.error);
-        return null;
-      }
-    } catch (error) {
-      console.error('공지사항 상세 조회 중 오류:', error);
-      return null;
-    }
-  };
-
   useEffect(() => {
     loadNotices();
   }, []);
 
-  // Pull to refresh
   const onRefresh = () => {
     setRefreshing(true);
     loadNotices();
@@ -91,52 +71,75 @@ const NoticeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color="#F074BA" />
-        <Text style={styles.loadingText}>공지사항을 불러오는 중...</Text>
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: theme.background.primary, justifyContent: 'center' },
+        ]}
+      >
+        <ActivityIndicator size="large" color={theme.accent.primary} />
+        <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+          공지사항을 불러오는 중...
+        </Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      {/* 뒤로가기 버튼 */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>{'<'}</Text>
+        <Text style={[styles.backText, { color: theme.accent.primary }]}>{'<'}</Text>
       </TouchableOpacity>
-      
-      <Text style={styles.title}>공지사항</Text>
-      
-      <ScrollView 
+
+      <Text style={[styles.title, { color: theme.text.primary }]}>공지사항</Text>
+
+      <ScrollView
         contentContainerStyle={styles.scroll}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#F074BA"
-            colors={['#F074BA']}
+            tintColor={theme.accent.primary}
+            colors={[theme.accent.primary]}
           />
         }
       >
         {notices.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>등록된 공지사항이 없습니다.</Text>
+            <Text style={[styles.emptyText, { color: theme.text.secondary }]}>
+              등록된 공지사항이 없습니다.
+            </Text>
           </View>
         ) : (
           notices.map((notice) => (
             <TouchableOpacity
               key={notice.id}
               onPress={() => toggleExpand(notice.id)}
-              style={styles.noticeBox}
+              style={[
+                styles.noticeBox,
+                {
+                  backgroundColor: theme.background.card,
+                  borderColor: theme.border.medium,
+                  borderWidth: 1,
+                },
+              ]}
             >
               <View style={styles.noticeHeader}>
-                <Text style={styles.noticeTitle}>{notice.title}</Text>
-                <Text style={styles.noticeDate}>{formatDate(notice.created_at)}</Text>
+                <Text style={[styles.noticeTitle, { color: theme.text.primary }]}>
+                  {notice.title}
+                </Text>
+                <Text style={[styles.noticeDate, { color: theme.text.tertiary }]}>
+                  {formatDate(notice.created_at)}
+                </Text>
               </View>
-              
+
               {expandedId === notice.id && (
                 <View style={styles.noticeContentContainer}>
-                  <View style={styles.divider} />
-                  <Text style={styles.noticeContent}>
+                  <View
+                    style={[styles.divider, { backgroundColor: theme.border.light }]}
+                  />
+                  <Text style={[styles.noticeContent, { color: theme.text.secondary }]}>
                     {notice.content.replace(/\\r\\n/g, '\n')}
                   </Text>
                 </View>
@@ -154,7 +157,6 @@ export default NoticeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
     paddingHorizontal: 30,
     paddingTop: 60,
   },
@@ -166,17 +168,14 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: '#F074BA',
   },
   title: {
     fontSize: 20,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
   },
   loadingText: {
-    color: '#FFFFFF',
     marginTop: 10,
     textAlign: 'center',
   },
@@ -190,12 +189,10 @@ const styles = StyleSheet.create({
     marginTop: 100,
   },
   emptyText: {
-    color: '#EEEEEE',
     fontSize: 16,
     textAlign: 'center',
   },
   noticeBox: {
-    backgroundColor: '#D4DDEF30',
     padding: 16,
     borderRadius: 10,
     marginBottom: 12,
@@ -207,25 +204,21 @@ const styles = StyleSheet.create({
   },
   noticeTitle: {
     fontSize: 16,
-    color: '#FFFFFF',
     fontWeight: 'bold',
     flex: 1,
     marginRight: 10,
   },
   noticeDate: {
     fontSize: 12,
-    color: '#CCCCCC',
   },
   noticeContentContainer: {
     marginTop: 10,
   },
   divider: {
     height: 1,
-    backgroundColor: '#D4DDEF50',
     marginBottom: 10,
   },
   noticeContent: {
-    color: '#EEEEEE',
     fontSize: 15,
     lineHeight: 22,
   },

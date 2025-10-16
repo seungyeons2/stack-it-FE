@@ -9,15 +9,16 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { useTheme } from "../../utils/ThemeContext";
 
 const SearchScreen = ({ navigation }) => {
+  const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [autoCompleteResults, setAutoCompleteResults] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
-  // 자동완성 API 호출 함수
   const fetchAutoComplete = async (query) => {
     if (query.length === 0) {
       setAutoCompleteResults([]);
@@ -31,7 +32,6 @@ const SearchScreen = ({ navigation }) => {
       );
       const data = await response.json();
 
-      // results 배열이 있는지 확인하고 처리
       if (data.results) {
         setAutoCompleteResults(data.results);
       } else if (Array.isArray(data)) {
@@ -49,7 +49,6 @@ const SearchScreen = ({ navigation }) => {
     }
   };
 
-  // 검색 API 호출 함수
   const fetchSearchResults = async (query) => {
     try {
       setLoading(true);
@@ -58,7 +57,6 @@ const SearchScreen = ({ navigation }) => {
       );
       const data = await response.json();
 
-      // results 배열이 있는지 확인하고 처리
       if (data.results) {
         setSearchResults(data.results);
       } else if (Array.isArray(data)) {
@@ -69,7 +67,7 @@ const SearchScreen = ({ navigation }) => {
       }
 
       setHasSearched(true);
-      setAutoCompleteResults([]); // 자동완성 결과 초기화
+      setAutoCompleteResults([]);
     } catch (error) {
       console.error("검색 API 오류:", error);
     } finally {
@@ -77,7 +75,6 @@ const SearchScreen = ({ navigation }) => {
     }
   };
 
-  // 검색어 변경 시 자동완성 결과 요청
   useEffect(() => {
     console.log("검색어 변경:", searchQuery);
     const delayDebounceFn = setTimeout(() => {
@@ -85,20 +82,17 @@ const SearchScreen = ({ navigation }) => {
         console.log("자동완성 API 호출 시도:", searchQuery);
         fetchAutoComplete(searchQuery);
       }
-    }, 800); // 800ms 디바운스 *** 추후 늘릴수도..?
+    }, 800);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery]);
 
-  // 자동완성 항목 선택 시 호출함
   const handleSelectAutoComplete = (item) => {
     setSearchQuery(item.name);
     fetchSearchResults(item.name);
   };
 
-  // 이건 검색 결과 항목 선택 시 호출함
   const handleSelectStock = (item) => {
-    // 선택한 주식의 상세 화면으로
     navigation.navigate("StockDetail", {
       symbol: item.symbol,
       name: item.name,
@@ -106,19 +100,21 @@ const SearchScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <View style={styles.header}>
-        {/* 🔙 뒤로 가기 버튼 */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{"<"}</Text>
+          <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
         </TouchableOpacity>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { 
+            backgroundColor: theme.background.secondary,
+            color: theme.text.primary 
+          }]}
           placeholder="주식명 또는 종목코드 검색"
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={theme.text.tertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus={true}
@@ -132,58 +128,75 @@ const SearchScreen = ({ navigation }) => {
               setAutoCompleteResults([]);
             }}
           >
-            <Text style={styles.clearButtonText}>✕</Text>
+            <Text style={[styles.clearButtonText, { color: theme.text.tertiary }]}>
+              ✕
+            </Text>
           </TouchableOpacity>
         )}
       </View>
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F074BA" />
+          <ActivityIndicator size="large" color={theme.accent.primary} />
         </View>
       )}
 
-      {/* 로그찍어본것 */}
       {!hasSearched && autoCompleteResults.length > 0 && (
-        <Text style={{ color: "#FFF" }}>
+        <Text style={{ color: theme.text.primary }}>
           결과 수: {autoCompleteResults.length}
         </Text>
       )}
 
-      {/* 자동완성 결과 */}
       {!hasSearched && autoCompleteResults.length > 0 && (
         <View style={[styles.resultsContainer, { flex: 1, maxHeight: "70%" }]}>
-          <Text style={styles.resultTitle}>추천 검색어</Text>
+          <Text style={[styles.resultTitle, { color: theme.accent.primary }]}>
+            추천 검색어
+          </Text>
           <FlatList
             data={autoCompleteResults}
             keyExtractor={(item) => item.symbol}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.resultItem}
+                style={[styles.resultItem, { 
+                  backgroundColor: theme.background.card,
+                  borderBottomColor: theme.background.secondary 
+                }]}
                 onPress={() => handleSelectAutoComplete(item)}
               >
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemSymbol}>{item.symbol}</Text>
+                <Text style={[styles.itemName, { color: theme.text.primary }]}>
+                  {item.name}
+                </Text>
+                <Text style={[styles.itemSymbol, { color: theme.text.tertiary }]}>
+                  {item.symbol}
+                </Text>
               </TouchableOpacity>
             )}
           />
         </View>
       )}
 
-      {/* 검색 결과*/}
       {hasSearched && searchResults.length > 0 && (
         <View style={[styles.resultsContainer, { flex: 1 }]}>
-          <Text style={styles.resultTitle}>검색 결과</Text>
+          <Text style={[styles.resultTitle, { color: theme.accent.primary }]}>
+            검색 결과
+          </Text>
           <FlatList
             data={searchResults}
             keyExtractor={(item) => item.symbol}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.resultItem}
+                style={[styles.resultItem, { 
+                  backgroundColor: theme.background.card,
+                  borderBottomColor: theme.background.secondary 
+                }]}
                 onPress={() => handleSelectStock(item)}
               >
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemSymbol}>{item.symbol}</Text>
+                <Text style={[styles.itemName, { color: theme.text.primary }]}>
+                  {item.name}
+                </Text>
+                <Text style={[styles.itemSymbol, { color: theme.text.tertiary }]}>
+                  {item.symbol}
+                </Text>
               </TouchableOpacity>
             )}
           />
@@ -192,7 +205,9 @@ const SearchScreen = ({ navigation }) => {
 
       {hasSearched && searchResults.length === 0 && !loading && (
         <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>검색 결과가 없습니다.</Text>
+          <Text style={[styles.noResultsText, { color: theme.text.tertiary }]}>
+            검색 결과가 없습니다.
+          </Text>
         </View>
       )}
     </View>
@@ -202,7 +217,6 @@ const SearchScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
     padding: 16,
   },
   header: {
@@ -216,16 +230,13 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   backText: {
-    color: "#EFF1F5",
     fontSize: 24,
     fontWeight: "bold",
   },
   searchInput: {
     flex: 1,
-    backgroundColor: "#004455",
     borderRadius: 13,
     padding: 12,
-    color: "#EFF1F5",
     fontSize: 16,
   },
   clearButton: {
@@ -235,7 +246,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   clearButtonText: {
-    color: "#9ca3af",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -247,13 +257,11 @@ const styles = StyleSheet.create({
   resultsContainer: {
     flex: 1,
     marginTop: 8,
-    //backgroundColor: '#004455',
     borderRadius: 10,
     padding: 10,
     zIndex: 10,
   },
   resultTitle: {
-    color: "#F074BA",
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
@@ -265,18 +273,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#004455",
-    backgroundColor: "#002530",
     marginBottom: 4,
     borderRadius: 8,
   },
   itemName: {
-    color: "#EFF1F5",
     fontSize: 16,
     fontWeight: "500",
   },
   itemSymbol: {
-    color: "#9ca3af",
     fontSize: 14,
   },
   noResultsContainer: {
@@ -285,7 +289,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   noResultsText: {
-    color: "#9ca3af",
     fontSize: 16,
   },
 });

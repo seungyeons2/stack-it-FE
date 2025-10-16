@@ -9,8 +9,11 @@ import {
   ScrollView,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { useTheme } from "../../utils/ThemeContext";
 
 const ResetPasswordScreen = ({ route, navigation }) => {
+  const { theme } = useTheme();
+  
   // route.params가 없는 경우 처리
   const { email = "" } = route?.params || {};
   const [resetToken, setResetToken] = useState("");
@@ -87,42 +90,57 @@ const ResetPasswordScreen = ({ route, navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
+    <ScrollView 
+      contentContainerStyle={styles.scrollContainer}
+      style={{ backgroundColor: theme.background.primary }}
+    >
+      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
         {/* 🔙 뒤로 가기 버튼 */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{"<"}</Text>
+          <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
         </TouchableOpacity>
 
         {/* 🏷 타이틀 */}
-        <Text style={styles.title}>비밀번호 재설정</Text>
+        <Text style={[styles.title, { color: theme.accent.primary }]}>비밀번호 재설정</Text>
 
         <View style={styles.formContainer}>
           {/* 이메일 표시 */}
-          <Text style={styles.emailText}>{email}</Text>
+          <Text style={[styles.emailText, { color: theme.text.primary }]}>{email}</Text>
 
           {/* 토큰 입력 */}
-          <Text style={styles.label}>재설정 토큰</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>재설정 토큰</Text>
+          <View style={[
+            styles.inputContainer,
+            { 
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.medium
+            }
+          ]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text.primary }]}
               placeholder="이메일로 받은 재설정 토큰을 입력해 주세요"
-              placeholderTextColor="#ccc"
+              placeholderTextColor={theme.text.tertiary}
               value={resetToken}
               onChangeText={setResetToken}
             />
           </View>
 
           {/* 새 비밀번호 입력 */}
-          <Text style={styles.label}>새 비밀번호</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>새 비밀번호</Text>
+          <View style={[
+            styles.inputContainer,
+            { 
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.medium
+            }
+          ]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text.primary }]}
               placeholder="8자 이상 입력"
-              placeholderTextColor="#ccc"
+              placeholderTextColor={theme.text.tertiary}
               secureTextEntry
               value={newPassword}
               onChangeText={setNewPassword}
@@ -130,12 +148,18 @@ const ResetPasswordScreen = ({ route, navigation }) => {
           </View>
 
           {/* 비밀번호 확인 입력 */}
-          <Text style={styles.label}>비밀번호 확인</Text>
-          <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>비밀번호 확인</Text>
+          <View style={[
+            styles.inputContainer,
+            { 
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.medium
+            }
+          ]}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: theme.text.primary }]}
               placeholder="비밀번호를 다시 입력해 주세요"
-              placeholderTextColor="#ccc"
+              placeholderTextColor={theme.text.tertiary}
               secureTextEntry
               value={confirmPassword}
               onChangeText={setConfirmPassword}
@@ -144,31 +168,39 @@ const ResetPasswordScreen = ({ route, navigation }) => {
 
           {/* 변경 버튼 */}
           <TouchableOpacity
-            style={[styles.resetButton, loading && styles.disabledButton]}
+            style={[
+              styles.resetButton,
+              { 
+                backgroundColor: loading ? theme.text.disabled : theme.button.primary,
+                shadowColor: theme.button.primary
+              }
+            ]}
             onPress={handleResetPassword}
             disabled={loading}
           >
-            <Text style={styles.resetButtonText}>
+            <Text style={[styles.resetButtonText, { color: theme.background.primary }]}>
               {loading ? "처리 중..." : "비밀번호 변경"}
             </Text>
           </TouchableOpacity>
 
-          <Text style={styles.infoText}>이메일로 받은 토큰을 입력한 후,</Text>
-          <Text style={styles.infoText}>새 비밀번호를 설정해 주세요.</Text>
+          <Text style={[styles.infoText, { color: theme.accent.light }]}>
+            이메일로 받은 토큰을 입력한 후,
+          </Text>
+          <Text style={[styles.infoText, { color: theme.accent.light }]}>
+            새 비밀번호를 설정해 주세요.
+          </Text>
         </View>
       </View>
     </ScrollView>
   );
 };
 
-// ✅ 스타일 정의
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: "#003340",
     alignItems: "center",
     paddingHorizontal: 30,
     paddingBottom: 40,
@@ -182,13 +214,11 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: "#F074BA",
   },
 
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#F074BA",
     position: "absolute",
     top: 150,
     left: 30,
@@ -202,14 +232,12 @@ const styles = StyleSheet.create({
 
   emailText: {
     fontSize: 18,
-    color: "#fff",
     marginBottom: 20,
-    alignSelf: "left",
+    alignSelf: "flex-start",
   },
 
   label: {
     fontSize: 16,
-    color: "#F074BA",
     alignSelf: "flex-start",
     marginTop: 15,
     marginBottom: 10,
@@ -218,9 +246,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: "100%",
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: "#f9f9f9",
     marginBottom: 10,
     paddingHorizontal: 10,
   },
@@ -228,7 +254,6 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     fontSize: 16,
-    color: "black",
   },
 
   resetButton: {
@@ -236,27 +261,23 @@ const styles = StyleSheet.create({
     height: 50,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F074BA",
     borderRadius: 8,
     marginTop: 30,
     marginBottom: 50,
-  },
-
-  disabledButton: {
-    backgroundColor: "#A0A0A0",
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
 
   resetButtonText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "white",
   },
 
   infoText: {
     fontSize: 14,
-    color: "#F074BA",
     textAlign: "center",
-    // marginTop: 20,
     opacity: 0.7,
     fontWeight: "bold",
   },

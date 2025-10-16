@@ -13,9 +13,15 @@ import { API_BASE_URL } from "../../utils/apiConfig";
 import { getNewAccessToken } from "../../utils/token";
 import { Ionicons } from "@expo/vector-icons";
 
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
+
 const screenWidth = Dimensions.get("window").width;
 
 const AssetDetailScreen = ({ navigation }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const [assetData, setAssetData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -117,7 +123,7 @@ const AssetDetailScreen = ({ navigation }) => {
     return ((value / assetData.total_asset) * 100).toFixed(1) + "%";
   };
 
-  // 차트 데이터 - 필터링된 데이터 사용
+  // 🎨 차트 데이터 - 테마 색상 적용
   const prepareChartData = () => {
     if (
       !assetData ||
@@ -127,30 +133,11 @@ const AssetDetailScreen = ({ navigation }) => {
       return [];
     }
 
-    const chartColors = [
-      "#F074BA", // 예수금 : 두둑 핑크
-      "#3B82F6", // 파랑
-      "#34D399", // 에메랄드
-      "#10B981", // 녹색
-      "#F59E0B", // 황색
-      "#EF4444", // 빨강
-      "#6366F1", // 보라
-      "#8B5CF6", // 연보라
-      "#EC4899", // 핑크
-      "#F87171", // 연빨강
-      "#FBBF24", // 주황
-      "#4ADE80", // 연녹색
-      "#22D3EE", // 하늘색
-      "#60A5FA", // 연파랑
-      "#A78BFA", // 라벤더
-      "#F472B6", // 코랄 핑크
-    ];
-
     return assetData.breakdown.map((item, index) => ({
       name: item.label,
       value: item.value,
-      color: chartColors[index % chartColors.length],
-      legendFontColor: "#EFF1F5",
+      color: theme.chart.colors[index % theme.chart.colors.length],
+      legendFontColor: theme.text.primary,
       legendFontSize: 12,
     }));
   };
@@ -167,9 +154,11 @@ const AssetDetailScreen = ({ navigation }) => {
   // 로딩
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F074BA" />
-        <Text style={styles.loadingText}>보유 주식 정보를 불러오는 중...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background.primary }]}>
+        <ActivityIndicator size="large" color={theme.accent.primary} />
+        <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+          보유 주식 정보를 불러오는 중...
+        </Text>
       </View>
     );
   }
@@ -177,16 +166,23 @@ const AssetDetailScreen = ({ navigation }) => {
   // 에러
   if (error) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchAssetData}>
-          <Text style={styles.retryButtonText}>다시 시도</Text>
+      <View style={[styles.errorContainer, { backgroundColor: theme.background.primary }]}>
+        <Text style={[styles.errorText, { color: theme.status.error }]}>{error}</Text>
+        <TouchableOpacity 
+          style={[styles.retryButton, { backgroundColor: theme.button.primary }]} 
+          onPress={fetchAssetData}
+        >
+          <Text style={[styles.retryButtonText, { color: theme.text.primary }]}>
+            다시 시도
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { borderColor: theme.button.primary }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>돌아가기</Text>
+          <Text style={[styles.backButtonText, { color: theme.button.primary }]}>
+            돌아가기
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -195,13 +191,17 @@ const AssetDetailScreen = ({ navigation }) => {
   // 데이터 없음 화면
   if (!assetData) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>데이터를 불러올 수 없습니다</Text>
+      <View style={[styles.errorContainer, { backgroundColor: theme.background.primary }]}>
+        <Text style={[styles.errorText, { color: theme.status.error }]}>
+          데이터를 불러올 수 없습니다
+        </Text>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { borderColor: theme.button.primary }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backButtonText}>돌아가기</Text>
+          <Text style={[styles.backButtonText, { color: theme.button.primary }]}>
+            돌아가기
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -212,12 +212,14 @@ const AssetDetailScreen = ({ navigation }) => {
 
   // 정상 화면
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <View style={[styles.header, { backgroundColor: theme.background.primary }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>{"<"}</Text>
+          <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>총 자산 상세</Text>
+        <Text style={[styles.headerTitle, { color: theme.text.primary }]}>
+          총 자산 상세
+        </Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -231,7 +233,7 @@ const AssetDetailScreen = ({ navigation }) => {
               height={screenWidth - 60}
               chartConfig={{
                 color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                labelColor: (opacity = 1) => theme.text.primary,
               }}
               accessor="value"
               backgroundColor="transparent"
@@ -243,8 +245,10 @@ const AssetDetailScreen = ({ navigation }) => {
               center={[screenWidth * 0.23, 0]}
             />
           ) : (
-            <View style={styles.emptyChart}>
-              <Text style={styles.emptyChartText}>차트 데이터가 없습니다</Text>
+            <View style={[styles.emptyChart, { backgroundColor: theme.background.secondary }]}>
+              <Text style={[styles.emptyChartText, { color: theme.text.primary }]}>
+                차트 데이터가 없습니다
+              </Text>
             </View>
           )}
         </View>
@@ -256,7 +260,7 @@ const AssetDetailScreen = ({ navigation }) => {
               <View
                 style={[styles.legendColor, { backgroundColor: item.color }]}
               />
-              <Text style={styles.legendLabel}>
+              <Text style={[styles.legendLabel, { color: theme.text.secondary }]}>
                 {item.name} {calculatePercentage(item.value)}
               </Text>
             </View>
@@ -265,29 +269,36 @@ const AssetDetailScreen = ({ navigation }) => {
 
         {/* 보유 주식 목록 */}
         <View style={styles.stockListContainer}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: theme.accent.primary }]}>
             보유 주식 목록{" "}
             {ownedStocks.length > 0 && `(${ownedStocks.length}개)`}
           </Text>
 
           {ownedStocks.length > 0 ? (
             ownedStocks.map((stock, index) => (
-              <View key={index} style={styles.stockItem}>
+              <View 
+                key={index} 
+                style={[styles.stockItem, { backgroundColor: theme.background.secondary }]}
+              >
                 <View style={styles.stockInfoTop}>
-                  <Text style={styles.stockName}>{stock.label}</Text>
-                  <Text style={styles.stockPercentage}>
+                  <Text style={[styles.stockName, { color: theme.text.primary }]}>
+                    {stock.label}
+                  </Text>
+                  <Text style={[styles.stockPercentage, { color: theme.status.success }]}>
                     {calculatePercentage(stock.value)}
                   </Text>
                 </View>
-                <Text style={styles.stockValue}>
+                <Text style={[styles.stockValue, { color: theme.text.secondary }]}>
                   {formatCurrency(stock.value)}원
                 </Text>
               </View>
             ))
           ) : (
-            <View style={styles.emptyListContainer}>
-              <Text style={styles.emptyListText}>보유 주식이 없습니다</Text>
-              <Text style={styles.emptyListSubText}>
+            <View style={[styles.emptyListContainer, { backgroundColor: theme.background.secondary }]}>
+              <Text style={[styles.emptyListText, { color: theme.text.secondary }]}>
+                보유 주식이 없습니다
+              </Text>
+              <Text style={[styles.emptyListSubText, { color: theme.text.tertiary }]}>
                 메인화면에서 주식 거래를 시작해보세요!
               </Text>
             </View>
@@ -295,22 +306,28 @@ const AssetDetailScreen = ({ navigation }) => {
         </View>
 
         {/* 자산 요약 */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>평가 금액</Text>
-            <Text style={styles.summaryValue}>
+        <View style={[styles.summaryContainer, { backgroundColor: theme.background.secondary }]}>
+          <View style={[styles.summaryItem, { borderBottomColor: theme.border.light }]}>
+            <Text style={[styles.summaryLabel, { color: theme.text.secondary }]}>
+              평가 금액
+            </Text>
+            <Text style={[styles.summaryValue, { color: theme.text.primary }]}>
               {formatCurrency(assetData.evaluation)}원
             </Text>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>예수금</Text>
-            <Text style={styles.summaryValue}>
+          <View style={[styles.summaryItem, { borderBottomColor: theme.border.light }]}>
+            <Text style={[styles.summaryLabel, { color: theme.text.secondary }]}>
+              예수금
+            </Text>
+            <Text style={[styles.summaryValue, { color: theme.text.primary }]}>
               {formatCurrency(assetData.cash)}원
             </Text>
           </View>
           <View style={[styles.summaryItem, styles.totalItem]}>
-            <Text style={styles.totalLabel}>총 자산</Text>
-            <Text style={styles.totalValue}>
+            <Text style={[styles.totalLabel, { color: theme.accent.primary }]}>
+              총 자산
+            </Text>
+            <Text style={[styles.totalValue, { color: theme.accent.primary }]}>
               {formatCurrency(assetData.total_asset)}원
             </Text>
           </View>
@@ -319,10 +336,10 @@ const AssetDetailScreen = ({ navigation }) => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
   },
   header: {
     flexDirection: "row",
@@ -331,19 +348,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 48,
     paddingBottom: 16,
-    backgroundColor: "#003340",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#EFF1F5",
     marginTop: 10,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 10,
   },
-
   chartSection: {
     position: "relative",
     width: screenWidth - 60,
@@ -365,11 +379,9 @@ const styles = StyleSheet.create({
     width: screenWidth - 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#004455",
     borderRadius: 16,
   },
   emptyChartText: {
-    color: "#EFF1F5",
     fontSize: 16,
   },
   stockListContainer: {
@@ -378,11 +390,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#F074BA",
     marginBottom: 16,
   },
   stockItem: {
-    backgroundColor: "#004455",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -396,31 +406,25 @@ const styles = StyleSheet.create({
   stockName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#EFF1F5",
   },
   stockPercentage: {
     fontSize: 14,
-    color: "#4ECDC4",
     fontWeight: "500",
   },
   stockValue: {
     fontSize: 14,
-    color: "rgba(239, 241, 245, 0.7)",
   },
   emptyListContainer: {
     padding: 20,
-    backgroundColor: "#004455",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   emptyListText: {
-    color: "rgba(239, 241, 245, 0.7)",
     textAlign: "center",
   },
   summaryContainer: {
     padding: 16,
-    backgroundColor: "#004455",
     margin: 16,
     borderRadius: 12,
   },
@@ -429,14 +433,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(239, 241, 245, 0.1)",
   },
   summaryLabel: {
-    color: "rgba(239, 241, 245, 0.7)",
     fontSize: 14,
   },
   summaryValue: {
-    color: "#EFF1F5",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -445,12 +446,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   totalLabel: {
-    color: "#F074BA",
     fontSize: 16,
     fontWeight: "bold",
   },
   totalValue: {
-    color: "#F074BA",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -458,35 +457,29 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#003340",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: "#EFF1F5",
   },
   errorContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
-    backgroundColor: "#003340",
   },
   errorText: {
     fontSize: 16,
-    color: "#FF6B6B",
     marginBottom: 16,
     textAlign: "center",
   },
   retryButton: {
-    backgroundColor: "#F074BA",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
     marginBottom: 8,
   },
   retryButtonText: {
-    color: "#EFF1F5",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -495,10 +488,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#F074BA",
   },
   backButtonText: {
-    color: "#F074BA",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -518,16 +509,12 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   legendLabel: {
-    color: "rgba(239, 241, 245, 0.7)",
     fontSize: 14,
   },
   backText: {
     fontSize: 36,
-    color: "#F074BA",
   },
-
   emptyListSubText: {
-    color: "rgba(239, 241, 245, 0.5)",
     textAlign: "center",
     fontSize: 14,
     marginTop: 8,

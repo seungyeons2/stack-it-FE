@@ -18,7 +18,13 @@ import EyeClosed from "../../components/EyeClosed";
 import { API_BASE_URL, API_ENDPOINTS } from "../../utils/apiConfig";
 import { registerPushToken } from "../../services/PushNotificationService";
 
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
+
 const LoginScreen = ({ navigation }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const [seePassword, setSeePassword] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -163,7 +169,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background.primary }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
@@ -181,7 +187,9 @@ const LoginScreen = ({ navigation }) => {
             },
           ]}
         >
-          <Text style={styles.title}>로그인</Text>
+          <Text style={[styles.title, { color: theme.accent.primary }]}>
+            로그인
+          </Text>
         </Animated.View>
 
         <View
@@ -191,12 +199,18 @@ const LoginScreen = ({ navigation }) => {
           ]}
         >
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>이메일</Text>
-            <View style={styles.inputWrapper}>
+            <Text style={[styles.label, { color: theme.accent.primary }]}>
+              이메일
+            </Text>
+            <View style={[styles.inputWrapper, { 
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.medium,
+              borderWidth: 1
+            }]}>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { color: theme.text.primary }]}
                 placeholder="이메일(아이디)를 입력해주세요"
-                placeholderTextColor="#CCCDD0"
+                placeholderTextColor={theme.text.tertiary}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -207,13 +221,19 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>비밀번호</Text>
-            <View style={styles.inputWrapper}>
+            <Text style={[styles.label, { color: theme.accent.primary }]}>
+              비밀번호
+            </Text>
+            <View style={[styles.inputWrapper, { 
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.medium,
+              borderWidth: 1
+            }]}>
               <View style={styles.passwordContainer}>
                 <TextInput
-                  style={styles.passwordInput}
+                  style={[styles.passwordInput, { color: theme.text.primary }]}
                   placeholder="비밀번호를 입력해주세요"
-                  placeholderTextColor="#CCCDD0"
+                  placeholderTextColor={theme.text.tertiary}
                   secureTextEntry={seePassword}
                   value={password}
                   onChangeText={setPassword}
@@ -233,13 +253,19 @@ const LoginScreen = ({ navigation }) => {
           <TouchableOpacity
             style={[
               styles.loginButton,
+              { 
+                backgroundColor: theme.button.primary,
+                shadowColor: theme.button.primary
+              },
               isLoading && styles.loginButtonDisabled,
             ]}
             onPress={handleLogin}
             disabled={isLoading}
             activeOpacity={0.8}
           >
-            <Text style={styles.loginButtonText}>
+            <Text style={[styles.loginButtonText, { 
+              color: theme.background.primary 
+            }]}>
               {isLoading ? "로그인 중..." : "로그인"}
             </Text>
           </TouchableOpacity>
@@ -250,17 +276,23 @@ const LoginScreen = ({ navigation }) => {
               style={styles.linkButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.linkText}>비밀번호 찾기</Text>
+              <Text style={[styles.linkText, { color: theme.text.primary }]}>
+                비밀번호 찾기
+              </Text>
             </TouchableOpacity>
 
-            <View style={styles.linkSeparator} />
+            <View style={[styles.linkSeparator, { 
+              backgroundColor: theme.text.primary 
+            }]} />
 
             <TouchableOpacity
               onPress={() => navigation.navigate("SignUp1")}
               style={styles.linkButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Text style={styles.linkText}>회원가입</Text>
+              <Text style={[styles.linkText, { color: theme.text.primary }]}>
+                회원가입
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -272,7 +304,6 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
   },
   scrollContainer: {
     flexGrow: 1,
@@ -286,7 +317,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 25,
     fontWeight: "bold",
-    color: "#F074BA",
     letterSpacing: 0.5,
   },
   inputSection: {
@@ -303,13 +333,11 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: "#F074BA",
     marginBottom: 8,
     fontWeight: "500",
   },
   inputWrapper: {
     borderRadius: 12,
-    backgroundColor: "#f9f9f9",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -323,7 +351,6 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#333",
     backgroundColor: "transparent",
   },
   passwordContainer: {
@@ -335,7 +362,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#333",
   },
   eyeIcon: {
     paddingHorizontal: 16,
@@ -343,12 +369,10 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     height: 52,
-    backgroundColor: "#F074BA",
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 16,
-    shadowColor: "#F074BA",
     shadowOffset: {
       width: 0,
       height: 4,
@@ -362,7 +386,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
   },
   loginButtonText: {
-    color: "#fff",
     fontSize: 18,
     fontWeight: "600",
     letterSpacing: 0.5,
@@ -379,14 +402,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   linkText: {
-    color: "#EFF1F5",
     fontSize: 16,
     textDecorationLine: "underline",
   },
   linkSeparator: {
     width: 1,
     height: 16,
-    backgroundColor: "#EFF1F5",
     marginHorizontal: 16,
     opacity: 0.5,
   },

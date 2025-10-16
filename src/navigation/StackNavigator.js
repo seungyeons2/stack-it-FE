@@ -5,7 +5,6 @@ import SignUp1Screen from "../screens/Auth/SignUp1Screen";
 import SignUp2Screen from "../screens/Auth/SignUp2Screen";
 import SignUp3Screen from "../screens/Auth/SignUp3Screen";
 import SignUp4Screen from "../screens/Auth/SignUp4Screen";
-import FindIdScreen from "../screens/Auth/FindIdScreen";
 import FindPasswordScreen from "../screens/Auth/FindPasswordScreen";
 import ResetPasswordScreen from "../screens/Auth/ResetPasswordScreen";
 import SplashScreen from "../screens/Auth/SplashScreen";
@@ -25,13 +24,15 @@ import TypeResultScreen from "../screens/Guide/TypeResultScreen";
 
 import TradingBuyScreen from "../screens/Main/TradingBuyScreen";
 import TradingSellScreen from "../screens/Main/TradingSellScreen";
-import EditUserInfoScreen from "../screens/MyPage/EditUserInfoScreen";
+// import EditUserInfoScreen from "../screens/MyPage/EditUserInfoScreen";
 import NoticeScreen from "../screens/MyPage/NoticeScreen";
 import FAQScreen from "../screens/MyPage/FAQScreen";
 import ChangePasswordScreen from "../screens/MyPage/ChangePasswordScreen";
 
 import AssetDetailScreen from "../screens/Main/AssetDetailScreen";
 import RouletteScreen from "../screens/MyPage/RouletteScreen";
+
+import ThemeSelectorScreen from '../screens/MyPage/ThemeSelectorScreen';
 
 const Stack = createStackNavigator();
 
@@ -45,7 +46,6 @@ export default function StackNavigator() {
       <Stack.Screen name="SignUp3" component={SignUp3Screen} />
       <Stack.Screen name="SignUp4" component={SignUp4Screen} />
 
-      <Stack.Screen name="FindId" component={FindIdScreen} />
       <Stack.Screen name="FindPassword" component={FindPasswordScreen} />
       <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
       <Stack.Screen name="MainTab" component={MainTab} />
@@ -68,8 +68,15 @@ export default function StackNavigator() {
       <Stack.Screen name="TradingBuy" component={TradingBuyScreen} />
       <Stack.Screen name="TradingSell" component={TradingSellScreen} />
       <Stack.Screen name="Roulette" component={RouletteScreen} />
-      <Stack.Screen name="EditUserInfo" component={EditUserInfoScreen} />
+      {/* <Stack.Screen name="EditUserInfo" component={EditUserInfoScreen} /> */}
       <Stack.Screen name="Notice" component={NoticeScreen} />
+      <Stack.Screen name="ThemeSelector" component={ThemeSelectorScreen}
+  // options={{
+  //   headerShown: false,
+  //   presentation: 'card',
+  // }}
+/>
+
       <Stack.Screen name="FAQ" component={FAQScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
       <Stack.Screen name="SearchScreen" component={SearchScreen} />

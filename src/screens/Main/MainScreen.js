@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Dimensions,
   ActivityIndicator,
   RefreshControl,
@@ -24,38 +23,40 @@ import {
   scheduleTokenRefresh,
 } from "../../utils/hantuToken";
 
-import BellIcon from "../../assets/icons/bell.svg";
-import SearchIcon from "../../assets/icons/search.svg";
+// 🎉 Lucide 아이콘 import
+import { Bell, Search, Star } from "lucide-react-native";
+
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
 
 const screenWidth = Dimensions.get("window").width;
 
 const MainScreen = ({ navigation }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const [userInfo, setUserInfo] = useState(null);
   const [searchText, setSearchText] = useState("");
-  const [watchlist, setWatchlist] = useState([]); // 빈 배열로 초기화
+  const [watchlist, setWatchlist] = useState([]);
   const [balance, setBalance] = useState("0원");
-  const [refreshing, setRefreshing] = useState(false); // 새로고침 상태
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 자산 데이터 상태
   const [assetData, setAssetData] = useState(null);
   const [assetLoading, setAssetLoading] = useState(true);
   const [assetError, setAssetError] = useState(null);
 
-  // 관심주식 로딩 상태
   const [watchlistLoading, setWatchlistLoading] = useState(true);
 
   useEffect(() => {
     let refreshInterval;
     const load = async () => {
-      // 한국투자 토큰 초기화 및 주기적 갱신
       await initializeHantuToken();
       refreshInterval = scheduleTokenRefresh();
       
-      // 기존 데이터 로딩 로직
       await fetchUserInfo(navigation, setUserInfo);
       await fetchUserBalance(navigation, setBalance);
       await fetchAssetData();
-      await loadWatchlistData(); // 관심주식 데이터 로딩 추가
+      await loadWatchlistData();
     };
     load();
     return () => {
@@ -65,16 +66,15 @@ const MainScreen = ({ navigation }) => {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
-      console.log("📥 MainScreen 다시 focus됨 → 데이터 재요청");
+      console.log("🔥 MainScreen 다시 focus됨 → 데이터 재요청");
       fetchUserBalance(navigation, setBalance);
       fetchAssetData();
-      loadWatchlistData(); // 관심주식 데이터도 새로고침
+      loadWatchlistData();
     });
 
     return unsubscribe;
   }, [navigation]);
 
-  // 관심주식 데이터 로딩 함수
   const loadWatchlistData = async () => {
     try {
       setWatchlistLoading(true);
@@ -83,16 +83,13 @@ const MainScreen = ({ navigation }) => {
       const result = await fetchWatchlist(navigation);
       
       if (result.success && result.watchlist) {
-        // 관심주식 목록에 가격 정보 추가
         const enrichedWatchlist = await Promise.all(
           result.watchlist.map(async (stock, index) => {
             try {
-              // API 호출 간격 (너무 많은 요청 방지)
               if (index > 0) {
                 await new Promise(resolve => setTimeout(resolve, 300));
               }
 
-              // 현재가 조회
               const priceResult = await fetchWithHantuToken(
                 `${API_BASE_URL}trading/stock_price/?stock_code=${stock.symbol}`
               );
@@ -102,7 +99,6 @@ const MainScreen = ({ navigation }) => {
                 currentPrice = priceResult.data.current_price;
               }
 
-              // 가격 변동 정보 조회
               const changeResponse = await fetch(
                 `${API_BASE_URL}stocks/price_change/?stock_code=${stock.symbol}`
               );
@@ -124,7 +120,7 @@ const MainScreen = ({ navigation }) => {
                   ? `+${changeData.price_change_percentage.toFixed(2)}`
                   : `${changeData.price_change_percentage.toFixed(2)}`,
                 changeStatus: changeData.change_status,
-                isFavorite: true, // 관심주식이므로 항상 true
+                isFavorite: true,
               };
             } catch (error) {
               console.error(`❌ ${stock.symbol} 가격 정보 조회 실패:`, error);
@@ -155,7 +151,6 @@ const MainScreen = ({ navigation }) => {
     }
   };
 
-  // 자산 데이터 가져오는 함수
   const fetchAssetData = async () => {
     try {
       setAssetLoading(true);
@@ -214,7 +209,6 @@ const MainScreen = ({ navigation }) => {
     }
   };
 
-  // 새로고침
   const onRefresh = async () => {
     setRefreshing(true);
     await Promise.all([
@@ -225,43 +219,37 @@ const MainScreen = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  // 관심주식 토글 함수
   const toggleFavorite = async (stockSymbol) => {
     try {
       console.log("⭐ 관심주식 토글:", stockSymbol);
       
-      // 현재 상태 확인
       const currentStock = watchlist.find(stock => stock.symbol === stockSymbol);
       
       if (currentStock?.isFavorite) {
-        // 1. 먼저 UI에서 별을 빈 별로 변경 (즉시 반영)
         setWatchlist(prev => 
           prev.map(stock => 
             stock.symbol === stockSymbol 
-              ? { ...stock, isFavorite: false } // 빈 별로 변경
+              ? { ...stock, isFavorite: false }
               : stock
           )
         );
         
-        // 2. 백그라운드에서 서버에 제거 요청 (UI에서는 제거하지 않음)
         console.log("🗑️ 관심주식 해제 요청:", stockSymbol);
         const result = await removeFromWatchlist(navigation, stockSymbol);
         
         if (result.success) {
           console.log("✅ 관심주식 해제 완료 (새로고침 시 사라짐)");
         } else {
-          // 서버 요청 실패 시 다시 채운 별로 되돌리기
           console.error("❌ 관심주식 해제 실패:", result.message);
           setWatchlist(prev => 
             prev.map(stock => 
               stock.symbol === stockSymbol 
-                ? { ...stock, isFavorite: true } // 다시 채운 별로 복구
+                ? { ...stock, isFavorite: true }
                 : stock
             )
           );
         }
       } else {
-        // 빈 별을 채운 별로 변경하고 관심주식에 추가
         setWatchlist(prev => 
           prev.map(stock => 
             stock.symbol === stockSymbol 
@@ -274,7 +262,6 @@ const MainScreen = ({ navigation }) => {
         const result = await addToWatchlist(navigation, stockSymbol);
         
         if (!result.success) {
-          // 서버 요청 실패 시 다시 빈 별로 되돌리기
           console.error("❌ 관심주식 추가 실패:", result.message);
           setWatchlist(prev => 
             prev.map(stock => 
@@ -290,17 +277,14 @@ const MainScreen = ({ navigation }) => {
     }
   };
 
-  // 검색창 클릭 시 SearchScreen으로 이동
   const handleSearchPress = () => {
     navigation.navigate("SearchScreen");
   };
 
-  // 상세 자산 페이지로 이동
   const navigateToAssetDetail = () => {
     navigation.navigate("AssetDetail");
   };
 
-  // 주식 상세 페이지로 이동
   const handleStockPress = (stock) => {
     navigation.navigate("StockDetail", {
       symbol: stock.symbol,
@@ -308,13 +292,12 @@ const MainScreen = ({ navigation }) => {
     });
   };
 
-  // 금액 포맷팅
   const formatCurrency = (amount) => {
     if (!amount || isNaN(amount)) return "0";
     return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
-  // 차트 데이터 준비
+  // 🎨 차트 데이터에 테마 색상 적용
   const prepareChartData = () => {
     if (
       !assetData ||
@@ -325,30 +308,11 @@ const MainScreen = ({ navigation }) => {
       return [];
     }
 
-    const chartColors = [
-      "#F074BA", // 예수금 : 두둑 핑크
-      "#3B82F6", // 파랑
-      "#34D399", // 에메랄드
-      "#10B981", // 녹색
-      "#F59E0B", // 황색
-      "#EF4444", // 빨강
-      "#6366F1", // 보라
-      "#8B5CF6", // 연보라
-      "#EC4899", // 핑크
-      "#F87171", // 연빨강
-      "#FBBF24", // 주황
-      "#4ADE80", // 연녹색
-      "#22D3EE", // 하늘색
-      "#60A5FA", // 연파랑
-      "#A78BFA", // 라벤더
-      "#F472B6", // 코랄 핑크
-    ];
-
     const chartData = assetData.breakdown.map((item, index) => ({
       name: item.label,
       value: item.value,
-      color: chartColors[index % chartColors.length],
-      legendFontColor: "#EFF1F5",
+      color: theme.chart.colors[index % theme.chart.colors.length],
+      legendFontColor: theme.text.primary,
       legendFontSize: 10,
     }));
 
@@ -361,9 +325,11 @@ const MainScreen = ({ navigation }) => {
 
     if (chartData.length === 0) {
       return (
-        <View style={styles.emptyChart}>
-          <Text style={styles.emptyChartText}>보유 자산이 없습니다</Text>
-          <Text style={styles.emptyChartSubText}>
+        <View style={[styles.emptyChart, { backgroundColor: theme.background.secondary }]}>
+          <Text style={[styles.emptyChartText, { color: theme.text.primary }]}>
+            보유 자산이 없습니다
+          </Text>
+          <Text style={[styles.emptyChartSubText, { color: theme.text.secondary }]}>
             주식 거래를 시작해보세요!
           </Text>
         </View>
@@ -392,78 +358,97 @@ const MainScreen = ({ navigation }) => {
         />
 
         <View style={styles.centerInfo}>
-          <Text style={styles.centerInfoTitle}>총 자산</Text>
+          <Text style={[styles.centerInfoTitle, { color: theme.background.primary }]}>
+            총 자산
+          </Text>
           {assetData && assetData.total_asset ? (
-            <Text style={styles.centerInfoAmount}>
+            <Text style={[styles.centerInfoAmount, { color: theme.background.primary }]}>
               {formatCurrency(assetData.total_asset)}원
             </Text>
           ) : (
-            <Text style={styles.centerInfoAmount}>0원</Text>
+            <Text style={[styles.centerInfoAmount, { color: theme.background.primary }]}>
+              0원
+            </Text>
           )}
         </View>
 
         <TouchableOpacity
-          style={styles.detailButton}
+          style={[styles.detailButton, { backgroundColor: theme.button.info }]}
           onPress={navigateToAssetDetail}
         >
-          <Text style={styles.detailButtonText}>+</Text>
+          <Text style={[styles.detailButtonText, { color: theme.background.primary }]}>+</Text>
         </TouchableOpacity>
       </View>
     );
   };
 
-  // 변동률 색상 반환
   const getChangeColor = (changeStatus) => {
-    switch (changeStatus) {
-      case 'up':
-        return "#F074BA";
-      case 'down':
-        return "#00BFFF";
-      default:
-        return "#AAAAAA";
-    }
+    return theme.status[changeStatus] || theme.status.same;
   };
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background.primary }]}
       contentContainerStyle={styles.scrollContent}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl 
+          refreshing={refreshing} 
+          onRefresh={onRefresh}
+          tintColor={theme.accent.primary}
+        />
       }
     >
+      {/* 🔍 검색 & 알림 영역 */}
       <View style={styles.searchContainer}>
         <TouchableOpacity
-          style={styles.searchInputContainer}
+          style={[styles.searchInputContainer, { backgroundColor: theme.background.secondary }]}
           onPress={handleSearchPress}
           activeOpacity={0.7}
         >
-          <SearchIcon style={styles.searchIconInInput} width={18} height={18} />
-          <Text style={styles.searchPlaceholder}>주식명 검색</Text>
+          <Search 
+            size={18} 
+            color="#6B7280"
+            strokeWidth={2}
+            style={styles.searchIconInInput}
+          />
+          <Text style={[styles.searchPlaceholder, { color: theme.text.tertiary }]}>
+            주식명 검색
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity>
-          <BellIcon style={styles.BellIcon} width={24} height={24} />
+          <Bell 
+            size={24} 
+            color={theme.text.primary}
+            strokeWidth={2}
+          />
         </TouchableOpacity>
       </View>
 
+      {/* 💰 자산 정보 */}
       <View style={styles.assetContainer}>
-        <Text style={styles.assetLabel}>예수금</Text>
-        <Text style={styles.assetValue}>{balance}</Text>
+        <Text style={[styles.assetLabel, { color: theme.accent.primary }]}>예수금</Text>
+        <Text style={[styles.assetValue, { color: theme.accent.primary }]}>{balance}</Text>
 
         <View style={styles.graphContainer}>
           {assetLoading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#F074BA" />
-              <Text style={styles.loadingText}>자산 정보 로딩 중...</Text>
+              <ActivityIndicator size="large" color={theme.accent.primary} />
+              <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+                자산 정보 로딩 중...
+              </Text>
             </View>
           ) : assetError ? (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{assetError}</Text>
+              <Text style={[styles.errorText, { color: theme.status.error }]}>
+                {assetError}
+              </Text>
               <TouchableOpacity
-                style={styles.retryButton}
+                style={[styles.retryButton, { backgroundColor: theme.button.primary }]}
                 onPress={fetchAssetData}
               >
-                <Text style={styles.retryButtonText}>다시 시도</Text>
+                <Text style={[styles.retryButtonText, { color: theme.text.primary }]}>
+                  다시 시도
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -472,69 +457,82 @@ const MainScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* 📈 거래 버튼 */}
       <TouchableOpacity
-        style={styles.tradeButton}
+        style={[styles.tradeButton, { backgroundColor: theme.button.secondary }]}
         onPress={() => navigation.navigate("StockTrade")}
       >
-        <Text style={styles.tradeButtonText}>주식 거래하기 📈</Text>
+        <Text style={[styles.tradeButtonText, { color: theme.background.primary }]}>
+          주식 거래하기 📈
+        </Text>
       </TouchableOpacity>
 
+      {/* ⭐ 관심주식 목록 */}
       <View style={styles.watchlistContainer}>
-  <Text style={styles.watchlistTitle}>나의 관심 주식</Text>
-  
-  {watchlistLoading ? (
-    <View style={styles.watchlistLoadingContainer}>
-      <ActivityIndicator size="large" color="#F074BA" />
-      <Text style={styles.watchlistLoadingText}>관심주식 로딩 중...</Text>
-    </View>
-  ) : watchlist.length > 0 ? (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      {watchlist.map((stock) => (
-        <TouchableOpacity
-          key={stock.id}
-          style={styles.stockItem}
-          onPress={() => handleStockPress(stock)}
-          activeOpacity={0.7}
-        >
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation(); // 부모 터치 이벤트 방지
-              toggleFavorite(stock.symbol);
-            }}
-            style={styles.starTouchArea}
-          >
-            <Image
-              source={
-                stock.isFavorite
-                  ? require("../../assets/icons/star-filled.png")
-                  : require("../../assets/icons/star-empty.png")
-              }
-              style={styles.starIcon}
-            />
-          </TouchableOpacity>
-          <Text style={styles.stockName}>{stock.name}</Text>
-          <View style={styles.stockPriceContainer}>
-            <Text style={styles.stockPrice}>{stock.price}원</Text>
-            <Text 
-              style={[
-                styles.stockChange,
-                { color: getChangeColor(stock.changeStatus) }
-              ]}
-            >
-              {stock.change}%
+        <Text style={[styles.watchlistTitle, { color: theme.accent.primary }]}>
+          나의 관심 주식
+        </Text>
+        
+        {watchlistLoading ? (
+          <View style={styles.watchlistLoadingContainer}>
+            <ActivityIndicator size="large" color={theme.accent.primary} />
+            <Text style={[styles.watchlistLoadingText, { color: theme.text.primary }]}>
+              관심주식 로딩 중...
             </Text>
           </View>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-  ) : (
-    <View style={styles.emptyWatchlist}>
-      <Text style={styles.emptyWatchlistText}>관심주식이 없습니다</Text>
-      <Text style={styles.emptyWatchlistSubText}>
-        검색창에서 주식을 찾아 관심주식으로 등록해보세요!
-      </Text>
-    </View>
-  )}
+        ) : watchlist.length > 0 ? (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {watchlist.map((stock) => (
+              <TouchableOpacity
+                key={stock.id}
+                style={[styles.stockItem, { borderBottomColor: theme.background.secondary }]}
+                onPress={() => handleStockPress(stock)}
+                activeOpacity={0.7}
+              >
+                <TouchableOpacity 
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(stock.symbol);
+                  }}
+                  style={styles.starTouchArea}
+                >
+                  {/* ⭐ Lucide Star 아이콘 사용! */}
+                  <Star
+                    size={20}
+                    color={theme.accent.primary}
+                    fill={stock.isFavorite ? theme.accent.primary : "transparent"}
+                    strokeWidth={2}
+                  />
+                </TouchableOpacity>
+                <Text style={[styles.stockName, { color: theme.text.primary }]}>
+                  {stock.name}
+                </Text>
+                <View style={styles.stockPriceContainer}>
+                  <Text style={[styles.stockPrice, { color: theme.text.primary }]}>
+                    {stock.price}원
+                  </Text>
+                  <Text 
+                    style={[
+                      styles.stockChange,
+                      { color: getChangeColor(stock.changeStatus) }
+                    ]}
+                  >
+                    {stock.change}%
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.emptyWatchlist}>
+            <Text style={[styles.emptyWatchlistText, { color: theme.text.primary }]}>
+              관심주식이 없습니다
+            </Text>
+            <Text style={[styles.emptyWatchlistSubText, { color: theme.text.secondary }]}>
+              검색창에서 주식을 찾아 관심주식으로 등록해보세요!
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -543,12 +541,11 @@ const MainScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
   },
   scrollContent: {
     paddingHorizontal: 30,
     paddingTop: 10,
-    paddingBottom: 120, // 탭 바 공간 확보
+    paddingBottom: 120,
   },
   searchContainer: {
     marginTop: 60,
@@ -559,7 +556,6 @@ const styles = StyleSheet.create({
   },
   searchInputContainer: {
     flex: 1,
-    backgroundColor: "#EFF1F5",
     borderRadius: 13,
     padding: 10,
     marginRight: 10,
@@ -567,29 +563,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   searchIconInInput: {
-    width: 18,
-    height: 18,
-    fill: "#6B7280",
     marginRight: 8,
   },
   searchPlaceholder: {
-    color: "#6B7280",
     fontSize: 14,
-  },
-  BellIcon: {
-    width: 24,
-    height: 24,
-    fill: "#EFF1F5",
   },
   assetContainer: {
     marginBottom: 20,
   },
   assetLabel: {
-    color: "#F074BA",
     fontSize: 18,
   },
   assetValue: {
-    color: "#F074BA",
     fontSize: 40,
     fontWeight: "bold",
   },
@@ -626,12 +611,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   centerInfoTitle: {
-    color: "#003340",
     fontSize: 18,
     fontWeight: "800",
   },
   centerInfoAmount: {
-    color: "#003340",
     fontSize: 26,
     fontWeight: "bold",
     marginTop: 4,
@@ -640,7 +623,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 10,
     right: 10,
-    backgroundColor: "#6366F1",
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -657,7 +639,6 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   detailButtonText: {
-    color: "#EFF1F5",
     fontSize: 24,
     fontWeight: "bold",
   },
@@ -668,7 +649,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 8,
-    color: "#EFF1F5",
     fontSize: 14,
   },
   errorContainer: {
@@ -678,38 +658,32 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   errorText: {
-    color: "#FF6B6B",
     marginBottom: 12,
     textAlign: "center",
   },
   retryButton: {
-    backgroundColor: "#F074BA",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: "#EFF1F5",
     fontWeight: "bold",
   },
   tradeButton: {
-    backgroundColor: "#EFF1F5",
     padding: 13,
     borderRadius: 13,
     alignItems: "center",
     marginBottom: 20,
   },
   tradeButtonText: {
-    color: "#003340",
     fontSize: 18,
     fontWeight: "900",
   },
   watchlistContainer: {
     flex: 1,
-    minHeight: 200, // 최소 높이 설정
+    minHeight: 200,
   },
   watchlistTitle: {
-    color: "#F074BA",
     fontSize: 18,
     marginBottom: 10,
     marginLeft: 5,
@@ -722,62 +696,45 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   watchlistLoadingText: {
-    color: "#EFF1F5",
     fontSize: 16,
     marginTop: 10,
     textAlign: "center",
   },
-  
   starTouchArea: {
-    padding: 8, // 터치 영역 확장
+    padding: 8,
     marginRight: 2,
-  },
-  
-  starIcon: {
-    width: 20,
-    height: 20,
   },
   stockItem: {
     flexDirection: "row",
     alignItems: "center",
     padding: 5,
     borderBottomWidth: 1,
-    borderBottomColor: "#004455",
   },
   stockName: {
     flex: 1,
-    color: "#EFF1F5",
     marginLeft: 10,
   },
   stockPriceContainer: {
     alignItems: "flex-end",
   },
   stockPrice: {
-    color: "#EFF1F5",
   },
   stockChange: {
     fontWeight: "bold",
-  },
-  starIcon: {
-    width: 20,
-    height: 20,
   },
   emptyChart: {
     height: screenWidth - 60,
     width: screenWidth - 60,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#004455",
     borderRadius: 16,
   },
   emptyChartText: {
-    color: "#EFF1F5",
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 8,
   },
   emptyChartSubText: {
-    color: "rgba(239, 241, 245, 0.7)",
     fontSize: 14,
   },
   emptyWatchlist: {
@@ -786,14 +743,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   emptyWatchlistText: {
-    color: "#EFF1F5",
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 8,
     textAlign: "center",
   },
   emptyWatchlistSubText: {
-    color: "rgba(239, 241, 245, 0.7)",
     fontSize: 14,
     textAlign: "center",
     lineHeight: 20,

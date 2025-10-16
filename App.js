@@ -13,6 +13,9 @@ import {
   registerExpoPushToken,
 } from "./src/services/PushNotificationService";
 
+// 🎨 ThemeProvider 추가
+import { ThemeProvider } from "./src/utils/ThemeContext";
+
 const SHOW_WELCOME_ON_LAUNCH = true;
 
 // ============================================
@@ -169,13 +172,15 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer
-      ref={(r) => {
-        navigationRef.current = r;
-        if (r) console.log("[Nav] navigationRef ready");
-      }}
-    >
-      <StackNavigator />
-    </NavigationContainer>
+    <ThemeProvider>
+      <NavigationContainer
+        ref={(r) => {
+          navigationRef.current = r;
+          if (r) console.log("[Nav] navigationRef ready");
+        }}
+      >
+        <StackNavigator />
+      </NavigationContainer>
+    </ThemeProvider>
   );
 }

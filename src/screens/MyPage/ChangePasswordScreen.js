@@ -13,8 +13,11 @@ import { getNewAccessToken } from "../../utils/token";
 import EyeOpen from "../../components/EyeOpen";
 import EyeClosed from "../../components/EyeClosed";
 import { fetchWithAuth } from "../../utils/token";
+import { useTheme } from "../../utils/ThemeContext";
 
 export default function ChangePasswordScreen({ navigation }) {
+  const { theme } = useTheme();
+  
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -75,21 +78,27 @@ export default function ChangePasswordScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}
       >
-        <Text style={styles.backText}>{"<"}</Text>
+        <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>비밀번호 변경</Text>
+      <Text style={[styles.title, { color: theme.accent.primary }]}>비밀번호 변경</Text>
 
-      <Text style={styles.label}>현재 비밀번호</Text>
-      <View style={styles.inputContainer}>
+      <Text style={[styles.label, { color: theme.accent.primary }]}>현재 비밀번호</Text>
+      <View style={[
+        styles.inputContainer,
+        { 
+          backgroundColor: theme.background.card,
+          borderColor: theme.border.medium
+        }
+      ]}>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { color: theme.text.primary }]}
           placeholder="현재 비밀번호 입력"
-          placeholderTextColor="#CCCDD0"
+          placeholderTextColor={theme.text.tertiary}
           secureTextEntry={showCurrent}
           value={currentPassword}
           onChangeText={setCurrentPassword}
@@ -102,12 +111,18 @@ export default function ChangePasswordScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.label}>새 비밀번호</Text>
-      <View style={styles.inputContainer}>
+      <Text style={[styles.label, { color: theme.accent.primary }]}>새 비밀번호</Text>
+      <View style={[
+        styles.inputContainer,
+        { 
+          backgroundColor: theme.background.card,
+          borderColor: theme.border.medium
+        }
+      ]}>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { color: theme.text.primary }]}
           placeholder="새 비밀번호 입력"
-          placeholderTextColor="#CCCDD0"
+          placeholderTextColor={theme.text.tertiary}
           secureTextEntry={showNew}
           value={newPassword}
           onChangeText={setNewPassword}
@@ -121,14 +136,20 @@ export default function ChangePasswordScreen({ navigation }) {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, loading && styles.disabledButton]}
+        style={[
+          styles.button,
+          { 
+            backgroundColor: loading ? theme.text.disabled : theme.button.primary,
+            shadowColor: theme.button.primary
+          }
+        ]}
         onPress={handleChangePassword}
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={theme.background.primary} />
         ) : (
-          <Text style={styles.buttonText}>변경</Text>
+          <Text style={[styles.buttonText, { color: theme.background.primary }]}>변경</Text>
         )}
       </TouchableOpacity>
     </View>
@@ -138,7 +159,6 @@ export default function ChangePasswordScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 30,
@@ -151,19 +171,16 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: "#F074BA",
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#F074BA",
     position: "absolute",
     top: 150,
     left: 30,
   },
   label: {
     fontSize: 16,
-    color: "#F074BA",
     alignSelf: "flex-start",
     marginLeft: 8,
     marginBottom: 12,
@@ -174,16 +191,13 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: "#f9f9f9",
     marginBottom: 20,
     paddingHorizontal: 10,
   },
   inputField: {
     flex: 1,
     fontSize: 16,
-    color: "black",
   },
   icon: {
     padding: 10,
@@ -191,19 +205,18 @@ const styles = StyleSheet.create({
   button: {
     width: "100%",
     height: 50,
-    backgroundColor: "#F074BA",
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
     position: "absolute",
     bottom: 80,
-  },
-  disabledButton: {
-    backgroundColor: "#A0A0A0",
+    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   buttonText: {
     fontSize: 16,
-    color: "#fff",
     fontWeight: "bold",
   },
 });

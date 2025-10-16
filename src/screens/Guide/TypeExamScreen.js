@@ -10,25 +10,25 @@ import {
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { getNewAccessToken } from "../../utils/token";
 
-// 질문 데이터는 API에서 불러올 예정
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
 
 const TypeExamScreen = ({ navigation }) => {
-  // 질문 데이터와 현재 상태를 저장하는 상태 변수들
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 컴포넌트 마운트 시 질문 데이터 불러오기
   useEffect(() => {
     fetchQuestions();
   }, []);
 
-  // 질문 데이터 불러오는 함수
   const fetchQuestions = async () => {
     try {
-      // 인증 토큰 가져오기
       const accessToken = await getNewAccessToken(navigation);
       if (!accessToken) {
         console.error("액세스 토큰이 없습니다.");
@@ -63,30 +63,22 @@ const TypeExamScreen = ({ navigation }) => {
     }
   };
 
-  // 답변 선택 핸들러
   const handleSelectOption = (option) => {
-    // 현재 답변 배열 복사본 생성
     const newAnswers = [...answers];
-    // 현재 질문에 대한 답변 저장
     newAnswers[currentQuestionIndex] = option;
     setAnswers(newAnswers);
 
-    // 마지막 질문인지 확인
     if (currentQuestionIndex === questions.length - 1) {
-      // 마지막 질문이면 결과 제출
       submitAnswers(newAnswers);
     } else {
-      // 다음 질문으로 이동
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  // 답변 제출 함수
   const submitAnswers = async (finalAnswers) => {
     setIsSubmitting(true);
 
     try {
-      // 인증 토큰 가져오기
       const accessToken = await getNewAccessToken(navigation);
       if (!accessToken) {
         console.error("액세스 토큰이 없습니다.");
@@ -96,7 +88,6 @@ const TypeExamScreen = ({ navigation }) => {
         return;
       }
 
-      // API 엔드포인트에 답변 제출
       const response = await fetch(`${API_BASE_URL}mbti/result/`, {
         method: "POST",
         headers: {
@@ -112,7 +103,6 @@ const TypeExamScreen = ({ navigation }) => {
         throw new Error(`서버 응답이 정상적이지 않습니다: ${response.status}`);
       }
 
-      // 성공적으로 제출되면 결과 화면으로 이동
       navigation.reset({
         index: 0,
         routes: [
@@ -130,34 +120,36 @@ const TypeExamScreen = ({ navigation }) => {
     }
   };
 
-  // 로딩 중이거나 질문이 없을 경우
   if (isLoading || questions.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6EE69E" />
-        <Text style={styles.loadingText}>질문을 불러오는 중...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background.primary }]}>
+        <ActivityIndicator size="large" color={theme.status.success} />
+        <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+          질문을 불러오는 중...
+        </Text>
       </View>
     );
   }
 
-  // 현재 질문 객체
   const currentQuestion = questions[currentQuestionIndex];
-
-  // 진행 상황 계산 (예: "3 / 12")
   const progressText = `${currentQuestionIndex + 1} / ${questions.length}`;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {isSubmitting ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6EE69E" />
-          <Text style={styles.loadingText}>결과를 분석 중입니다...</Text>
+          <ActivityIndicator size="large" color={theme.status.success} />
+          <Text style={[styles.loadingText, { color: theme.text.primary }]}>
+            결과를 분석 중입니다...
+          </Text>
         </View>
       ) : (
         <>
           <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>{progressText}</Text>
-            <View style={styles.progressBar}>
+            <Text style={[styles.progressText, { color: theme.text.primary }]}>
+              {progressText}
+            </Text>
+            <View style={[styles.progressBar, { backgroundColor: theme.background.card }]}>
               <View
                 style={[
                   styles.progressFill,
@@ -165,6 +157,7 @@ const TypeExamScreen = ({ navigation }) => {
                     width: `${
                       ((currentQuestionIndex + 1) / questions.length) * 100
                     }%`,
+                    backgroundColor: theme.status.success,
                   },
                 ]}
               />
@@ -172,26 +165,26 @@ const TypeExamScreen = ({ navigation }) => {
           </View>
 
           <View style={styles.questionContainer}>
-            <Text style={styles.questionText}>
+            <Text style={[styles.questionText, { color: theme.text.primary }]}>
               {currentQuestion.question_text}
             </Text>
           </View>
 
           <View style={styles.optionsContainer}>
             <TouchableOpacity
-              style={styles.optionButton}
+              style={[styles.optionButton, { backgroundColor: theme.background.card }]}
               onPress={() => handleSelectOption("A")}
             >
-              <Text style={styles.optionText}>
+              <Text style={[styles.optionText, { color: theme.text.primary }]}>
                 A. {currentQuestion.option_a}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.optionButton}
+              style={[styles.optionButton, { backgroundColor: theme.background.card }]}
               onPress={() => handleSelectOption("B")}
             >
-              <Text style={styles.optionText}>
+              <Text style={[styles.optionText, { color: theme.text.primary }]}>
                 B. {currentQuestion.option_b}
               </Text>
             </TouchableOpacity>
@@ -205,7 +198,6 @@ const TypeExamScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
     padding: 20,
   },
   progressContainer: {
@@ -213,20 +205,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   progressText: {
-    color: "#FFFFFF",
     fontSize: 16,
     marginBottom: 5,
     textAlign: "right",
   },
   progressBar: {
     height: 8,
-    backgroundColor: "#D4DDEF20",
     borderRadius: 4,
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#6EE69E",
     borderRadius: 4,
   },
   questionContainer: {
@@ -234,7 +223,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   questionText: {
-    color: "#FFFFFF",
     fontSize: 22,
     fontWeight: "600",
     textAlign: "center",
@@ -243,13 +231,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   optionButton: {
-    backgroundColor: "#D4DDEF60",
     padding: 20,
     borderRadius: 15,
     marginVertical: 10,
   },
   optionText: {
-    color: "#FFFFFF",
     fontSize: 16,
   },
   loadingContainer: {
@@ -258,7 +244,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   loadingText: {
-    color: "#FFFFFF",
     fontSize: 18,
     marginTop: 20,
   },

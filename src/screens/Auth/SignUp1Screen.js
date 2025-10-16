@@ -2,29 +2,29 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import CheckBoxChecked from '../../components/CheckBoxChecked';
 import CheckBoxUnchecked from '../../components/CheckBoxUnchecked';
+import { useTheme } from "../../utils/ThemeContext";
 
 const SignUp1Screen = ({ navigation }) => {
+  const { theme } = useTheme();
+  
   const [agreements, setAgreements] = useState({
     all: false,
-    required1: false, // 두둑 이용 약관
-    //required2: false, // 개인정보 수집·이용 동의
-    required6: false, // 만 14세 이상
-    optional2: false, // 광고성 정보 수신 동의
-  });
-
-  const [expandedStates, setExpandedStates] = useState({
     required1: false,
-    //required2: false,
     required6: false,
     optional2: false,
   });
 
+  const [expandedStates, setExpandedStates] = useState({
+    required1: false,
+    required6: false,
+    optional2: false,
+  });
 
   const termsData = {
     required1: {
       title: '[필수] 두둑 이용 약관',
       content: `**제1조 (목적)**
-이 약관은 햄듭니다(이하 "회사")가 제공하는 ‘두둑(Doodook)’ 서비스의 이용조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
+이 약관은 햄듭니다(이하 "회사")가 제공하는 '두둑(Doodook)' 서비스의 이용조건 및 절차, 회사와 회원 간의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.
 
 **제2조 (정의)**
 "서비스"란 사용자가 가상의 자산을 활용해 투자 시뮬레이션을 경험하고, 금융학습 및 포트폴리오 분석 기능을 이용할 수 있는 플랫폼을 의미합니다.
@@ -89,23 +89,6 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
 **부칙**
 본 약관은 2025년 9월 30일부터 시행됩니다.`
     },
-//     required2: {
-//       title: '[필수] 개인정보 수집·이용 동의',
-//       content: `**수집하는 개인정보 항목**
-// - 필수항목: 이메일, 닉네임, 생년월일, 성별
-
-// **개인정보 수집 및 이용 목적**
-// 1. 회원가입 의사 확인 및 회원제 서비스 제공
-// 2. 투자 시뮬레이션 데이터 관리
-// 3. 서비스 이용 안내 및 문의사항 응답
-// 4. 부정 이용 방지 및 서비스 개선
-
-// **개인정보 보유 및 이용 기간**
-// - 회원 탈퇴 시까지 보유하며, 탈퇴 후 즉시 삭제됩니다. (단, 관련 법령에 따른 예외는 제외)
-
-// **동의를 거부할 권리**
-// 귀하는 개인정보 수집·이용에 대한 동의를 거부할 권리가 있습니다. 다만, 필수항목에 대한 동의를 거부할 경우 서비스 이용이 제한될 수 있습니다.`
-//     },
     required6: {
       title: '[필수] 만 14세 이상입니다.',
       content: `본 서비스는 만 14세 이상의 사용자만 이용할 수 있습니다.
@@ -138,13 +121,11 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
     setAgreements({
       all: newState,
       required1: newState,
-      required2: newState,
       required6: newState,
       optional2: newState,
     });
     setExpandedStates({
       required1: false,
-      required2: false,
       required6: false,
       optional2: false,
     });
@@ -162,7 +143,6 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
       const newAgreements = { ...prevAgreements, [key]: !prevAgreements[key] };
       newAgreements.all =
         newAgreements.required1 &&
-        newAgreements.required2 &&
         newAgreements.required6 &&
         newAgreements.optional2;
       return newAgreements;
@@ -184,7 +164,7 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
   const renderFormattedContent = (content) => {
     const parts = content.split('**');
     return (
-      <Text style={styles.termsText}>
+      <Text style={[styles.termsText, { color: theme.text.primary }]}>
         {parts.map((part, index) =>
           index % 2 === 1 ? (
             <Text key={index} style={{ fontWeight: 'bold' }}>
@@ -205,20 +185,24 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
 
     return (
       <View key={key} style={styles.termsContainer}>
-        <View style={[styles.agreeItem, isExpanded ? styles.agreeItemExpanded : {}]}>
-            <TouchableOpacity onPress={() => handleCheckboxPress(key)}>
-                 {isChecked ? <CheckBoxChecked /> : <CheckBoxUnchecked />}
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => toggleExpanded(key)} style={styles.titleContainer}>
-                <Text style={styles.agreeText}>{term.title}</Text>
-                <Text style={styles.expandIcon}>
-                    {isExpanded ? '▲' : '▼'}
-                </Text>
-            </TouchableOpacity>
+        <View style={[
+          styles.agreeItem, 
+          isExpanded ? styles.agreeItemExpanded : {},
+          { backgroundColor: theme.background.card }
+        ]}>
+          <TouchableOpacity onPress={() => handleCheckboxPress(key)}>
+            {isChecked ? <CheckBoxChecked /> : <CheckBoxUnchecked />}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => toggleExpanded(key)} style={styles.titleContainer}>
+            <Text style={[styles.agreeText, { color: theme.text.primary }]}>{term.title}</Text>
+            <Text style={[styles.expandIcon, { color: theme.text.secondary }]}>
+              {isExpanded ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
         </View>
         
         {isExpanded && (
-          <View style={styles.termsContent}>
+          <View style={[styles.termsContent, { backgroundColor: theme.background.secondary }]}>
             <ScrollView 
               style={styles.termsScrollView}
               nestedScrollEnabled={true} 
@@ -226,10 +210,10 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
               {renderFormattedContent(term.content)}
             </ScrollView>
             <TouchableOpacity 
-              style={styles.agreeButton}
+              style={[styles.agreeButton, { backgroundColor: theme.button.primary }]}
               onPress={() => handleAgreeAndCollapse(key)}
             >
-              <Text style={styles.agreeButtonText}>동의하기</Text>
+              <Text style={[styles.agreeButtonText, { color: theme.background.primary }]}>동의하기</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -237,19 +221,22 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
     );
   };
   
-  const allRequiredAgreed = agreements.required1 && agreements.required2 && agreements.required6;
+  const allRequiredAgreed = agreements.required1 && agreements.required6;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backText}>{'<'}</Text>
+        <Text style={[styles.backText, { color: theme.accent.primary }]}>{'<'}</Text>
       </TouchableOpacity>
       
-      <Text style={styles.title}>이용 약관에{"\n"}동의해 주세요</Text>
+      <Text style={[styles.title, { color: theme.accent.primary }]}>이용 약관에{"\n"}동의해 주세요</Text>
       
-      <TouchableOpacity onPress={toggleAll} style={styles.allAgree}>
+      <TouchableOpacity onPress={toggleAll} style={[
+        styles.allAgree,
+        { borderBottomColor: theme.accent.primary }
+      ]}>
         {agreements.all ? <CheckBoxChecked /> : <CheckBoxUnchecked />}
-        <Text style={styles.allAgreeText}>전체 동의</Text>
+        <Text style={[styles.allAgreeText, { color: theme.accent.primary }]}>전체 동의</Text>
       </TouchableOpacity>
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -257,11 +244,14 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
       </ScrollView>
       
       <TouchableOpacity
-        style={[styles.button, !allRequiredAgreed ? styles.buttonDisabled : null]}
+        style={[
+          styles.button,
+          { backgroundColor: allRequiredAgreed ? theme.button.primary : theme.text.disabled }
+        ]}
         disabled={!allRequiredAgreed}
         onPress={() => navigation.navigate('SignUp2')}
       >
-        <Text style={styles.buttonText}>동의하기</Text>
+        <Text style={[styles.buttonText, { color: theme.background.primary }]}>동의하기</Text>
       </TouchableOpacity>
     </View>
   );
@@ -270,7 +260,6 @@ AI 챗봇의 응답은 참고용으로만 제공되며, 특정 종목에 대한 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#003340',
     paddingHorizontal: 30,
     paddingTop: 30, 
   },
@@ -282,12 +271,10 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: '#F074BA',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F074BA',
     marginTop: 90, 
     marginBottom: 20,
   },
@@ -296,12 +283,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 15,
     borderBottomWidth: 2,
-    borderBottomColor: '#F074BA',
     marginBottom: 10,
   },
   allAgreeText: {
     fontSize: 16,
-    color: '#F074BA',
     fontWeight: 'bold',
     marginLeft: 10,
   },
@@ -316,7 +301,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
-    backgroundColor: '#FFFFFF',
     borderRadius: 15,
     paddingHorizontal: 15,
   },
@@ -333,16 +317,13 @@ const styles = StyleSheet.create({
   agreeText: {
     flex: 1,
     fontSize: 14,
-    color: '#000',
     fontWeight: '500',
   },
   expandIcon: {
     fontSize: 12,
-    color: '#666',
     marginLeft: 10,
   },
   termsContent: {
-    backgroundColor: '#F8F9FA',
     borderBottomLeftRadius: 15,
     borderBottomRightRadius: 15,
   },
@@ -353,12 +334,10 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 12,
-    color: '#333',
     lineHeight: 18,
     marginBottom: 15,
   },
   agreeButton: {
-    backgroundColor: '#F074BA',
     marginHorizontal: 15,
     marginVertical: 15,
     paddingVertical: 12,
@@ -366,28 +345,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   agreeButtonText: {
-    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#F074BA',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
   },
-  buttonDisabled: {
-    backgroundColor: '#F8C7CC',
-  },
   buttonText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
   },
 });
 
 export default SignUp1Screen;
-

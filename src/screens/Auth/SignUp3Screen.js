@@ -8,8 +8,10 @@ import {
   Alert,
 } from "react-native";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { useTheme } from "../../utils/ThemeContext";
 
 const SignUp3Screen = ({ route, navigation }) => {
+  const { theme } = useTheme();
   const { email, id } = route.params;
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
@@ -24,7 +26,6 @@ const SignUp3Screen = ({ route, navigation }) => {
       if (index < 5) {
         inputs.current[index + 1].focus();
       } else {
-        // 6자리 입력 완료 → API 호출
         verifyCode(newCode.join(""));
       }
     } else if (text === "") {
@@ -46,7 +47,7 @@ const SignUp3Screen = ({ route, navigation }) => {
       });
 
       const data = await response.json();
-      console.log("🔐 인증 응답:", data);
+      console.log("📝 인증 응답:", data);
 
       if (response.status === 200 || data.status === "success") {
         Alert.alert("성공", "회원가입이 완료되었습니다!", [
@@ -64,9 +65,9 @@ const SignUp3Screen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>인증번호 입력</Text>
-      <Text style={styles.subtitle}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <Text style={[styles.title, { color: theme.accent.primary }]}>인증번호 입력</Text>
+      <Text style={[styles.subtitle, { color: theme.text.primary }]}>
         {email} 주소로 전송된 인증번호 6자리를 입력해주세요.
       </Text>
 
@@ -75,7 +76,14 @@ const SignUp3Screen = ({ route, navigation }) => {
           <TextInput
             key={index}
             ref={(ref) => (inputs.current[index] = ref)}
-            style={styles.codeInput}
+            style={[
+              styles.codeInput,
+              {
+                borderColor: theme.accent.primary,
+                backgroundColor: theme.background.secondary,
+                color: theme.text.primary,
+              },
+            ]}
             value={digit}
             onChangeText={(text) => handleChange(text, index)}
             keyboardType="number-pad"
@@ -89,7 +97,9 @@ const SignUp3Screen = ({ route, navigation }) => {
         style={styles.resendButton}
         onPress={() => Alert.alert("미구현", "재전송 기능은 추후 구현 예정입니다.")}
       >
-        <Text style={styles.resendText}>인증번호 다시 보내기</Text>
+        <Text style={[styles.resendText, { color: theme.accent.primary }]}>
+          인증번호 다시 보내기
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -98,19 +108,16 @@ const SignUp3Screen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
     paddingHorizontal: 30,
     justifyContent: "center",
     alignItems: "center",
   },
   title: {
-    color: "#F074BA",
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 10,
   },
   subtitle: {
-    color: "#fff",
     fontSize: 16,
     textAlign: "center",
     marginBottom: 30,
@@ -124,18 +131,14 @@ const styles = StyleSheet.create({
     width: 45,
     height: 50,
     borderWidth: 1,
-    borderColor: "#F074BA",
     borderRadius: 8,
     fontSize: 24,
-    color: "#fff",
-    backgroundColor: "#002830",
     marginHorizontal: 4,
   },
   resendButton: {
     marginTop: 30,
   },
   resendText: {
-    color: "#F074BA",
     fontSize: 16,
     textDecorationLine: "underline",
   },

@@ -17,10 +17,13 @@ import {
 import { API_BASE_URL } from "../../utils/apiConfig";
 import EyeOpen from "../../components/EyeOpen";
 import EyeClosed from "../../components/EyeClosed";
+import { useTheme } from "../../utils/ThemeContext";
 
 const { height, width } = Dimensions.get("window");
 
 const FindPasswordScreen = ({ navigation }) => {
+  const { theme } = useTheme();
+  
   const [step, setStep] = useState(1); // 1: 이메일 입력, 2: 인증번호 + 새 비밀번호
   
   // 이메일 입력 단계
@@ -228,22 +231,22 @@ const FindPasswordScreen = ({ navigation }) => {
     newPassword === confirmPassword;
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background.primary }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 0}
       >
         {/* 헤더 */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.background.primary }]}>
           <TouchableOpacity
             onPress={() => step === 1 ? navigation.goBack() : setStep(1)}
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.backText}>{"<"}</Text>
+            <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>비밀번호 찾기</Text>
+          <Text style={[styles.title, { color: theme.accent.primary }]}>비밀번호 찾기</Text>
           <View style={{ width: 36 }} />
         </View>
 
@@ -256,20 +259,28 @@ const FindPasswordScreen = ({ navigation }) => {
           {step === 1 ? (
             // 1단계: 이메일 입력
             <>
-              <Text style={styles.stepTitle}>이메일 주소 입력</Text>
-              <Text style={styles.stepDescription}>
+              <Text style={[styles.stepTitle, { color: theme.accent.primary }]}>
+                이메일 주소 입력
+              </Text>
+              <Text style={[styles.stepDescription, { color: theme.text.secondary }]}>
                 가입 시 사용한 이메일 주소를 입력하시면{"\n"}
                 비밀번호 재설정 인증번호를 보내드립니다.
               </Text>
 
-              <Text style={styles.label}>이메일</Text>
+              <Text style={[styles.label, { color: theme.accent.primary }]}>이메일</Text>
               <TextInput
                 style={[
                   styles.input,
-                  email.length > 0 && !validateEmail(email) ? styles.inputError : null
+                  {
+                    backgroundColor: theme.background.card,
+                    color: theme.text.primary,
+                    borderColor: email.length > 0 && !validateEmail(email)
+                      ? theme.status.error
+                      : theme.border.medium
+                  }
                 ]}
                 placeholder="이메일 입력"
-                placeholderTextColor="#bcd1d6"
+                placeholderTextColor={theme.text.tertiary}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 value={email}
@@ -278,7 +289,9 @@ const FindPasswordScreen = ({ navigation }) => {
                 onSubmitEditing={handleRequestCode}
               />
               {email.length > 0 && !validateEmail(email) && (
-                <Text style={styles.errorText}>올바른 이메일 형식이 아닙니다.</Text>
+                <Text style={[styles.errorText, { color: theme.status.error }]}>
+                  올바른 이메일 형식이 아닙니다.
+                </Text>
               )}
 
               <View style={{ height: bottomSpacer }} />
@@ -286,20 +299,29 @@ const FindPasswordScreen = ({ navigation }) => {
           ) : (
             // 2단계: 인증번호 + 새 비밀번호
             <>
-              <Text style={styles.stepTitle}>인증번호 및 새 비밀번호 입력</Text>
-              <Text style={styles.stepDescription}>
+              <Text style={[styles.stepTitle, { color: theme.accent.primary }]}>
+                인증번호 및 새 비밀번호 입력
+              </Text>
+              <Text style={[styles.stepDescription, { color: theme.text.secondary }]}>
                 {email} 주소로 전송된{"\n"}
                 인증번호 6자리와 새 비밀번호를 입력해주세요.
               </Text>
 
               {/* 인증번호 입력 */}
-              <Text style={styles.label}>인증번호</Text>
+              <Text style={[styles.label, { color: theme.accent.primary }]}>인증번호</Text>
               <View style={styles.codeContainer}>
                 {code.map((digit, index) => (
                   <TextInput
                     key={index}
                     ref={(ref) => (codeInputs.current[index] = ref)}
-                    style={styles.codeInput}
+                    style={[
+                      styles.codeInput,
+                      {
+                        backgroundColor: theme.background.card,
+                        color: theme.text.primary,
+                        borderColor: theme.border.medium
+                      }
+                    ]}
                     value={digit}
                     onChangeText={(text) => handleCodeChange(text, index)}
                     keyboardType="number-pad"
@@ -313,20 +335,27 @@ const FindPasswordScreen = ({ navigation }) => {
                 style={styles.resendButton}
                 onPress={handleResendCode}
               >
-                <Text style={styles.resendText}>인증번호 다시 보내기</Text>
+                <Text style={[styles.resendText, { color: theme.accent.primary }]}>
+                  인증번호 다시 보내기
+                </Text>
               </TouchableOpacity>
 
               {/* 새 비밀번호 */}
-              <Text style={styles.label}>새 비밀번호</Text>
+              <Text style={[styles.label, { color: theme.accent.primary }]}>새 비밀번호</Text>
               <View style={[
                 styles.inputContainer,
-                newPassword.length > 0 && !passwordValid(newPassword) ? styles.inputError : null
+                {
+                  backgroundColor: theme.background.card,
+                  borderColor: newPassword.length > 0 && !passwordValid(newPassword)
+                    ? theme.status.error
+                    : theme.border.medium
+                }
               ]}>
                 <TextInput
                   ref={refNewPw}
-                  style={styles.inputField}
+                  style={[styles.inputField, { color: theme.text.primary }]}
                   placeholder="새 비밀번호 입력"
-                  placeholderTextColor="#bcd1d6"
+                  placeholderTextColor={theme.text.tertiary}
                   secureTextEntry={seeNewPassword}
                   value={newPassword}
                   onChangeText={setNewPassword}
@@ -341,28 +370,53 @@ const FindPasswordScreen = ({ navigation }) => {
               {/* 강도 표시 */}
               {newPassword.length > 0 && (
                 <View style={styles.strengthRow}>
-                  <View style={[styles.strengthBar, passwordStrength >= 1 && styles.strengthOn]} />
-                  <View style={[styles.strengthBar, passwordStrength >= 2 && styles.strengthOn]} />
-                  <View style={[styles.strengthBar, passwordStrength >= 3 && styles.strengthOn]} />
-                  <Text style={styles.strengthText}>{strengthText}</Text>
+                  <View style={[
+                    styles.strengthBar,
+                    { backgroundColor: theme.border.medium },
+                    passwordStrength >= 1 && { backgroundColor: theme.accent.primary }
+                  ]} />
+                  <View style={[
+                    styles.strengthBar,
+                    { backgroundColor: theme.border.medium },
+                    passwordStrength >= 2 && { backgroundColor: theme.accent.primary }
+                  ]} />
+                  <View style={[
+                    styles.strengthBar,
+                    { backgroundColor: theme.border.medium },
+                    passwordStrength >= 3 && { backgroundColor: theme.accent.primary }
+                  ]} />
+                  <Text style={[styles.strengthText, { color: theme.text.secondary }]}>
+                    {strengthText}
+                  </Text>
                 </View>
               )}
               {newPassword.length > 0 && !passwordValid(newPassword) && (
-                <Text style={styles.errorText}>영문/숫자/특수 중 2종 이상, 8~32자</Text>
+                <Text style={[styles.errorText, { color: theme.status.error }]}>
+                  영문/숫자/특수 중 2종 이상, 8~32자
+                </Text>
               )}
-              <Text style={styles.passwordGuide}>영문 대/소문자·숫자·특수 중 2가지 이상, 8~32자</Text>
+              <Text style={[styles.passwordGuide, { color: theme.text.secondary }]}>
+                영문 대/소문자·숫자·특수 중 2가지 이상, 8~32자
+              </Text>
 
               {/* 비밀번호 확인 */}
-              <Text style={styles.label}>새 비밀번호 확인</Text>
+              <Text style={[styles.label, { color: theme.accent.primary }]}>
+                새 비밀번호 확인
+              </Text>
               <View style={[
                 styles.inputContainer,
-                confirmPassword.length > 0 && confirmPassword !== newPassword ? styles.inputError : null
+                {
+                  backgroundColor: theme.background.card,
+                  borderColor: confirmPassword.length > 0 && confirmPassword !== newPassword
+                    ? theme.status.error
+                    : theme.border.medium
+                }
               ]}>
                 <TextInput
                   ref={refConfirmPw}
-                  style={styles.inputField}
+                  style={[styles.inputField, { color: theme.text.primary }]}
                   placeholder="새 비밀번호 확인"
-                  placeholderTextColor="#bcd1d6"
+                  placeholderTextColor={theme.text.tertiary}
                   secureTextEntry={seeConfirmPassword}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -374,10 +428,14 @@ const FindPasswordScreen = ({ navigation }) => {
                 </TouchableOpacity>
               </View>
               {confirmPassword.length > 0 && confirmPassword !== newPassword && (
-                <Text style={styles.errorText}>비밀번호가 일치하지 않아요.</Text>
+                <Text style={[styles.errorText, { color: theme.status.error }]}>
+                  비밀번호가 일치하지 않아요.
+                </Text>
               )}
               {confirmPassword.length > 0 && newPassword === confirmPassword && (
-                <Text style={styles.passwordMatch}>비밀번호가 일치합니다.</Text>
+                <Text style={[styles.passwordMatch, { color: theme.status.success }]}>
+                  비밀번호가 일치합니다.
+                </Text>
               )}
 
               <View style={{ height: bottomSpacer }} />
@@ -386,14 +444,14 @@ const FindPasswordScreen = ({ navigation }) => {
         </ScrollView>
 
         {/* 제출 버튼 */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: `${theme.background.primary}ee` }]}>
           <TouchableOpacity
             style={[
               styles.button,
               {
                 backgroundColor: (step === 1 ? canSubmitStep1 : canSubmitStep2)
-                  ? "#F074BA"
-                  : "#F8C7CC"
+                  ? theme.button.primary
+                  : theme.text.disabled
               }
             ]}
             onPress={step === 1 ? handleRequestCode : handleResetPassword}
@@ -401,10 +459,10 @@ const FindPasswordScreen = ({ navigation }) => {
             activeOpacity={0.9}
           >
             {(step === 1 ? isLoading : isVerifying) ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.background.primary} />
             ) : (
-              <Text style={styles.buttonText}>
-                {step === 1 ? "인증번호 전송" : "비밀번호 찾기"}
+              <Text style={[styles.buttonText, { color: theme.background.primary }]}>
+                {step === 1 ? "인증번호 전송" : "비밀번호 변경"}
               </Text>
             )}
           </TouchableOpacity>
@@ -415,7 +473,7 @@ const FindPasswordScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#003340" },
+  safe: { flex: 1 },
   flex: { flex: 1 },
 
   header: {
@@ -424,11 +482,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    backgroundColor: "#003340",
   },
   backButton: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  backText: { fontSize: 28, color: "#F074BA", marginTop: -2 },
-  title: { fontSize: 20, fontWeight: "bold", color: "#F074BA" },
+  backText: { fontSize: 28, marginTop: -2 },
+  title: { fontSize: 20, fontWeight: "bold" },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8 },
@@ -436,47 +493,39 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#F074BA",
     textAlign: "center",
     marginTop: 20,
     marginBottom: 10,
   },
   stepDescription: {
     fontSize: 15,
-    color: "#cfe7ec",
     textAlign: "center",
     marginBottom: 30,
     lineHeight: 22,
   },
 
-  label: { fontSize: 15, color: "#F074BA", marginTop: 12, marginBottom: 8 },
+  label: { fontSize: 15, marginTop: 12, marginBottom: 8 },
 
   input: {
     width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: "#87a9b1",
     borderRadius: 10,
     paddingHorizontal: 14,
     marginBottom: 10,
     fontSize: 16,
-    backgroundColor: "#f1f6f7",
-    color: "#0a0a0a",
   },
-  inputError: { borderColor: "#ff8a8a" },
 
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
     borderWidth: 1,
-    borderColor: "#87a9b1",
     borderRadius: 10,
-    backgroundColor: "#f1f6f7",
     marginBottom: 10,
     paddingHorizontal: 6,
   },
-  inputField: { flex: 1, height: 50, fontSize: 16, color: "#0a0a0a", paddingHorizontal: 8 },
+  inputField: { flex: 1, height: 50, fontSize: 16, paddingHorizontal: 8 },
   icon: { padding: 10 },
 
   // 인증번호 입력
@@ -490,11 +539,8 @@ const styles = StyleSheet.create({
     width: 45,
     height: 50,
     borderWidth: 1,
-    borderColor: "#87a9b1",
     borderRadius: 8,
     fontSize: 20,
-    color: "#0a0a0a",
-    backgroundColor: "#f1f6f7",
     textAlign: "center",
   },
 
@@ -503,20 +549,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   resendText: {
-    color: "#F074BA",
     fontSize: 14,
     textDecorationLine: "underline",
   },
 
-  errorText: { color: "tomato", fontSize: 12, marginBottom: 6, marginLeft: 2 },
-  passwordGuide: { fontSize: 12, color: "#cfe7ec", marginBottom: 6, marginLeft: 2 },
-  passwordMatch: { fontSize: 12, color: "#00e676", marginBottom: 6, marginLeft: 2 },
+  errorText: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
+  passwordGuide: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
+  passwordMatch: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
 
   // 비밀번호 강도
   strengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6, marginLeft: 2 },
-  strengthBar: { width: 32, height: 6, borderRadius: 4, backgroundColor: "#6e8f98" },
-  strengthOn: { backgroundColor: "#F074BA" },
-  strengthText: { color: "#cfe7ec", fontSize: 12, marginLeft: 6 },
+  strengthBar: { width: 32, height: 6, borderRadius: 4 },
+  strengthText: { fontSize: 12, marginLeft: 6 },
 
   // 푸터 버튼
   footer: {
@@ -527,7 +571,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 16,
-    backgroundColor: "rgba(0, 51, 64, 0.92)",
   },
   button: {
     height: 52,
@@ -535,7 +578,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  buttonText: { fontSize: 18, fontWeight: "bold" },
 });
 
 export default FindPasswordScreen;

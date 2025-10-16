@@ -22,9 +22,15 @@ import {
   isInWatchlist 
 } from "../../utils/watchList";
 
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
+
 const screenWidth = Dimensions.get("window").width;
 
 const StockDetail = ({ route, navigation }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const { symbol, name } = route.params;
   const [loading, setLoading] = useState(true);
   const [stockData, setStockData] = useState(null);
@@ -77,7 +83,7 @@ const StockDetail = ({ route, navigation }) => {
         } else {
           setOwnedQuantity(0);
           setAveragePrice(0);
-          console.log(`📍 ${symbol} 보유하지 않음`);
+          console.log(`📝 ${symbol} 보유하지 않음`);
         }
       } else {
         console.warn("포트폴리오 응답 형식이 예상과 다름:", result);
@@ -373,6 +379,38 @@ const StockDetail = ({ route, navigation }) => {
     }
   };
 
+  // 차트 색상 결정 함수
+  const getChartColor = (opacity = 1) => {
+    if (stockData?.changeStatus === "up") {
+      return `rgba(240, 116, 186, ${opacity})`;
+    } else if (stockData?.changeStatus === "down") {
+      return `rgba(96, 165, 250, ${opacity})`;
+    }
+    return `rgba(156, 163, 175, ${opacity})`;
+  };
+
+  // 차트 설정에 테마 적용
+  const getChartConfig = () => ({
+    backgroundColor: theme.background.secondary,
+    backgroundGradientFrom: theme.background.secondary,
+    backgroundGradientTo: theme.background.secondary,
+    decimalPlaces: 0,
+    color: getChartColor,
+    labelColor: (opacity = 1) => theme.text.primary,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "4",
+      strokeWidth: "2",
+      stroke: stockData?.changeStatus === "up"
+        ? theme.status.up
+        : stockData?.changeStatus === "down"
+        ? theme.status.down
+        : theme.status.same,
+    },
+  });
+
   // 매수 버튼 핸들러
   const handleBuyPress = () => {
     const stock = {
@@ -463,53 +501,28 @@ const StockDetail = ({ route, navigation }) => {
   const renderChart = () => {
     if (chartLoading) {
       return (
-        <View style={styles.chartLoadingContainer}>
-          <ActivityIndicator size="large" color="#F074BA" />
-          <Text style={styles.chartLoadingText}>차트 로딩 중...</Text>
+        <View style={[styles.chartLoadingContainer, { backgroundColor: theme.background.secondary }]}>
+          <ActivityIndicator size="large" color={theme.accent.primary} />
+          <Text style={[styles.chartLoadingText, { color: theme.text.secondary }]}>차트 로딩 중...</Text>
         </View>
       );
     }
 
     if (!chartData || !chartData.datasets[0].data.length) {
       return (
-        <View style={styles.chartPlaceholder}>
-          <Text style={styles.chartText}>차트 데이터를 불러올 수 없습니다</Text>
+        <View style={[styles.chartPlaceholder, { backgroundColor: theme.background.secondary }]}>
+          <Text style={[styles.chartText, { color: theme.text.secondary }]}>차트 데이터를 불러올 수 없습니다</Text>
         </View>
       );
     }
 
     return (
-      <View style={styles.chartContainer}>
+      <View style={[styles.chartContainer, { backgroundColor: theme.background.secondary }]}>
         <LineChart
           data={chartData}
           width={screenWidth - 32}
           height={200}
-          chartConfig={{
-            backgroundColor: "#004455",
-            backgroundGradientFrom: "#004455",
-            backgroundGradientTo: "#004455",
-            decimalPlaces: 0,
-            color: (opacity = 1) =>
-              stockData?.changeStatus === "up"
-                ? `rgba(240, 116, 186, ${opacity})`
-                : stockData?.changeStatus === "down"
-                ? `rgba(96, 165, 250, ${opacity})`
-                : `rgba(156, 163, 175, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(239, 241, 245, ${opacity})`,
-            style: {
-              borderRadius: 16,
-            },
-            propsForDots: {
-              r: "4",
-              strokeWidth: "2",
-              stroke:
-                stockData?.changeStatus === "up"
-                  ? "#F074BA"
-                  : stockData?.changeStatus === "down"
-                  ? "#60a5fa"
-                  : "#9ca3af",
-            },
-          }}
+          chartConfig={getChartConfig()}
           bezier
           style={styles.chart}
           withInnerLines={false}
@@ -525,32 +538,32 @@ const StockDetail = ({ route, navigation }) => {
 
   if (loading || portfolioLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F074BA" />
-        <Text style={styles.loadingText}>주식 정보를 불러오는 중...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background.primary }]}>
+        <ActivityIndicator size="large" color={theme.accent.primary} />
+        <Text style={[styles.loadingText, { color: theme.text.primary }]}>주식 정보를 불러오는 중...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* 헤더 */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.background.secondary }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{"<"}</Text>
+          <Text style={[styles.backText, { color: theme.text.primary }]}>{"<"}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{name}</Text>
+        <Text style={[styles.headerTitle, { color: theme.text.primary }]}>{name}</Text>
         <TouchableOpacity
           onPress={toggleFavorite}
           style={styles.favoriteButton}
         >
           {isFavorite ? (
-            <Text style={styles.starIcon}>★</Text>
+            <Text style={[styles.starIcon, { color: theme.accent.primary }]}>★</Text>
           ) : (
-            <Text style={styles.starIcon}>☆</Text>
+            <Text style={[styles.starIcon, { color: theme.accent.primary }]}>☆</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -558,16 +571,12 @@ const StockDetail = ({ route, navigation }) => {
       <ScrollView style={styles.content}>
         {/* 가격 섹션 */}
         <View style={styles.priceSection}>
-          <Text style={styles.symbolText}>{symbol}</Text>
-          <Text style={styles.priceText}>{stockData.price}원</Text>
+          <Text style={[styles.symbolText, { color: theme.text.secondary }]}>{symbol}</Text>
+          <Text style={[styles.priceText, { color: theme.text.primary }]}>{stockData.price}원</Text>
           <Text
             style={[
               styles.changeText,
-              stockData.changeStatus === "up"
-                ? styles.positiveChange
-                : stockData.changeStatus === "down"
-                ? styles.negativeChange
-                : styles.neutralChange,
+              { color: theme.status[stockData.changeStatus] || theme.status.same }
             ]}
           >
             {stockData.change}% ({stockData.priceChange}원)
@@ -581,33 +590,29 @@ const StockDetail = ({ route, navigation }) => {
         </View>
 
         {/* 주요 지표 섹션 */}
-        <View style={styles.statsContainer}>
-          <Text style={styles.sectionTitle}>주요 지표</Text>
+        <View style={[styles.statsContainer, { backgroundColor: theme.background.secondary }]}>
+          <Text style={[styles.sectionTitle, { color: theme.accent.primary }]}>주요 지표</Text>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>
+          <View style={[styles.statRow, { borderBottomColor: theme.background.primary }]}>
+            <Text style={[styles.statLabel, { color: theme.text.secondary }]}>
               전일 종가 ({stockData.previousDate})
             </Text>
-            <Text style={styles.statValue}>{stockData.previousPrice}원</Text>
+            <Text style={[styles.statValue, { color: theme.text.primary }]}>{stockData.previousPrice}원</Text>
           </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>
+          <View style={[styles.statRow, { borderBottomColor: theme.background.primary }]}>
+            <Text style={[styles.statLabel, { color: theme.text.secondary }]}>
               현재가 ({stockData.currentDate})
             </Text>
-            <Text style={styles.statValue}>{stockData.price}원</Text>
+            <Text style={[styles.statValue, { color: theme.text.primary }]}>{stockData.price}원</Text>
           </View>
 
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>전일대비 변동</Text>
+          <View style={[styles.statRow, { borderBottomColor: theme.background.primary }]}>
+            <Text style={[styles.statLabel, { color: theme.text.secondary }]}>전일대비 변동</Text>
             <Text
               style={[
                 styles.statValue,
-                stockData.changeStatus === "up"
-                  ? styles.positiveChange
-                  : stockData.changeStatus === "down"
-                  ? styles.negativeChange
-                  : null,
+                { color: theme.status[stockData.changeStatus] || theme.status.same }
               ]}
             >
               {stockData.change}% ({stockData.priceChange}원)
@@ -615,17 +620,17 @@ const StockDetail = ({ route, navigation }) => {
           </View>
 
           {/* 보유 정보 섹션 */}
-          <View style={styles.statRow}>
-            <Text style={styles.statLabel}>보유 수량</Text>
-            <Text style={styles.statValue}>
+          <View style={[styles.statRow, { borderBottomColor: theme.background.primary }]}>
+            <Text style={[styles.statLabel, { color: theme.text.secondary }]}>보유 수량</Text>
+            <Text style={[styles.statValue, { color: theme.text.primary }]}>
               {ownedQuantity.toLocaleString()}주
             </Text>
           </View>
 
           {ownedQuantity > 0 && (
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>평균 단가</Text>
-              <Text style={styles.statValue}>
+            <View style={[styles.statRow, { borderBottomColor: theme.background.primary }]}>
+              <Text style={[styles.statLabel, { color: theme.text.secondary }]}>평균 단가</Text>
+              <Text style={[styles.statValue, { color: theme.text.primary }]}>
                 {averagePrice.toLocaleString()}원
               </Text>
             </View>
@@ -634,17 +639,20 @@ const StockDetail = ({ route, navigation }) => {
 
         {/* 매수/매도 버튼 컨테이너 */}
         <View style={styles.tradeButtonContainer}>
-          <TouchableOpacity style={styles.buyButton} onPress={handleBuyPress}>
-            <Text style={styles.buyButtonText}>매수</Text>
+          <TouchableOpacity 
+            style={[styles.buyButton, { backgroundColor: theme.button.buy }]} 
+            onPress={handleBuyPress}
+          >
+            <Text style={[styles.buyButtonText, { color: theme.background.primary }]}>매수</Text>
           </TouchableOpacity>
 
           {/* 매도 버튼 조건부 렌더링 */}
           {ownedQuantity > 0 ? (
             <TouchableOpacity
-              style={styles.sellButton}
+              style={[styles.sellButton, { backgroundColor: theme.button.sell }]}
               onPress={handleSellPress}
             >
-              <Text style={styles.sellButtonText}>매도</Text>
+              <Text style={[styles.sellButtonText, { color: theme.background.primary }]}>매도</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity style={styles.disabledSellButton} disabled={true}>
@@ -664,18 +672,18 @@ const StockDetail = ({ route, navigation }) => {
         <TouchableWithoutFeedback onPress={closeModal}>
           <View style={styles.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <View style={[styles.modalContent, { backgroundColor: theme.background.secondary }]}>
                 {selectedPoint && (
                   <>
-                    <Text style={styles.modalDate}>{selectedPoint.date}</Text>
-                    <Text style={styles.modalPrice}>
+                    <Text style={[styles.modalDate, { color: theme.text.primary }]}>{selectedPoint.date}</Text>
+                    <Text style={[styles.modalPrice, { color: theme.text.primary }]}>
                       {selectedPoint.price}원
                     </Text>
                     <TouchableOpacity
-                      style={styles.modalCloseButton}
+                      style={[styles.modalCloseButton, { backgroundColor: theme.button.primary }]}
                       onPress={closeModal}
                     >
-                      <Text style={styles.modalCloseText}>확인</Text>
+                      <Text style={[styles.modalCloseText, { color: theme.text.primary }]}>확인</Text>
                     </TouchableOpacity>
                   </>
                 )}
@@ -691,13 +699,11 @@ const StockDetail = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#003340",
   },
   header: {
     flexDirection: "row",
@@ -706,18 +712,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 40,
     borderBottomWidth: 1,
-    borderBottomColor: "#004455",
   },
   backButton: {
     padding: 8,
   },
   backText: {
-    color: "#EFF1F5",
     fontSize: 24,
     fontWeight: "bold",
   },
   headerTitle: {
-    color: "#EFF1F5",
     fontSize: 18,
     fontWeight: "bold",
     flex: 1,
@@ -729,7 +732,6 @@ const styles = StyleSheet.create({
   starIcon: {
     width: 24,
     height: 24,
-    color: "#F074BA",
     fontSize: 24,
   },
   content: {
@@ -741,12 +743,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   symbolText: {
-    color: "#9ca3af",
     fontSize: 14,
     marginBottom: 8,
   },
   priceText: {
-    color: "#EFF1F5",
     fontSize: 36,
     fontWeight: "bold",
     marginBottom: 8,
@@ -754,15 +754,6 @@ const styles = StyleSheet.create({
   changeText: {
     fontSize: 18,
     fontWeight: "bold",
-  },
-  positiveChange: {
-    color: "#F074BA",
-  },
-  negativeChange: {
-    color: "#60a5fa",
-  },
-  neutralChange: {
-    color: "#9ca3af",
   },
   // 차트 관련 스타일
   chartSection: {
@@ -797,7 +788,6 @@ const styles = StyleSheet.create({
   },
   chartContainer: {
     alignItems: "center",
-    backgroundColor: "#004455",
     borderRadius: 16,
     padding: 8,
   },
@@ -806,33 +796,27 @@ const styles = StyleSheet.create({
   },
   chartLoadingContainer: {
     height: 200,
-    backgroundColor: "#004455",
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
   },
   chartLoadingText: {
-    color: "#9ca3af",
     marginTop: 10,
   },
   chartPlaceholder: {
     height: 200,
-    backgroundColor: "#004455",
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
   chartText: {
-    color: "#9ca3af",
   },
   statsContainer: {
-    backgroundColor: "#004455",
     borderRadius: 8,
     padding: 16,
     marginBottom: 24,
   },
   sectionTitle: {
-    color: "#F074BA",
     fontSize: 18,
     fontWeight: "600",
     marginBottom: 16,
@@ -842,14 +826,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#003340",
   },
   statLabel: {
-    color: "#9ca3af",
     fontSize: 14,
   },
   statValue: {
-    color: "#EFF1F5",
     fontSize: 14,
     fontWeight: "500",
   },
@@ -862,7 +843,6 @@ const styles = StyleSheet.create({
   },
   buyButton: {
     flex: 1,
-    backgroundColor: "#6EE69E",
     padding: 16,
     borderRadius: 13,
     alignItems: "center",
@@ -870,13 +850,11 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   buyButtonText: {
-    color: "#003340",
     fontSize: 20,
     fontWeight: "900",
   },
   sellButton: {
     flex: 1,
-    backgroundColor: "#F074BA",
     padding: 16,
     borderRadius: 13,
     alignItems: "center",
@@ -884,7 +862,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   sellButtonText: {
-    color: "#003340",
     fontSize: 20,
     fontWeight: "900",
   },
@@ -910,37 +887,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "#004455",
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
     minWidth: 200,
   },
   modalDate: {
-    color: "#EFF1F5",
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 8,
   },
   modalPrice: {
-    color: "#EFF1F5",
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
   },
   modalCloseButton: {
-    backgroundColor: "#EFF1F5",
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
   },
   modalCloseText: {
-    color: "#003340",
     fontSize: 14,
     fontWeight: "bold",
   },
   loadingText: {
-    color: "#EFF1F5",
     fontSize: 16,
     marginTop: 10,
     textAlign: "center",

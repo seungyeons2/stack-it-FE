@@ -4,17 +4,27 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
+// 🎨 테마 훅 import
+import { useTheme } from '../utils/ThemeContext';
+
 const LearningProgressBar = ({ current = 12, total = 20 }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const progress = Math.min(current / total, 1);
 
   return (
     <View style={styles.wrapper}>
-      {/* <Icon name="trophy" size={16} color="#fff" style={styles.icon} /> */}
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressFill, { flex: progress }]} />
+      <View style={[styles.progressContainer, {
+        backgroundColor: `${theme.status.success}4D` // 남은 부분 색 (투명도 30%)
+      }]}>
+        <View style={[styles.progressFill, { 
+          flex: progress,
+          backgroundColor: theme.status.success // 진행된 부분 색
+        }]} />
         <View style={{ flex: 1 - progress }} />
       </View>
-      <Text style={styles.progressText}>
+      <Text style={[styles.progressText, { color: theme.text.primary }]}>
         {current} / {total}
       </Text>
     </View>
@@ -25,28 +35,22 @@ const styles = StyleSheet.create({
   wrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    //backgroundColor: '#5DB99610', // 전체 배경색
     padding: 8,
     borderRadius: 15,
     marginHorizontal: 5,
   },
-//   icon: {
-//     marginRight: 8,
-//   },
   progressContainer: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#5DB99630', // 남은 부분 색
     borderRadius: 15,
     overflow: 'hidden',
     height: 12,
     marginRight: 8,
   },
   progressFill: {
-    backgroundColor: '#5DB996E0', // 진행된 부분 색
+    // 동적 색상 적용됨
   },
   progressText: {
-    color: '#fff',
     fontWeight: 'bold',
     minWidth: 50,
     textAlign: 'right',

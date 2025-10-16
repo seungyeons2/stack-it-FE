@@ -14,9 +14,11 @@ import {
 import { fetchWithHantuToken } from "../../utils/hantuToken";
 import { fetchUserInfo } from "../../utils/user";
 import { API_BASE_URL } from "../../utils/apiConfig";
-import { fetchWithAuth } from "../../utils/token"; // fetchWithAuth 사용
+import { fetchWithAuth } from "../../utils/token";
+import { useTheme } from "../../utils/ThemeContext";
 
 const TradingBuyScreen = ({ route, navigation }) => {
+  const { theme } = useTheme();
   const stock = route.params?.stock;
   const [quantity, setQuantity] = useState("1");
   const [currentPrice, setCurrentPrice] = useState(0);
@@ -26,12 +28,9 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const init = async () => {
-      // 사용자 정보 가져오기
       await fetchUserInfo(navigation, (info) => {
         if (info?.id) setUserId(info.id);
       });
-
-      // 현재가 가져오기
       await fetchCurrentPrice(stock?.symbol);
     };
     init();
@@ -62,7 +61,6 @@ const TradingBuyScreen = ({ route, navigation }) => {
         console.log("✅ 현재가 업데이트:", data.current_price);
       } else {
         console.warn("⚠️ 현재가 API 응답 실패:", data);
-        // 기존 주식 가격을 사용
         setCurrentPrice(
           typeof stock.price === "string"
             ? parseInt(stock.price.replace(/,/g, ""))
@@ -71,7 +69,6 @@ const TradingBuyScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error("❌ 현재가 조회 실패:", error);
-      // 기존 주식 가격을 사용
       setCurrentPrice(
         typeof stock.price === "string"
           ? parseInt(stock.price.replace(/,/g, ""))
@@ -109,7 +106,6 @@ const TradingBuyScreen = ({ route, navigation }) => {
     setLoading(true);
 
     try {
-      // 종목 식별자 결정 (종목코드 우선 사용)
       const stockIdentifier = stock.symbol || stock.name;
 
       const orderData = {
@@ -122,7 +118,6 @@ const TradingBuyScreen = ({ route, navigation }) => {
 
       console.log("📡 매수 주문 데이터:", orderData);
 
-      // ✅ fetchWithAuth 사용 (일반 백엔드 API이므로)
       const response = await fetchWithAuth(
         `${API_BASE_URL}trading/trade/`,
         {
@@ -166,9 +161,9 @@ const TradingBuyScreen = ({ route, navigation }) => {
   };
 
   const getChangeColor = (change) => {
-    if (change > 0) return "#F074BA";
-    if (change < 0) return "#00BFFF";
-    return "#AAAAAA";
+    if (change > 0) return theme.status.up;
+    if (change < 0) return theme.status.down;
+    return theme.status.same;
   };
 
   const getChangeSymbol = (change) => {
@@ -180,33 +175,39 @@ const TradingBuyScreen = ({ route, navigation }) => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background.primary }]}
       keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0}
     >
       <SafeAreaView style={styles.safeArea}>
         {/* 헤더 */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>{"<"}</Text>
+            <Text style={[styles.backText, { color: theme.accent.primary }]}>
+              {"<"}
+            </Text>
           </TouchableOpacity>
-          <Text style={styles.title}>매수</Text>
+          <Text style={[styles.title, { color: theme.accent.primary }]}>
+            매수
+          </Text>
         </View>
 
         {/* 종목 정보 */}
         <View style={styles.stockRow}>
           <View style={styles.stockInfo}>
-            <Text style={styles.stockName}>{stock?.name || "종목명 없음"}</Text>
-            <Text style={styles.stockCode}>
+            <Text style={[styles.stockName, { color: theme.text.primary }]}>
+              {stock?.name || "종목명 없음"}
+            </Text>
+            <Text style={[styles.stockCode, { color: theme.text.secondary }]}>
               ({stock?.symbol || "종목코드 없음"})
             </Text>
           </View>
 
           <View style={styles.priceBlock}>
             {priceLoading ? (
-              <ActivityIndicator size="small" color="#F074BA" />
+              <ActivityIndicator size="small" color={theme.accent.primary} />
             ) : (
               <>
-                <Text style={styles.priceText}>
+                <Text style={[styles.priceText, { color: theme.text.primary }]}>
                   {formatNumber(currentPrice)}원
                 </Text>
                 {stock?.change !== undefined && (
@@ -225,50 +226,64 @@ const TradingBuyScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        <View style={styles.divider} />
+        <View style={[styles.divider, { backgroundColor: theme.border.medium }]} />
 
         {/* 현재 보유량 */}
         <View style={styles.infoSection}>
-          <Text style={styles.label}>현재 보유량</Text>
-          <Text style={styles.value}>
+          <Text style={[styles.label, { color: theme.accent.light }]}>
+            현재 보유량
+          </Text>
+          <Text style={[styles.value, { color: theme.text.primary }]}>
             {formatNumber(stock?.quantity || 0)}주
           </Text>
         </View>
 
         {/* 수량 입력 */}
         <View style={styles.infoSection}>
-          <Text style={styles.label}>매수 수량</Text>
+          <Text style={[styles.label, { color: theme.accent.light }]}>
+            매수 수량
+          </Text>
           <View style={styles.inputRow}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.text.primary,
+                color: theme.background.primary 
+              }]}
               value={quantity}
               onChangeText={setQuantity}
               keyboardType="numeric"
               maxLength={6}
               placeholder="1"
+              placeholderTextColor={theme.text.tertiary}
             />
-            <Text style={styles.unit}>주</Text>
+            <Text style={[styles.unit, { color: theme.text.primary }]}>주</Text>
           </View>
         </View>
 
         {/* 총 금액 */}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>총 매수 금액</Text>
-          <Text style={styles.totalAmount}>
+        <View style={[styles.totalRow, { backgroundColor: theme.background.secondary }]}>
+          <Text style={[styles.totalLabel, { color: theme.text.primary }]}>
+            총 매수 금액
+          </Text>
+          <Text style={[styles.totalAmount, { color: theme.status.success }]}>
             {formatNumber(calculateTotal())}원
           </Text>
         </View>
 
         {/* 매수 버튼 */}
         <TouchableOpacity
-          style={[styles.buyButton, loading && styles.disabledButton]}
+          style={[
+            styles.buyButton,
+            { backgroundColor: theme.status.success },
+            (loading || priceLoading) && styles.disabledButton
+          ]}
           onPress={handleBuy}
           disabled={loading || priceLoading}
         >
           {loading ? (
-            <ActivityIndicator color="#003340" />
+            <ActivityIndicator color={theme.background.primary} />
           ) : (
-            <Text style={styles.buyButtonText}>
+            <Text style={[styles.buyButtonText, { color: theme.background.primary }]}>
               {formatNumber(parseInt(quantity) || 0)}주 매수하기
             </Text>
           )}
@@ -282,7 +297,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 30,
-    backgroundColor: "#003340",
   },
   safeArea: {
     flex: 1,
@@ -297,16 +311,14 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 28,
-    color: "#F074BA",
     marginRight: 15,
   },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#F074BA",
     flex: 1,
     textAlign: "center",
-    marginRight: 43, // 뒤로가기 버튼 공간만큼 보정
+    marginRight: 43,
   },
   stockRow: {
     flexDirection: "row",
@@ -318,13 +330,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   stockName: {
-    color: "white",
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
   },
   stockCode: {
-    color: "#AFA5CF",
     fontSize: 14,
   },
   priceBlock: {
@@ -332,7 +342,6 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: 20,
-    color: "white",
     fontWeight: "bold",
     marginBottom: 4,
   },
@@ -342,7 +351,6 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#4A5A60",
     marginVertical: 20,
   },
   infoSection: {
@@ -350,12 +358,10 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: "#FFD1EB",
     marginBottom: 8,
   },
   value: {
     fontSize: 18,
-    color: "#FFFFFF",
     fontWeight: "bold",
   },
   inputRow: {
@@ -363,19 +369,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   input: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 18,
-    color: "#000000",
     minWidth: 100,
     textAlign: "center",
     marginRight: 10,
   },
   unit: {
     fontSize: 18,
-    color: "#FFFFFF",
   },
   totalRow: {
     flexDirection: "row",
@@ -385,21 +388,17 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: "#004455",
     borderRadius: 10,
   },
   totalLabel: {
     fontSize: 16,
-    color: "#FFFFFF",
   },
   totalAmount: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#6EE69E",
   },
   buyButton: {
     marginTop: "auto",
-    backgroundColor: "#6EE69E",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
@@ -411,7 +410,6 @@ const styles = StyleSheet.create({
   buyButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#003340",
   },
 });
 

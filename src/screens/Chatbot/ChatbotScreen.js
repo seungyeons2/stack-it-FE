@@ -16,8 +16,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import SearchIcon from "../../assets/icons/search.svg";
 import { chatbotReply } from "../../utils/chatbotReply";
+
+// 🎉 Lucide 아이콘 import
+import { Send } from "lucide-react-native";
+
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const INPUT_BAR_HEIGHT = 70;
@@ -25,6 +30,9 @@ const INPUT_FONT_SIZE = 16;
 const GAP_FROM_TAB = 0;
 
 const ChatbotScreen = () => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
 
@@ -192,32 +200,52 @@ const ChatbotScreen = () => {
 
     return (
       <View style={styles.typingContainer}>
-        <Animated.View style={[styles.typingDot, { opacity: dot1Anim }]} />
-        <Animated.View style={[styles.typingDot, { opacity: dot2Anim }]} />
-        <Animated.View style={[styles.typingDot, { opacity: dot3Anim }]} />
+        <Animated.View style={[styles.typingDot, { 
+          opacity: dot1Anim,
+          backgroundColor: theme.text.secondary 
+        }]} />
+        <Animated.View style={[styles.typingDot, { 
+          opacity: dot2Anim,
+          backgroundColor: theme.text.secondary 
+        }]} />
+        <Animated.View style={[styles.typingDot, { 
+          opacity: dot3Anim,
+          backgroundColor: theme.text.secondary 
+        }]} />
       </View>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior="padding"
         keyboardVerticalOffset={0}
       >
         {/* Header */}
-        <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.header, { 
+          paddingTop: insets.top + 20,
+          backgroundColor: theme.background.primary,
+          borderBottomColor: theme.border.light
+        }]}>
           <View style={styles.aiIndicator}>
-            <View style={styles.aiDot} />
-            <Text style={styles.aiText}>AI Assistant</Text>
+            <View style={[styles.aiDot, { 
+              backgroundColor: theme.status.down,
+              shadowColor: theme.status.down
+            }]} />
+            <Text style={[styles.aiText, { color: theme.text.primary }]}>
+              AI Assistant
+            </Text>
           </View>
-          <Text style={styles.headerSubtitle}>투자 전문 상담</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.text.secondary }]}>
+            투자 전문 상담
+          </Text>
         </View>
 
         <ScrollView
           ref={scrollRef}
-          style={styles.chatScroll}
+          style={[styles.chatScroll, { backgroundColor: theme.background.primary }]}
           contentContainerStyle={[
             styles.chatContainer,
             { paddingBottom: dynamicInputBarHeight + keyboardHeight + 20 },
@@ -239,7 +267,10 @@ const ChatbotScreen = () => {
               >
                 {!isUser && (
                   <View style={styles.avatarContainer}>
-                    <View style={styles.botAvatar}>
+                    <View style={[styles.botAvatar, {
+                      backgroundColor: `${theme.status.success}33`,
+                      borderColor: `${theme.status.success}4D`
+                    }]}>
                       <Text style={styles.avatarText}>🤖</Text>
                     </View>
                   </View>
@@ -248,7 +279,13 @@ const ChatbotScreen = () => {
                 <View
                   style={[
                     styles.messageBubble,
-                    isUser ? styles.userBubble : styles.botBubble,
+                    isUser ? [styles.userBubble, {
+                      backgroundColor: theme.accent.primary,
+                      shadowColor: theme.accent.primary
+                    }] : [styles.botBubble, {
+                      backgroundColor: theme.background.card,
+                      shadowColor: theme.shadow
+                    }],
                   ]}
                 >
                   {isTyping ? (
@@ -257,7 +294,8 @@ const ChatbotScreen = () => {
                     <Text
                       style={[
                         styles.messageText,
-                        isUser ? styles.userText : styles.botText,
+                        isUser ? [styles.userText, { color: theme.background.primary }] 
+                              : [styles.botText, { color: theme.text.primary }],
                       ]}
                     >
                       {msg.text}
@@ -267,7 +305,10 @@ const ChatbotScreen = () => {
 
                 {isUser && (
                   <View style={styles.avatarContainer}>
-                    <View style={styles.userAvatar}>
+                    <View style={[styles.userAvatar, {
+                      backgroundColor: `${theme.accent.secondary}33`,
+                      borderColor: `${theme.accent.secondary}4D`
+                    }]}>
                       <Text style={styles.avatarText}>👤</Text>
                     </View>
                   </View>
@@ -289,10 +330,15 @@ const ChatbotScreen = () => {
               },
             ]}
           >
-            <View style={styles.suggestionBackground} />
+            <View style={[styles.suggestionBackground, {
+              backgroundColor: theme.background.card,
+              borderColor: theme.border.light
+            }]} />
 
             <View style={styles.suggestionHeader}>
-              <Text style={styles.suggestionTitle}>💡 추천 질문</Text>
+              <Text style={[styles.suggestionTitle, { color: theme.text.primary }]}>
+                💡 추천 질문
+              </Text>
             </View>
 
             <ScrollView
@@ -304,12 +350,23 @@ const ChatbotScreen = () => {
                 <TouchableOpacity
                   key={`${item.text}-${idx}`}
                   onPress={() => sendMessage(item.text)}
-                  style={styles.suggestionCard}
+                  style={[styles.suggestionCard, {
+                    backgroundColor: theme.background.secondary,
+                    borderColor: theme.border.medium,
+                    shadowColor: theme.shadow
+                  }]}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.suggestionIcon}>{item.icon}</Text>
-                  <Text style={styles.suggestionText}>{item.text}</Text>
-                  <Text style={styles.suggestionCategory}>{item.category}</Text>
+                  <Text style={[styles.suggestionText, { color: theme.text.primary }]}>
+                    {item.text}
+                  </Text>
+                  <Text style={[styles.suggestionCategory, { 
+                    color: theme.text.secondary,
+                    backgroundColor: theme.background.tertiary
+                  }]}>
+                    {item.category}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -323,6 +380,8 @@ const ChatbotScreen = () => {
             {
               paddingBottom: Math.max(insets.bottom, 12),
               bottom: bottomOffset,
+              backgroundColor: theme.background.primary,
+              borderTopColor: theme.border.light
             },
           ]}
         >
@@ -330,7 +389,14 @@ const ChatbotScreen = () => {
             <TouchableOpacity
               style={[
                 styles.suggestionButton,
-                showSuggestions && styles.suggestionButtonActive,
+                {
+                  backgroundColor: theme.background.secondary,
+                  borderColor: theme.border.medium
+                },
+                showSuggestions && {
+                  backgroundColor: `${theme.status.success}4D`,
+                  borderColor: `${theme.status.success}80`
+                },
               ]}
               onPress={() => setShowSuggestions((prev) => !prev)}
               activeOpacity={0.7}
@@ -340,11 +406,14 @@ const ChatbotScreen = () => {
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.textInputContainer}>
+            <View style={[styles.textInputContainer, {
+              backgroundColor: theme.background.secondary,
+              borderColor: theme.border.medium
+            }]}>
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, { color: theme.text.primary }]}
                 placeholder="궁금한 투자 정보를 물어보세요..."
-                placeholderTextColor="rgba(255,255,255,0.6)"
+                placeholderTextColor={theme.text.tertiary}
                 value={input}
                 onChangeText={setInput}
                 onContentSizeChange={(event) => {
@@ -366,13 +435,28 @@ const ChatbotScreen = () => {
             <TouchableOpacity
               onPress={() => sendMessage()}
               activeOpacity={0.7}
-              style={[styles.sendButton, input.trim() && styles.sendButtonActive]}
+              style={[
+                styles.sendButton,
+                {
+                  backgroundColor: theme.background.secondary,
+                  borderColor: theme.border.medium
+                },
+                input.trim() && styles.sendButtonActive,
+                input.trim() && {
+                  backgroundColor: `${theme.accent.primary}4D`,
+                  borderColor: `${theme.accent.primary}80`
+                }
+              ]}
               disabled={!input.trim() || loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={theme.accent.primary} />
               ) : (
-                <SearchIcon width={20} height={20} />
+                <Send 
+                  size={20} 
+                  color={input.trim() ? theme.accent.primary : theme.text.tertiary}
+                  strokeWidth={2}
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -385,7 +469,6 @@ const ChatbotScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#003340",
   },
 
   keyboardView: {
@@ -397,8 +480,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "#003340",
   },
 
   aiIndicator: {
@@ -411,9 +492,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#fb9dd2ff",
     marginRight: 8,
-    shadowColor: "#10b981",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 4,
@@ -421,21 +500,18 @@ const styles = StyleSheet.create({
   },
 
   aiText: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.5,
   },
 
   headerSubtitle: {
-    color: "rgba(255,255,255,0.7)",
     fontSize: 14,
     letterSpacing: 0.3,
   },
 
   chatScroll: {
     flex: 1,
-    backgroundColor: "#003340",
   },
 
   chatContainer: {
@@ -465,22 +541,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(16, 185, 129, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.3)",
   },
 
   userAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(230, 59, 246, 0.2)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(230, 59, 246, 0.3)",
   },
 
   avatarText: {
@@ -499,15 +571,11 @@ const styles = StyleSheet.create({
   },
 
   botBubble: {
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
     borderBottomLeftRadius: 6,
-    shadowColor: "#000000",
   },
 
   userBubble: {
-    backgroundColor: "#fb9dd2ff",
     borderBottomRightRadius: 6,
-    shadowColor: "#3b82f6",
   },
 
   messageText: {
@@ -517,11 +585,9 @@ const styles = StyleSheet.create({
   },
 
   botText: {
-    color: "#1F2937",
   },
 
   userText: {
-    color: "#FFFFFF",
     fontWeight: "500",
   },
 
@@ -535,7 +601,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#9CA3AF",
     marginRight: 4,
   },
 
@@ -550,10 +615,8 @@ const styles = StyleSheet.create({
 
   suggestionBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 51, 64, 0.95)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.1)",
   },
 
   suggestionHeader: {
@@ -561,7 +624,6 @@ const styles = StyleSheet.create({
   },
 
   suggestionTitle: {
-    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.3,
@@ -572,16 +634,13 @@ const styles = StyleSheet.create({
   },
 
   suggestionCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
     marginRight: 12,
     minWidth: 140,
     alignItems: "center",
-    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -595,7 +654,6 @@ const styles = StyleSheet.create({
 
   suggestionText: {
     fontSize: 13,
-    color: "#FFFFFF",
     fontWeight: "500",
     textAlign: "center",
     lineHeight: 16,
@@ -604,8 +662,6 @@ const styles = StyleSheet.create({
 
   suggestionCategory: {
     fontSize: 10,
-    color: "rgba(255, 255, 255, 0.6)",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
@@ -616,9 +672,7 @@ const styles = StyleSheet.create({
   inputBar: {
     paddingTop: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#003340",
     borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)",
   },
 
   inputContainer: {
@@ -632,17 +686,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
-  },
-
-  suggestionButtonActive: {
-    backgroundColor: "rgba(16, 185, 129, 0.3)",
-    borderColor: "rgba(16, 185, 129, 0.5)",
-    transform: [{ scale: 1.05 }],
   },
 
   suggestionButtonIcon: {
@@ -651,10 +697,8 @@ const styles = StyleSheet.create({
 
   textInputContainer: {
     flex: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
     minHeight: 44,
     maxHeight: 120,
     justifyContent: "center",
@@ -663,7 +707,6 @@ const styles = StyleSheet.create({
   textInput: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: "#FFFFFF",
     fontSize: INPUT_FONT_SIZE,
     lineHeight: 20,
     letterSpacing: 0.2,
@@ -674,21 +717,13 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
   },
 
   sendButtonActive: {
-    backgroundColor: "rgba(182, 137, 186, 0.3)",
-    borderColor: "#fb9dd28f",
-    shadowColor: "#fb9dd2ff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    transform: [{ scale: 1.05 }],
   },
 });
 

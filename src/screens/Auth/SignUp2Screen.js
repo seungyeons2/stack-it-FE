@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
-  Dimensions,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -18,10 +17,11 @@ import {
 import { API_BASE_URL } from "../../utils/apiConfig";
 import EyeOpen from "../../components/EyeOpen";
 import EyeClosed from "../../components/EyeClosed";
-
-const { height, width } = Dimensions.get("window");
+import { useTheme } from "../../utils/ThemeContext";
 
 const SignUp2Screen = ({ navigation }) => {
+  const { theme } = useTheme();
+  
   const [seePassword, setSeePassword] = useState(true);
   const [seeConfirmPassword, setSeeConfirmPassword] = useState(true);
 
@@ -29,25 +29,22 @@ const SignUp2Screen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [gender, setGender] = useState(""); // "male" | "female"
+  const [gender, setGender] = useState("");
   const [nickname, setNickname] = useState("");
 
-  // ✅ 생년월일: 3칸 입력 + 서버 전송은 YYYY-MM-DD
   const [birthY, setBirthY] = useState("");
   const [birthM, setBirthM] = useState("");
   const [birthD, setBirthD] = useState("");
-  const [birthdate, setBirthdate] = useState(""); // 조합된 값(서버 전송용)
+  const [birthdate, setBirthdate] = useState("");
 
-  // 주소 (필수 2 + 선택 2)
-  const [addrRegion, setAddrRegion] = useState(""); // 도/특별시/광역시
-  const [addrCity, setAddrCity] = useState(""); // 시/군/구
-  const [addrTown, setAddrTown] = useState(""); // 읍/면/동 (선택)
-  const [addrDetail, setAddrDetail] = useState(""); // 상세 (선택)
+  const [addrRegion, setAddrRegion] = useState("");
+  const [addrCity, setAddrCity] = useState("");
+  const [addrTown, setAddrTown] = useState("");
+  const [addrDetail, setAddrDetail] = useState("");
   const [showMoreAddr, setShowMoreAddr] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // refs: 포커스 이동
   const refPw = useRef(null);
   const refPw2 = useRef(null);
   const refNick = useRef(null);
@@ -60,42 +57,34 @@ const SignUp2Screen = ({ navigation }) => {
   const refDetail = useRef(null);
   const scrollRef = useRef(null);
 
- // 키보드 열릴 때 하단 여유공간을 크게 확보
- const [keyboardVisible, setKeyboardVisible] = useState(false);
- const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
- useEffect(() => {
-   const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-     setKeyboardVisible(true);
-     setKeyboardHeight(e?.endCoordinates?.height ?? 0);
-   });
-   const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-     setKeyboardVisible(false);
-     setKeyboardHeight(0);
-   });
-   return () => {
-     showSub.remove();
-     hideSub.remove();
-   };
- }, []);
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(e?.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
- // 기본 버튼 영역 96 + 키보드가 보이면 키보드 높이 + 여백 120
- const bottomSpacer = useMemo(() => {
-   if (!keyboardVisible) return 120; // 평소에도 넉넉히
-   return Math.max(220, keyboardHeight + 140);
- }, [keyboardVisible, keyboardHeight]);
+  const bottomSpacer = useMemo(() => {
+    if (!keyboardVisible) return 120;
+    return Math.max(220, keyboardHeight + 140);
+  }, [keyboardVisible, keyboardHeight]);
 
-
-
-
-
-  // validators
   const validateEmail = (e) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || "").trim().toLowerCase());
 
   const isValidDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test((d || "").trim());
 
-  // 비밀번호: 8~32자 & (영문/숫자/특수) 2종 이상
   const passwordValid = (p) => {
     const s = p || "";
     if (s.length < 8 || s.length > 32) return false;
@@ -104,7 +93,6 @@ const SignUp2Screen = ({ navigation }) => {
     return kinds >= 2;
   };
 
-  // 비밀번호 강도(0~3)
   const passwordStrength = useMemo(() => {
     if (!password) return 0;
     const lenScore = password.length >= 12 ? 1 : 0;
@@ -114,17 +102,15 @@ const SignUp2Screen = ({ navigation }) => {
       (/\d/.test(password) ? 1 : 0) +
       (/[^\w\s]/.test(password) ? 1 : 0);
     if (password.length >= 8 && kinds >= 2) {
-      if (lenScore && kinds >= 3) return 3; // 강
-      return 2; // 보통
+      if (lenScore && kinds >= 3) return 3;
+      return 2;
     }
-    return 1; // 약
+    return 1;
   }, [password]);
 
-  // 한국식 라이트 체크(끝글자 기준)
   const looksLikeRegion = (s) => /(도|특별시|광역시)$/.test((s || "").trim());
   const looksLikeCity = (s) => /(시|군|구)$/.test((s || "").trim());
 
-  // 서버 전송용 address 합치기
   const mergedAddress = useMemo(
     () =>
       [addrRegion, addrCity, addrTown, addrDetail]
@@ -134,7 +120,6 @@ const SignUp2Screen = ({ navigation }) => {
     [addrRegion, addrCity, addrTown, addrDetail]
   );
 
-  // 제출 가능 여부
   const canSubmit = useMemo(() => {
     return (
       validateEmail(email) &&
@@ -150,7 +135,6 @@ const SignUp2Screen = ({ navigation }) => {
     );
   }, [email, password, confirmPassword, gender, nickname, birthdate, addrRegion, addrCity]);
 
-  // 필드별 에러
   const fieldError = {
     email: email.length > 0 && !validateEmail(email) ? "올바른 이메일 형식이 아니에요." : "",
     password:
@@ -175,20 +159,14 @@ const SignUp2Screen = ({ navigation }) => {
         : "",
   };
 
-  // ✅ 생년월일 3칸 → YYYY-MM-DD로 자동 합치기
   useEffect(() => {
-    const y = (birthY || "").padStart(4, ""); // 그대로
-    const m = (birthM || "").padStart(2, "");
-    const d = (birthD || "").padStart(2, "");
     if (birthY.length === 4 && birthM.length === 2 && birthD.length === 2) {
       setBirthdate(`${birthY}-${birthM}-${birthD}`);
     } else {
-      // 불완전할 땐 빈 값으로 두어 검증에 걸리게
       setBirthdate("");
     }
   }, [birthY, birthM, birthD]);
 
-  // ✅ 각 칸 입력 시 숫자만, 글자수 채우면 자동으로 다음 칸 포커스
   const onChangeBirthY = (t) => {
     const v = (t || "").replace(/[^\d]/g, "").slice(0, 4);
     setBirthY(v);
@@ -198,7 +176,6 @@ const SignUp2Screen = ({ navigation }) => {
   };
   const onChangeBirthM = (t) => {
     let v = (t || "").replace(/[^\d]/g, "").slice(0, 2);
-    // 13월 방지(UX 차원에서 보정)
     if (v.length === 2) {
       const n = Math.max(1, Math.min(12, parseInt(v, 10) || 0));
       v = String(n).padStart(2, "0");
@@ -210,20 +187,17 @@ const SignUp2Screen = ({ navigation }) => {
   };
   const onChangeBirthD = (t) => {
     let v = (t || "").replace(/[^\d]/g, "").slice(0, 2);
-    // 32일 방지(대략적 보정)
     if (v.length === 2) {
       const n = Math.max(1, Math.min(31, parseInt(v, 10) || 0));
       v = String(n).padStart(2, "0");
     }
     setBirthD(v);
-    // 마지막 칸은 자동 이동 없음 (엔터로 다음 필드 이동)
   };
 
   const handleSignUp = async () => {
     if (isLoading) return;
     setIsLoading(true);
 
-    // 방어 검증
     if (!validateEmail(email)) {
       Alert.alert("오류", "올바른 이메일 형식을 입력해주세요.");
       setIsLoading(false); return;
@@ -266,7 +240,7 @@ const SignUp2Screen = ({ navigation }) => {
           password,
           gender,
           nickname: (nickname || "").trim(),
-          birthdate: birthdate.trim(), // ✅ 서버에는 YYYY-MM-DD 전달
+          birthdate: birthdate.trim(),
           address: mergedAddress,
         }),
       });
@@ -297,37 +271,43 @@ const SignUp2Screen = ({ navigation }) => {
   const strengthText = ["", "약함", "보통", "강함"][passwordStrength];
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: theme.background.primary }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? 56 : 0}
       >
-        {/* 헤더 */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.background.primary }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.backText}>{"<"}</Text>
+            <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>회원가입</Text>
+          <Text style={[styles.title, { color: theme.accent.primary }]}>회원가입</Text>
           <View style={{ width: 36 }} />
         </View>
 
-        {/* 폼 */}
         <ScrollView
+          ref={scrollRef}
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
           {/* 이메일 */}
-          <Text style={styles.label}>이메일</Text>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>이메일</Text>
           <TextInput
-            style={[styles.input, fieldError.email ? styles.inputError : null]}
+            style={[
+              styles.input,
+              { 
+                backgroundColor: theme.background.card,
+                color: theme.text.primary,
+                borderColor: fieldError.email ? theme.status.error : theme.border.medium
+              }
+            ]}
             placeholder="이메일 입력"
-            placeholderTextColor="#bcd1d6"
+            placeholderTextColor={theme.text.tertiary}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -335,18 +315,23 @@ const SignUp2Screen = ({ navigation }) => {
             returnKeyType="next"
             onSubmitEditing={() => refPw.current && refPw.current.focus && refPw.current.focus()}
           />
-          {!!fieldError.email && <Text style={styles.errorText}>{fieldError.email}</Text>}
+          {!!fieldError.email && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.email}</Text>}
 
           {/* 비밀번호 */}
-          <Text style={styles.label}>비밀번호</Text>
-          <View style={[styles.inputContainer, fieldError.password ? styles.inputError : null]}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>비밀번호</Text>
+          <View style={[
+            styles.inputContainer,
+            { 
+              backgroundColor: theme.background.card,
+              borderColor: fieldError.password ? theme.status.error : theme.border.medium
+            }
+          ]}>
             <TextInput
               ref={refPw}
-              style={styles.inputField}
+              style={[styles.inputField, { color: theme.text.primary }]}
               placeholder="비밀번호 입력"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               secureTextEntry={seePassword}
-              showSoftInputOnFocus={false}
               value={password}
               onChangeText={setPassword}
               returnKeyType="next"
@@ -357,29 +342,45 @@ const SignUp2Screen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {/* 강도 표시 */}
           {password.length > 0 && (
             <View style={styles.strengthRow}>
-              <View style={[styles.strengthBar, passwordStrength >= 1 && styles.strengthOn]} />
-              <View style={[styles.strengthBar, passwordStrength >= 2 && styles.strengthOn]} />
-              <View style={[styles.strengthBar, passwordStrength >= 3 && styles.strengthOn]} />
-              <Text style={styles.strengthText}>{strengthText}</Text>
+              <View style={[
+                styles.strengthBar,
+                { backgroundColor: theme.border.medium },
+                passwordStrength >= 1 && { backgroundColor: theme.accent.primary }
+              ]} />
+              <View style={[
+                styles.strengthBar,
+                { backgroundColor: theme.border.medium },
+                passwordStrength >= 2 && { backgroundColor: theme.accent.primary }
+              ]} />
+              <View style={[
+                styles.strengthBar,
+                { backgroundColor: theme.border.medium },
+                passwordStrength >= 3 && { backgroundColor: theme.accent.primary }
+              ]} />
+              <Text style={[styles.strengthText, { color: theme.text.secondary }]}>{strengthText}</Text>
             </View>
           )}
-          {!!fieldError.password && <Text style={styles.errorText}>{fieldError.password}</Text>}
-          <Text style={styles.passwordGuide}>영문 대/소문자·숫자·특수 중 2가지 이상, 8~32자</Text>
+          {!!fieldError.password && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.password}</Text>}
+          <Text style={[styles.passwordGuide, { color: theme.text.secondary }]}>영문 대/소문자·숫자·특수 중 2가지 이상, 8~32자</Text>
 
           {/* 비밀번호 확인 */}
-          <Text style={styles.label}>비밀번호 확인</Text>
-          <View style={[styles.inputContainer, fieldError.confirm ? styles.inputError : null]}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>비밀번호 확인</Text>
+          <View style={[
+            styles.inputContainer,
+            { 
+              backgroundColor: theme.background.card,
+              borderColor: fieldError.confirm ? theme.status.error : theme.border.medium
+            }
+          ]}>
             <TextInput
               ref={refPw2}
-              style={styles.inputField}
+              style={[styles.inputField, { color: theme.text.primary }]}
               placeholder="비밀번호 확인"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               secureTextEntry={seeConfirmPassword}
               value={confirmPassword}
-              //showSoftInputOnFocus={false}
               onChangeText={setConfirmPassword}
               returnKeyType="next"
               onSubmitEditing={() => refNick.current && refNick.current.focus && refNick.current.focus()}
@@ -388,55 +389,86 @@ const SignUp2Screen = ({ navigation }) => {
               {seeConfirmPassword ? <EyeClosed /> : <EyeOpen />}
             </TouchableOpacity>
           </View>
-          {!!fieldError.confirm && <Text style={styles.errorText}>{fieldError.confirm}</Text>}
+          {!!fieldError.confirm && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.confirm}</Text>}
           {confirmPassword.length > 0 && password === confirmPassword && (
-            <Text style={styles.passwordMatch}>비밀번호가 일치합니다.</Text>
+            <Text style={[styles.passwordMatch, { color: theme.status.success }]}>비밀번호가 일치합니다.</Text>
           )}
 
           {/* 성별 */}
-          <Text style={styles.label}>성별</Text>
-          <View style={styles.segment}>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>성별</Text>
+          <View style={[styles.segment, { backgroundColor: theme.background.secondary }]}>
             <Pressable
               onPress={() => setGender("male")}
-              style={[styles.segmentItem, gender === "male" && styles.segmentItemOn]}
+              style={[
+                styles.segmentItem,
+                { borderColor: theme.border.medium },
+                gender === "male" && { backgroundColor: theme.accent.primary, borderColor: theme.accent.primary }
+              ]}
               hitSlop={8}
             >
-              <Text style={[styles.segmentText, gender === "male" && styles.segmentTextOn]}>
+              <Text style={[
+                styles.segmentText,
+                { color: theme.text.secondary },
+                gender === "male" && { color: theme.background.primary }
+              ]}>
                 남성
               </Text>
             </Pressable>
             <Pressable
               onPress={() => setGender("female")}
-              style={[styles.segmentItem, gender === "female" && styles.segmentItemOn]}
+              style={[
+                styles.segmentItem,
+                { borderColor: theme.border.medium },
+                gender === "female" && { backgroundColor: theme.accent.primary, borderColor: theme.accent.primary }
+              ]}
               hitSlop={8}
             >
-              <Text style={[styles.segmentText, gender === "female" && styles.segmentTextOn]}>
+              <Text style={[
+                styles.segmentText,
+                { color: theme.text.secondary },
+                gender === "female" && { color: theme.background.primary }
+              ]}>
                 여성
               </Text>
             </Pressable>
           </View>
 
           {/* 닉네임 */}
-          <Text style={styles.label}>닉네임</Text>
+          <Text style={[styles.label, { color: theme.accent.primary }]}>닉네임</Text>
           <TextInput
             ref={refNick}
-            style={styles.input}
+            style={[
+              styles.input,
+              { 
+                backgroundColor: theme.background.card,
+                color: theme.text.primary,
+                borderColor: theme.border.medium
+              }
+            ]}
             placeholder="닉네임 입력"
-            placeholderTextColor="#bcd1d6"
+            placeholderTextColor={theme.text.tertiary}
             value={nickname}
             onChangeText={setNickname}
             returnKeyType="next"
             onSubmitEditing={() => refBirthY.current && refBirthY.current.focus && refBirthY.current.focus()}
           />
 
-          {/* ✅ 생년월일: 3칸 입력 */}
-          <Text style={styles.label}>생년월일</Text>
+          {/* 생년월일 */}
+          <Text style={[styles.label, { color: theme.accent.primary }]}>생년월일</Text>
           <View style={styles.birthRow}>
             <TextInput
               ref={refBirthY}
-              style={[styles.input, styles.birthColY, fieldError.birth ? styles.inputError : null]}
+              style={[
+                styles.input,
+                styles.birthColY,
+                { 
+                  backgroundColor: theme.background.card,
+                  color: theme.text.primary,
+                  borderColor: fieldError.birth ? theme.status.error : theme.border.medium
+                }
+              ]}
               placeholder="YYYY"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               keyboardType="number-pad"
               maxLength={4}
               value={birthY}
@@ -444,12 +476,20 @@ const SignUp2Screen = ({ navigation }) => {
               returnKeyType="next"
               onSubmitEditing={() => refBirthM.current && refBirthM.current.focus && refBirthM.current.focus()}
             />
-            <Text style={styles.birthDash}>-</Text>
+            <Text style={[styles.birthDash, { color: theme.text.secondary }]}>-</Text>
             <TextInput
               ref={refBirthM}
-              style={[styles.input, styles.birthCol, fieldError.birth ? styles.inputError : null]}
+              style={[
+                styles.input,
+                styles.birthCol,
+                { 
+                  backgroundColor: theme.background.card,
+                  color: theme.text.primary,
+                  borderColor: fieldError.birth ? theme.status.error : theme.border.medium
+                }
+              ]}
               placeholder="MM"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               keyboardType="number-pad"
               maxLength={2}
               value={birthM}
@@ -457,12 +497,20 @@ const SignUp2Screen = ({ navigation }) => {
               returnKeyType="next"
               onSubmitEditing={() => refBirthD.current && refBirthD.current.focus && refBirthD.current.focus()}
             />
-            <Text style={styles.birthDash}>-</Text>
+            <Text style={[styles.birthDash, { color: theme.text.secondary }]}>-</Text>
             <TextInput
               ref={refBirthD}
-              style={[styles.input, styles.birthCol, fieldError.birth ? styles.inputError : null]}
+              style={[
+                styles.input,
+                styles.birthCol,
+                { 
+                  backgroundColor: theme.background.card,
+                  color: theme.text.primary,
+                  borderColor: fieldError.birth ? theme.status.error : theme.border.medium
+                }
+              ]}
               placeholder="DD"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               keyboardType="number-pad"
               maxLength={2}
               value={birthD}
@@ -471,20 +519,28 @@ const SignUp2Screen = ({ navigation }) => {
               onSubmitEditing={() => refRegion.current && refRegion.current.focus && refRegion.current.focus()}
             />
           </View>
-          {!!fieldError.birth && <Text style={styles.errorText}>{fieldError.birth}</Text>}
+          {!!fieldError.birth && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.birth}</Text>}
 
           {/* 주소 */}
           <Text style={styles.labelRow}>
-            <Text style={styles.label}>주소</Text>
-            <Text style={styles.requiredBadge}>  (도/광역시 + 시/군/구 필수)</Text>
+            <Text style={[styles.label, { color: theme.accent.primary }]}>주소</Text>
+            <Text style={[styles.requiredBadge, { color: theme.accent.light }]}>  (도/광역시 + 시/군/구 필수)</Text>
           </Text>
 
           <View style={styles.rowTwoCols}>
             <TextInput
               ref={refRegion}
-              style={[styles.input, styles.col, fieldError.region ? styles.inputError : null]}
+              style={[
+                styles.input,
+                styles.col,
+                { 
+                  backgroundColor: theme.background.card,
+                  color: theme.text.primary,
+                  borderColor: fieldError.region ? theme.status.error : theme.border.medium
+                }
+              ]}
               placeholder="도/특별시/광역시 (예: 경기도)"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               value={addrRegion}
               onChangeText={setAddrRegion}
               returnKeyType="next"
@@ -492,27 +548,35 @@ const SignUp2Screen = ({ navigation }) => {
             />
             <TextInput
               ref={refCity}
-              style={[styles.input, styles.col, fieldError.city ? styles.inputError : null]}
+              style={[
+                styles.input,
+                styles.col,
+                { 
+                  backgroundColor: theme.background.card,
+                  color: theme.text.primary,
+                  borderColor: fieldError.city ? theme.status.error : theme.border.medium
+                }
+              ]}
               placeholder="시/군/구 (예: 화성시, 영통구)"
-              placeholderTextColor="#bcd1d6"
+              placeholderTextColor={theme.text.tertiary}
               value={addrCity}
               onChangeText={setAddrCity}
               returnKeyType="done"
               onSubmitEditing={() => setShowMoreAddr(true)}
             />
           </View>
-          {!!fieldError.region && <Text style={styles.errorText}>{fieldError.region}</Text>}
-          {!!fieldError.city && <Text style={styles.errorText}>{fieldError.city}</Text>}
-          <Text style={styles.inlineHint}>예) 경기도 화성시</Text>
+          {!!fieldError.region && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.region}</Text>}
+          {!!fieldError.city && <Text style={[styles.errorText, { color: theme.status.error }]}>{fieldError.city}</Text>}
+          <Text style={[styles.inlineHint, { color: theme.text.tertiary }]}>예) 경기도 화성시</Text>
 
-          {/* 선택 아코디언: 🔺 화살표 크게 */}
+          {/* 추가 주소 아코디언 */}
           <Pressable
             onPress={() => setShowMoreAddr((v) => !v)}
             style={styles.accordionHeader}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.accordionTitle}>추가 주소 입력 (선택)</Text>
-            <Text style={styles.accordionChevron}>{showMoreAddr ? "▴" : "▾"}</Text>
+            <Text style={[styles.accordionTitle, { color: theme.text.secondary }]}>추가 주소 입력 (선택)</Text>
+            <Text style={[styles.accordionChevron, { color: theme.text.secondary }]}>{showMoreAddr ? "▴" : "▾"}</Text>
           </Pressable>
 
           {showMoreAddr && (
@@ -520,56 +584,74 @@ const SignUp2Screen = ({ navigation }) => {
               <View style={styles.rowTwoCols}>
                 <TextInput
                   ref={refTown}
-                  style={[styles.input, styles.col]}
+                  style={[
+                    styles.input,
+                    styles.col,
+                    { 
+                      backgroundColor: theme.background.card,
+                      color: theme.text.primary,
+                      borderColor: theme.border.medium
+                    }
+                  ]}
                   placeholder="읍/면/동 (예: 동탄동 · 봉담읍)"
-                  placeholderTextColor="#bcd1d6"
+                  placeholderTextColor={theme.text.tertiary}
                   value={addrTown}
                   onChangeText={setAddrTown}
                   returnKeyType="next"
                   onSubmitEditing={() => refDetail.current && refDetail.current.focus && refDetail.current.focus()}
                   onFocus={() => {
-                   if (!showMoreAddr) setShowMoreAddr(true);
+                    if (!showMoreAddr) setShowMoreAddr(true);
                     requestAnimationFrame(() => {
-                     scrollRef.current?.scrollToEnd({ animated: true });
+                      scrollRef.current?.scrollToEnd({ animated: true });
                     });
-                }}
+                  }}
                 />
                 <TextInput
                   ref={refDetail}
-                  style={[styles.input, styles.col]}
+                  style={[
+                    styles.input,
+                    styles.col,
+                    { 
+                      backgroundColor: theme.background.card,
+                      color: theme.text.primary,
+                      borderColor: theme.border.medium
+                    }
+                  ]}
                   placeholder="상세 (예: ○○아파트 101동)"
-                  placeholderTextColor="#bcd1d6"
+                  placeholderTextColor={theme.text.tertiary}
                   value={addrDetail}
                   onChangeText={setAddrDetail}
                   returnKeyType="done"
-
-
-                onFocus={() => {
-                 if (!showMoreAddr) setShowMoreAddr(true);
-                   requestAnimationFrame(() => {
-                     scrollRef.current?.scrollToEnd({ animated: true });
-                   });
-                 }}
-
-
+                  onFocus={() => {
+                    if (!showMoreAddr) setShowMoreAddr(true);
+                    requestAnimationFrame(() => {
+                      scrollRef.current?.scrollToEnd({ animated: true });
+                    });
+                  }}
                 />
               </View>
             </View>
           )}
 
-          {/* 하단 여백: 버튼 공간 확보 */}
           <View style={{ height: bottomSpacer }} />
         </ScrollView>
 
         {/* 제출 버튼 */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { backgroundColor: `${theme.background.primary}ee` }]}>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: canSubmit ? "#F074BA" : "#F8C7CC" }]}
+            style={[
+              styles.button,
+              { backgroundColor: canSubmit ? theme.button.primary : theme.text.disabled }
+            ]}
             onPress={handleSignUp}
             disabled={!canSubmit || isLoading}
             activeOpacity={0.9}
           >
-            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>인증하기</Text>}
+            {isLoading ? (
+              <ActivityIndicator color={theme.background.primary} />
+            ) : (
+              <Text style={[styles.buttonText, { color: theme.background.primary }]}>인증하기</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -578,7 +660,7 @@ const SignUp2Screen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#003340" },
+  safe: { flex: 1 },
   flex: { flex: 1 },
 
   header: {
@@ -587,56 +669,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    backgroundColor: "#003340",
   },
   backButton: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  backText: { fontSize: 28, color: "#F074BA", marginTop: -2 },
-  title: { fontSize: 20, fontWeight: "bold", color: "#F074BA" },
+  backText: { fontSize: 28, marginTop: -2 },
+  title: { fontSize: 20, fontWeight: "bold" },
 
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 8, paddingBottom: 8 },
 
-  label: { fontSize: 15, color: "#F074BA", marginTop: 12, marginBottom: 8 },
-  labelRow: { fontSize: 16, color: "#F074BA", marginTop: 12, marginBottom: 8 },
-  requiredBadge: { fontSize: 12, color: "#ffcae4" },
+  label: { fontSize: 15, marginTop: 12, marginBottom: 8 },
+  labelRow: { fontSize: 16, marginTop: 12, marginBottom: 8 },
+  requiredBadge: { fontSize: 12 },
 
   input: {
     width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: "#87a9b1",
     borderRadius: 10,
     paddingHorizontal: 14,
     marginBottom: 10,
     fontSize: 16,
-    backgroundColor: "#f1f6f7",
-    color: "#0a0a0a",
   },
-  inputError: { borderColor: "#ff8a8a" },
 
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     width: "100%",
     borderWidth: 1,
-    borderColor: "#87a9b1",
     borderRadius: 10,
-    backgroundColor: "#f1f6f7",
     marginBottom: 10,
     paddingHorizontal: 6,
   },
-  inputField: { flex: 1, height: 50, fontSize: 16, color: "#0a0a0a", paddingHorizontal: 8 },
+  inputField: { flex: 1, height: 50, fontSize: 16, paddingHorizontal: 8 },
   icon: { padding: 10 },
 
-  errorText: { color: "tomato", fontSize: 12, marginBottom: 6, marginLeft: 2 },
-  passwordGuide: { fontSize: 12, color: "#cfe7ec", marginBottom: 6, marginLeft: 2 },
-  passwordMatch: { fontSize: 12, color: "#00e676", marginBottom: 6, marginLeft: 2 },
+  errorText: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
+  passwordGuide: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
+  passwordMatch: { fontSize: 12, marginBottom: 6, marginLeft: 2 },
 
-  // 성별 세그먼트
   segment: {
     flexDirection: "row",
     gap: 10,
-    backgroundColor: "#0e4652",
     padding: 6,
     borderRadius: 12,
     alignSelf: "flex-start",
@@ -646,42 +719,32 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 10,
-    backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: "transparent",
   },
-  segmentItemOn: { backgroundColor: "#F074BA" },
-  segmentText: { color: "#d2eef3", fontSize: 14, fontWeight: "600" },
-  segmentTextOn: { color: "#fff" },
+  segmentText: { fontSize: 14, fontWeight: "600" },
 
-  // 비밀번호 강도
   strengthRow: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6, marginLeft: 2 },
-  strengthBar: { width: 32, height: 6, borderRadius: 4, backgroundColor: "#6e8f98" },
-  strengthOn: { backgroundColor: "#F074BA" },
-  strengthText: { color: "#cfe7ec", fontSize: 12, marginLeft: 6 },
+  strengthBar: { width: 32, height: 6, borderRadius: 4 },
+  strengthText: { fontSize: 12, marginLeft: 6 },
 
-  // 생년월일 3칸
   birthRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
   birthColY: { flex: 1.2, textAlign: "center" },
   birthCol: { flex: 0.9, textAlign: "center" },
-  birthDash: { color: "#cfe7ec", marginHorizontal: 6, fontSize: 18, marginBottom: 4 },
+  birthDash: { marginHorizontal: 6, fontSize: 18, marginBottom: 4 },
 
-  // 주소
   rowTwoCols: { flexDirection: "row", gap: 10 },
   col: { flex: 1 },
-  inlineHint: { fontSize: 12, color: "#9bbcc4", marginTop: -2, marginBottom: 6, marginLeft: 2 },
+  inlineHint: { fontSize: 12, marginTop: -2, marginBottom: 6, marginLeft: 2 },
 
-  // 🔺 커진 아코디언 화살표
   accordionHeader: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
   },
-  accordionTitle: { fontSize: 15, color: "#cfe7ec" },
-  accordionChevron: { fontSize: 22, color: "#cfe7ec" }, // ← 기존보다 크게
+  accordionTitle: { fontSize: 15 },
+  accordionChevron: { fontSize: 22 },
 
-  // 푸터 버튼
   footer: {
     position: "absolute",
     left: 0,
@@ -690,7 +753,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 16,
-    backgroundColor: "rgba(0, 51, 64, 0.92)",
   },
   button: {
     height: 52,
@@ -698,7 +760,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  buttonText: { fontSize: 18, fontWeight: "bold" },
 });
 
 export default SignUp2Screen;

@@ -16,7 +16,13 @@ import RecommendedStock from "../../components/RecommendedStock";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { fetchWithHantuToken } from "../../utils/hantuToken";
 
+// 🎨 테마 훅 import
+import { useTheme } from "../../utils/ThemeContext";
+
 const StockTradeScreen = ({ navigation }) => {
+  // 🎨 테마 가져오기
+  const { theme } = useTheme();
+  
   console.log("📌 StockTradeScreen 렌더링");
   const [userInfo, setUserInfo] = useState(null);
   const [portfolioData, setPortfolioData] = useState([]);
@@ -176,14 +182,7 @@ const StockTradeScreen = ({ navigation }) => {
   };
 
   const getChangeColor = (changeStatus) => {
-    switch (changeStatus) {
-      case "up":
-        return "#F074BA"; // 상승 - 핑크
-      case "down":
-        return "#00BFFF"; // 하락 - 파랑
-      default:
-        return "#AAAAAA"; // 보합 - 회색
-    }
+    return theme.status[changeStatus] || theme.status.same;
   };
 
   const getChangeSymbol = (changeStatus) => {
@@ -199,24 +198,24 @@ const StockTradeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: "center" }]}>
-        <ActivityIndicator size="large" color="#F074BA" />
-        <Text style={styles.loadingText}>보유 주식 정보를 불러오는 중...</Text>
+      <View style={[styles.container, { backgroundColor: theme.background.primary, justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={theme.accent.primary} />
+        <Text style={[styles.loadingText, { color: theme.text.primary }]}>보유 주식 정보를 불러오는 중...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* 상단 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <Text style={styles.backText}>{"<"}</Text>
+          <Text style={[styles.backText, { color: theme.accent.primary }]}>{"<"}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>주식 거래하기</Text>
+        <Text style={[styles.headerTitle, { color: theme.accent.primary }]}>주식 거래하기</Text>
       </View>
 
       <ScrollView
@@ -224,8 +223,8 @@ const StockTradeScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* 현재 보유 주식 */}
-        <Text style={styles.sectionTitle}>현재 보유 주식</Text>
-        <View style={styles.divider} />
+        <Text style={[styles.sectionTitle, { color: theme.accent.secondary }]}>현재 보유 주식</Text>
+        <View style={[styles.divider, { backgroundColor: theme.background.secondary }]} />
 
         {portfolioData.length > 0 ? (
           portfolioData.map((stock) => (
@@ -242,11 +241,11 @@ const StockTradeScreen = ({ navigation }) => {
                 activeOpacity={0.7}
               >
                 <View style={styles.stockInfo}>
-                  <Text style={styles.stockName}>{stock.name}</Text>
-                  <Text style={styles.stockCode}>({stock.symbol})</Text>
+                  <Text style={[styles.stockName, { color: theme.text.primary }]}>{stock.name}</Text>
+                  <Text style={[styles.stockCode, { color: theme.text.tertiary }]}>({stock.symbol})</Text>
 
                   <View style={styles.priceContainer}>
-                    <Text style={styles.stockPrice}>
+                    <Text style={[styles.stockPrice, { color: theme.text.primary }]}>
                       {formatNumber(stock.price)}원
                     </Text>
                     <Text
@@ -266,14 +265,14 @@ const StockTradeScreen = ({ navigation }) => {
                   <Text style={styles.stockLine}>
                     총 매수 금액: {formatNumber(stock.totalBuyPrice)}원
                   </Text>
-                  <Text style={styles.quantity}>
+                  <Text style={[styles.quantity, { color: theme.text.primary }]}>
                     보유 수량: {formatNumber(stock.quantity)}주
                   </Text>
                 </View>
 
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity
-                    style={styles.buyButton}
+                    style={[styles.buyButton, { backgroundColor: theme.status.down }]}
                     onPress={(e) => {
                       e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
                       console.log("매수 버튼 클릭됨");
@@ -294,27 +293,27 @@ const StockTradeScreen = ({ navigation }) => {
                       navigation.navigate("TradingBuy", { stock });
                     }}
                   >
-                    <Text style={styles.buyText}>매수</Text>
+                    <Text style={[styles.buyText, { color: theme.background.primary }]}>매수</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.sellButton}
+                    style={[styles.sellButton, { backgroundColor: theme.status.up }]}
                     onPress={(e) => {
                       e.stopPropagation(); // 부모 TouchableOpacity 이벤트 방지
                       navigation.navigate("TradingSell", { stock });
                     }}
                   >
-                    <Text style={styles.sellText}>매도</Text>
+                    <Text style={[styles.sellText, { color: theme.background.primary }]}>매도</Text>
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: theme.background.secondary }]} />
             </View>
           ))
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>보유 중인 주식이 없습니다</Text>
-            <Text style={styles.emptySubText}>
+            <Text style={[styles.emptyText, { color: theme.text.primary }]}>보유 중인 주식이 없습니다</Text>
+            <Text style={[styles.emptySubText, { color: theme.text.tertiary }]}>
               아래 추천 주식에서 투자를 시작해보세요!
             </Text>
           </View>
@@ -348,7 +347,6 @@ const StockTradeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: "#003340",
     justifyContent: "center",
     paddingHorizontal: 30,
   },
@@ -360,7 +358,6 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 36,
-    color: "#F074BA",
   },
   scrollView: {
     flex: 1,
@@ -381,19 +378,16 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#F074BA",
     textAlign: "center",
     top: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    color: "#FFD1EB",
     fontWeight: "bold",
     marginBottom: 0,
   },
   divider: {
     height: 1,
-    backgroundColor: "#4A5A60",
     marginVertical: 10,
   },
   stockItem: {
@@ -407,13 +401,11 @@ const styles = StyleSheet.create({
   },
   stockName: {
     fontSize: 16,
-    color: "#EFF1F5",
     fontWeight: "bold",
     marginBottom: 4,
   },
   stockCode: {
     fontSize: 12,
-    color: "#AFA5CF",
     marginBottom: 8,
   },
   priceContainer: {
@@ -422,7 +414,6 @@ const styles = StyleSheet.create({
   },
   stockPrice: {
     fontSize: 18,
-    color: "#EFF1F5",
     fontWeight: "bold",
     marginRight: 10,
   },
@@ -442,7 +433,6 @@ const styles = StyleSheet.create({
   },
   quantity: {
     fontSize: 14,
-    color: "#EFF1F5",
     marginTop: 4,
   },
   buttonContainer: {
@@ -450,24 +440,20 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   buyButton: {
-    backgroundColor: "#6EE69E",
     paddingVertical: 8,
     paddingHorizontal: 18,
     borderRadius: 8,
   },
   buyText: {
-    color: "#003340",
     fontWeight: "bold",
     fontSize: 16,
   },
   sellButton: {
-    backgroundColor: "#F074BA",
     paddingVertical: 8,
     paddingHorizontal: 18,
     borderRadius: 8,
   },
   sellText: {
-    color: "#003340",
     fontWeight: "bold",
     fontSize: 16,
   },
@@ -477,17 +463,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#EFF1F5",
     textAlign: "center",
     marginBottom: 8,
   },
   emptySubText: {
     fontSize: 14,
-    color: "#AFA5CF",
     textAlign: "center",
   },
   loadingText: {
-    color: "#EFF1F5",
     fontSize: 16,
     marginTop: 10,
     textAlign: "center",
@@ -497,7 +480,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   recommendedLoadingText: {
-    color: "#AFA5CF",
     fontSize: 14,
   },
 });
